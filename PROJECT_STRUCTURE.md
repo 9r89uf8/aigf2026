@@ -43,6 +43,9 @@ nextaifg2026/
                gallery/page.js  # Gallery media
                posts/page.js    # Post media
                assets/page.js   # AI reply assets
+    chat/                     # Chat system
+       page.js                # Thread list (conversations overview)
+       [conversationId]/page.js # Individual conversation view
     checkout/success/page.js  # Payment success
     plans/page.js             # Pricing plans
     layout.js                 # Root layout with auth providers
@@ -52,6 +55,8 @@ nextaifg2026/
  components/
     AccountForm.js            # User profile editor
     Navbar.js                 # Auth-aware navigation
+    chat/
+        useInvisibleTurnstile.js # Turnstile security hook
     admin/
         MediaUploader.js      # Reusable media uploader
  convex/                       # Backend (Convex)
@@ -59,7 +64,10 @@ nextaifg2026/
     auth.js                   # Convex Auth config
     auth.config.js            # Auth domain binding
     http.js                   # HTTP routes for auth
-    turnstile.js              # Cloudflare verification
+    turnstile.js              # Cloudflare verification + permit system
+    chat.js                   # Chat queries/mutations
+    chat_actions.js           # AI reply actions with LLM integration
+    chat.config.js            # Chat system configuration
     users.js                  # User queries
     profile.js                # Profile mutations/queries
     girls.js                  # Girls CRUD + media
@@ -187,6 +195,49 @@ nextaifg2026/
 // Indexes: by_key
 ```
 
+#### `conversations` (Chat Conversations)
+```javascript
+{
+  userId: Id<"users">,              // Conversation owner
+  girlId: Id<"girls">,              // AI girlfriend profile
+  freeRemaining: {                  // Free message quotas
+    text: 10,                       // Text messages left
+    media: 2,                       // Future: image/video uploads
+    audio: 3,                       // Future: voice notes
+  },
+  lastMessageAt: 1234567890,        // Latest activity (for sorting)
+  lastMessagePreview: "Hey there...", // Denormalized for thread list
+  lastReadAt: 1234567890,           // For unread indicator
+  createdAt: 1234567890,
+  updatedAt: 1234567890,
+}
+// Indexes: by_user_updated, by_user_girl
+```
+
+#### `messages` (Chat Messages)
+```javascript
+{
+  conversationId: Id<"conversations">,
+  sender: "user" | "ai",            // Message sender
+  kind: "text",                     // Section 1: text only
+  text: "Hello there!",             // Message content
+  createdAt: 1234567890,            // Message timestamp
+}
+// Indexes: by_conversation_ts
+```
+
+#### `turnstile_permits` (Security Permits)
+```javascript
+{
+  userId: Id<"users">,
+  usesLeft: 5,                      // Remaining uses (5 free, 50 premium)
+  expiresAt: 1234567890,            // Expiry time (2min free, 10min premium)
+  createdAt: 1234567890,
+  scope: "chat_send",               // Optional: permit scope
+}
+// Indexes: by_user
+```
+
 ## Backend Architecture (Convex)
 
 ### Function Types
@@ -212,6 +263,29 @@ export const getMe = query({
     };
   },
 });
+
+// convex/chat.js - Real-time conversation query
+export const getConversation = query({
+  args: { conversationId: v.id("conversations"), limit: v.optional(v.number()) },
+  handler: async (ctx, { conversationId, limit = 50 }) => {
+    const userId = await getAuthUserId(ctx);
+    const convo = await ctx.db.get(conversationId);
+    if (!convo || convo.userId !== userId) throw new Error("Not found");
+
+    const messages = await ctx.db
+      .query("messages")
+      .withIndex("by_conversation_ts", q => q.eq("conversationId", conversationId))
+      .order("desc")
+      .take(limit);
+
+    return {
+      conversationId,
+      girlId: convo.girlId,
+      freeRemaining: convo.freeRemaining,
+      messages: messages.reverse(), // Ascending for UI
+    };
+  },
+});
 ```
 
 #### Mutations (Write Data)
@@ -227,6 +301,44 @@ export const upsertMine = mutation({
     return { ok: true };
   },
 });
+
+// convex/chat.js - Secure message sending with permit validation
+export const sendMessage = mutation({
+  args: {
+    conversationId: v.id("conversations"),
+    text: v.string(),
+    permitId: v.id("turnstile_permits"),
+  },
+  handler: async (ctx, { conversationId, text, permitId }) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw new Error("Unauthenticated");
+
+    // Validate and consume permit (server-side security)
+    const permit = await ctx.db.get(permitId);
+    if (!permit || permit.userId !== userId ||
+        permit.expiresAt < Date.now() || permit.usesLeft <= 0) {
+      throw new Error("Security check failed");
+    }
+    await ctx.db.patch(permitId, { usesLeft: permit.usesLeft - 1 });
+
+    // Enforce quota for free users
+    const convo = await ctx.db.get(conversationId);
+    const premiumActive = await getPremiumActive(ctx, userId);
+    if (!premiumActive && convo.freeRemaining.text <= 0) {
+      throw new Error("Free quota exhausted");
+    }
+
+    // Insert message and schedule AI reply
+    await ctx.db.insert("messages", {
+      conversationId, sender: "user", kind: "text",
+      text: text.trim(), createdAt: Date.now(),
+    });
+
+    // Schedule AI response after mutation commits
+    await ctx.scheduler.runAfter(0, api.chat_actions.aiReply, { conversationId });
+    return { ok: true };
+  },
+});
 ```
 
 #### Actions (External APIs)
@@ -238,6 +350,44 @@ export const signAvatarUpload = action({
     const userId = await getAuthUserId(ctx);
     // S3 operations...
     return { uploadUrl, objectKey };
+  },
+});
+
+// convex/chat_actions.js - AI reply generation with LLM fallback
+export const aiReply = action({
+  args: { conversationId: v.id("conversations") },
+  handler: async (ctx, { conversationId }) => {
+    // Get conversation context
+    const { persona, history } = await ctx.runQuery(api.chat_actions._getContext, {
+      conversationId, limit: 8,
+    });
+
+    const messages = [
+      { role: "system", content: persona },
+      ...history,
+    ];
+
+    // Try primary LLM (DeepSeek), fallback to Together.ai
+    let text;
+    try {
+      text = await callOpenAICompat({
+        baseUrl: process.env.LLM_BASE_URL_PRIMARY,
+        apiKey: process.env.LLM_API_KEY_PRIMARY,
+        model: process.env.LLM_MODEL_PRIMARY,
+        messages,
+      });
+    } catch (e) {
+      text = await callOpenAICompat({
+        baseUrl: process.env.LLM_BASE_URL_FALLBACK,
+        apiKey: process.env.LLM_API_KEY_FALLBACK,
+        model: process.env.LLM_MODEL_FALLBACK,
+        messages,
+      });
+    }
+
+    // Insert AI response
+    await ctx.runMutation(api.chat._insertAIMessage, { conversationId, text });
+    return { ok: true };
   },
 });
 ```
@@ -424,6 +574,59 @@ background/{uuid}.{ext}       # Girl backgrounds
 media/{uuid}.{ext}            # Gallery/posts/assets
 ```
 
+### Chat System
+
+#### Features
+- **Real-time conversations** with AI girlfriends
+- **Permit-based security** using Cloudflare Turnstile
+- **Free quota enforcement** with premium bypass
+- **AI integration** with DeepSeek → Together.ai fallback
+- **Thread management** with unread indicators
+- **Reactive UI** powered by single Convex query
+
+#### Architecture
+- **Single reactive query** drives conversation screens via `getConversation`
+- **Server-validated security** using Turnstile permits (multi-use, time-limited)
+- **Scheduled AI actions** for deterministic mutations and LLM API calls
+- **Denormalized threading** for fast thread list performance
+- **Context-aware AI** with conversation history and girl personas
+
+#### Key Files
+- `app/chat/page.js` - Thread list with real-time updates
+- `app/chat/[conversationId]/page.js` - Conversation interface
+- `components/chat/useInvisibleTurnstile.js` - Security hook
+- `convex/chat.js` - Core queries/mutations
+- `convex/chat_actions.js` - AI reply generation
+- `convex/turnstile.js` - Permit system
+- `convex/chat.config.js` - Configuration constants
+
+#### Security Patterns
+```javascript
+// Permit validation in every mutation
+const permit = await ctx.db.get(permitId);
+if (!permit || permit.userId !== userId ||
+    permit.expiresAt < Date.now() || permit.usesLeft <= 0) {
+  throw new Error("Security check failed");
+}
+await ctx.db.patch(permitId, { usesLeft: permit.usesLeft - 1 });
+```
+
+#### Quota Enforcement
+```javascript
+// Free users get limited messages per girlfriend
+const premiumActive = await getPremiumActive(ctx, userId);
+if (!premiumActive && convo.freeRemaining.text <= 0) {
+  throw new Error("Free quota exhausted");
+}
+```
+
+#### AI Integration Flow
+```
+User sends message → sendMessage mutation → ctx.scheduler.runAfter(0, aiReply)
+                                           ↓
+AI action: Get context → Try DeepSeek → Fallback to Together.ai → Insert response
+```
+
 ## Frontend Architecture
 
 ### Next.js Patterns
@@ -506,104 +709,203 @@ function NavBar() {
 }
 ```
 
-## Integration Points for Chat System
+## Chat System Implementation Details
 
-### 1. User Context
+### Real-time UI Patterns
+
+#### Thread List with Real-time Updates
 ```javascript
-// Get current user in chat components
-const me = useQuery(api.users.getMe);
-const userId = me ? await getAuthUserId(ctx) : null;
+// app/chat/page.js
+export default function ThreadsPage() {
+  const threads = useQuery(api.chat.getThreads) || [];
 
-// Check premium status
-const premiumStatus = useQuery(api.payments.getPremiumStatus);
-const isPremium = premiumStatus?.active;
+  return (
+    <div className="max-w-screen-sm mx-auto p-4">
+      <h1 className="text-xl font-semibold mb-4">Chats</h1>
+      <ul className="divide-y">
+        {threads.map(t => (
+          <li key={t.conversationId} className="py-3">
+            <Link href={`/chat/${t.conversationId}`}>
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-gray-200" />
+                <div className="flex-1">
+                  <div className="flex items-center justify-between">
+                    <span className="font-medium">{t.girlName}</span>
+                    <span className="text-xs text-gray-500">
+                      {new Date(t.lastMessageAt).toLocaleTimeString()}
+                    </span>
+                  </div>
+                  <div className="text-sm text-gray-600">
+                    {t.lastMessagePreview || "Say hi 👋"}
+                  </div>
+                </div>
+                {t.unread && <span className="w-2 h-2 bg-blue-500 rounded-full" />}
+              </div>
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
 ```
 
-### 2. Girl Data Access
+#### Conversation Interface with Security
 ```javascript
-// Get available girls (for chat selection)
-const girls = useQuery(api.girls.listGirls); // Admin only - create public version
+// app/chat/[conversationId]/page.js
+export default function ConversationPage({ params }) {
+  const [text, setText] = useState("");
+  const [permit, setPermit] = useState(null);
 
-// Get girl details for chat
-const girl = useQuery(api.girls.getGirl, { girlId });
+  const conversation = useQuery(api.chat.getConversation, {
+    conversationId: params.conversationId
+  });
 
-// Get girl media for chat replies
-const assets = useQuery(api.girls.listGirlMedia, {
-  girlId,
-  surface: "assets"
-});
+  const { ready, getToken } = useInvisibleTurnstile();
+  const mintPermit = useAction(api.turnstile.mintPermit);
+  const sendMessage = useMutation(api.chat.sendMessage);
+
+  // Prefetch permit when page loads
+  useEffect(() => {
+    if (ready && !permit) {
+      getToken().then(token =>
+        mintPermit({ token, scope: "chat_send" })
+      ).then(setPermit);
+    }
+  }, [ready]);
+
+  const handleSend = async () => {
+    if (!permit || permit.usesLeft <= 0) {
+      // Get fresh permit
+      const token = await getToken();
+      const newPermit = await mintPermit({ token, scope: "chat_send" });
+      setPermit(newPermit);
+      await sendMessage({
+        conversationId: params.conversationId,
+        text,
+        permitId: newPermit.permitId,
+      });
+    } else {
+      await sendMessage({
+        conversationId: params.conversationId,
+        text,
+        permitId: permit.permitId,
+      });
+      // Optimistically decrement
+      setPermit(p => ({ ...p, usesLeft: p.usesLeft - 1 }));
+    }
+    setText("");
+  };
+
+  return (
+    <div className="h-screen flex flex-col">
+      {/* Messages */}
+      <div className="flex-1 overflow-y-auto p-4">
+        {conversation?.messages?.map((msg, i) => (
+          <div key={i} className={`mb-4 ${msg.sender === "user" ? "text-right" : ""}`}>
+            <div className={`inline-block p-3 rounded-lg ${
+              msg.sender === "user"
+                ? "bg-blue-500 text-white"
+                : "bg-gray-200"
+            }`}>
+              {msg.text}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Input */}
+      <div className="border-t p-4">
+        <div className="flex gap-2">
+          <input
+            className="flex-1 input"
+            value={text}
+            onChange={e => setText(e.target.value)}
+            placeholder="Type a message..."
+            onKeyDown={e => e.key === "Enter" && handleSend()}
+          />
+          <button onClick={handleSend} className="btn">
+            Send
+          </button>
+        </div>
+
+        {/* Quota warning */}
+        {!conversation?.premiumActive && conversation?.freeRemaining?.text <= 3 && (
+          <div className="mt-2 text-sm text-amber-600">
+            {conversation.freeRemaining.text} free messages remaining.
+            <a href="/plans" className="text-blue-600 underline ml-1">Upgrade</a>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
 ```
 
-### 3. Premium Gating Pattern
+### Security Implementation
+
+#### Turnstile Permit System
 ```javascript
-// In chat mutation/query
-export const sendMessage = mutation({
-  handler: async (ctx, { message, girlId }) => {
+// convex/turnstile.js
+export const mintPermit = action({
+  args: { token: v.string(), scope: v.optional(v.string()) },
+  handler: async (ctx, { token, scope = "chat_send" }) => {
     const userId = await getAuthUserId(ctx);
     if (!userId) throw new Error("Unauthenticated");
 
-    // Check premium for advanced features
-    const profile = await ctx.db
-      .query("profiles")
-      .withIndex("by_userId", q => q.eq("userId", userId))
-      .first();
+    // Verify token with Cloudflare
+    const result = await fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({
+        secret: process.env.TURNSTILE_SECRET_KEY,
+        response: token,
+      }),
+    });
 
+    const { success } = await result.json();
+    if (!success) throw new Error("Turnstile verification failed");
+
+    // Check premium status for permit limits
+    const profile = await ctx.runQuery(api.profile.getMine, {});
     const isPremium = profile?.premiumUntil > Date.now();
 
-    // Example gating
-    if (message.length > 100 && !isPremium) {
-      throw new Error("Long messages require premium");
-    }
+    const permitId = await ctx.runMutation(api.turnstile._createPermit, {
+      userId,
+      usesLeft: isPremium ? PERMIT_USES_PREMIUM : PERMIT_USES_FREE,
+      ttlMs: isPremium ? PERMIT_TTL_MS_PREMIUM : PERMIT_TTL_MS_FREE,
+      scope,
+    });
 
-    // Chat logic...
+    return { permitId, usesLeft: isPremium ? PERMIT_USES_PREMIUM : PERMIT_USES_FREE };
   },
 });
 ```
 
-### 4. Media Handling for Chat
-```javascript
-// For AI replies with media
-const mediaAssets = await ctx.db
-  .query("girl_media")
-  .withIndex("by_girl_assets", q => q.eq("girlId", girlId))
-  .filter(q => q.eq(q.field("isReplyAsset"), true))
-  .collect();
+### Complete User Flow Example
 
-// Generate viewing URLs
-const signedUrl = await cfSignView({ key: asset.objectKey });
+#### From Thread Selection to AI Response
 ```
+1. User visits /chat
+   ├─ getThreads query → renders conversation list
+   └─ Click conversation → navigate to /chat/[conversationId]
 
-### 5. Real-time Patterns
-```javascript
-// Chat messages table (to be created)
-chat_messages: defineTable({
-  userId: v.id("users"),
-  girlId: v.id("girls"),
-  content: v.string(),
-  isFromUser: v.boolean(),
-  mediaKey: v.optional(v.string()),
-  createdAt: v.number(),
-})
-.index("by_user_girl", ["userId", "girlId"])
-.index("by_conversation", ["userId", "girlId", "createdAt"])
+2. Conversation page loads
+   ├─ getConversation query → renders messages + UI
+   ├─ useInvisibleTurnstile → loads Cloudflare widget
+   └─ Prefetch permit: getToken() → mintPermit() → store locally
 
-// Real-time subscription
-const messages = useQuery(api.chat.getMessages, { girlId });
-```
+3. User sends message
+   ├─ Validate local permit (usesLeft > 0, not expired)
+   ├─ If invalid: getToken() → mintPermit() → fresh permit
+   ├─ sendMessage({ conversationId, text, permitId })
+   └─ Server: validate permit → consume use → insert message → schedule AI
 
-### 6. File Upload Pattern (for user chat media)
-```javascript
-// Add to convex/s3.js
-export const signChatMediaUpload = action({
-  args: { contentType: v.string(), size: v.number() },
-  handler: async (ctx, { contentType, size }) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error("Unauthenticated");
-
-    const key = `chat/${userId}/${crypto.randomUUID()}.${extFromContentType(contentType)}`;
-    // Return presigned URL...
-  },
-});
+4. Real-time updates
+   ├─ User message appears immediately (reactive)
+   ├─ AI action runs in background after mutation commits
+   ├─ aiReply: get context → call LLM → insert AI message
+   └─ AI message appears automatically (reactive)
 ```
 
 ## Key Environment Variables
@@ -631,6 +933,15 @@ CF_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----"
 STRIPE_SECRET_KEY=sk_test_...
 NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_...
 SITE_URL=http://localhost:3000
+
+# LLM APIs (Chat System)
+LLM_BASE_URL_PRIMARY=https://api.deepseek.com
+LLM_API_KEY_PRIMARY=your_deepseek_api_key
+LLM_MODEL_PRIMARY=deepseek-chat
+
+LLM_BASE_URL_FALLBACK=https://api.together.xyz
+LLM_API_KEY_FALLBACK=your_together_api_key
+LLM_MODEL_FALLBACK=meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo
 ```
 
 ## Development Commands
@@ -644,4 +955,4 @@ npx convex dev       # Start Convex backend (separate terminal)
 npm run build        # Build for production
 ```
 
-This structure provides a robust foundation for implementing a real-time chat system that integrates seamlessly with authentication, user profiles, premium features, girl management, and media handling.
+This structure provides a complete AI girlfriend platform with real-time chat system that integrates seamlessly with authentication, user profiles, premium features, girl management, and media handling. The chat system (Section 1) is fully implemented with text messaging, security controls, and AI responses.

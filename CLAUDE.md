@@ -5,7 +5,8 @@ Section 1 — Core Text Chat (E2E)
 Section 2 — Media in Chat (Images & Video)
 Section 3 — Audio (Voice Notes + AI Voice Replies)
 
-you can find the plan for section 1 at [chat_section_1_plan.md](chat_section_1_plan.md) please follow it.
+you can find the current completed section docs at:
+[CHAT_SYSTEM.md](CHAT_SYSTEM.md)
 
 ## Coding Standards
 - Never use TypeScript anywhere - JavaScript only
