@@ -8,9 +8,18 @@
     "start": "next start"
   },
   "dependencies": {
+    "@auth/core": "^0.37.4",
+    "@aws-sdk/client-s3": "^3.896.0",
+    "@aws-sdk/cloudfront-signer": "^3.893.0",
+    "@aws-sdk/s3-request-presigner": "^3.896.0",
+    "@convex-dev/auth": "^0.0.90",
+    "@oslojs/crypto": "^1.0.1",
+    "convex": "^1.27.3",
+    "next": "15.5.4",
     "react": "19.1.0",
     "react-dom": "19.1.0",
-    "next": "15.5.4"
+    "resend": "^6.1.0",
+    "stripe": "^18.5.0"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
