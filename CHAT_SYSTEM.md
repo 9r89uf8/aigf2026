@@ -1,6 +1,6 @@
 # Chat System Documentation
 
-This document explains the current chat system implementation for the AI girlfriend platform. The system follows Section 1 of the implementation plan with several key improvements.
+This document explains the current chat system implementation for the AI girlfriend platform. The system includes Section 1 (text chat) and Section 2 (media support) with preparation for Section 3 (audio).
 
 ## Architecture Overview
 
@@ -9,7 +9,8 @@ The chat system is built on **Convex** with real-time reactivity and follows the
 - **Single reactive query** drives conversation screens via `getConversation`
 - **Server-validated security** using Cloudflare Turnstile with permit system
 - **Scheduled AI actions** for deterministic mutations and external API calls
-- **Free quota enforcement** with premium bypass
+- **Media handling** with S3 uploads and CloudFront batch-signed viewing
+- **Free quota enforcement** (text/media/audio) with premium bypass
 - **Denormalized threading** for fast thread list performance
 
 ### System Components
@@ -19,6 +20,8 @@ The chat system is built on **Convex** with real-time reactivity and follows the
 3. **Client Pages**: Thread list (`/chat`) and conversation (`/chat/[id]`)
 4. **Security Layer**: Invisible Turnstile with permit-based rate limiting
 5. **AI Integration**: OpenAI-compatible API with DeepSeek → Together.ai fallback
+6. **Media Pipeline**: S3 upload → validation → CloudFront batch signing
+7. **AI Media Selection**: Asset-based replies with tag matching
 
 ---
 
@@ -33,8 +36,8 @@ conversations: defineTable({
   girlId: v.id("girls"),              // AI girlfriend profile
   freeRemaining: v.object({           // free message quotas
     text: v.number(),                 // text messages left
-    media: v.number(),                // future: image/video
-    audio: v.number(),                // future: voice notes
+    media: v.number(),                // image/video quota
+    audio: v.number(),                // voice notes quota (Section 3)
   }),
   lastMessageAt: v.number(),          // ms epoch - for thread sorting
   lastMessagePreview: v.string(),     // denormalized for thread list
@@ -47,14 +50,15 @@ conversations: defineTable({
 ```
 
 ### messages
-Individual chat messages within conversations:
+Individual chat messages within conversations (supports text, images, videos):
 
 ```js
 messages: defineTable({
   conversationId: v.id("conversations"),
   sender: v.union(v.literal("user"), v.literal("ai")),
-  kind: v.literal("text"),            // Section 1: text only
-  text: v.string(),                   // message content
+  kind: v.union(v.literal("text"), v.literal("image"), v.literal("video")),
+  text: v.optional(v.string()),       // message text or media caption
+  mediaKey: v.optional(v.string()),   // S3 key for image/video files
   createdAt: v.number(),              // ms epoch
 })
 .index("by_conversation_ts", ["conversationId", "createdAt"])
@@ -142,150 +146,114 @@ export const getConversation = query({
 ### Mutations (Transactional Writes)
 
 #### `startConversation(girlId)` - Create/Find Conversation
-Creates new conversation or returns existing one:
+Creates new conversation or returns existing one with initial quotas.
+
+#### `sendMessage(conversationId, text, permitId)` - Send Text Message
+Core text message sending with security and quota enforcement.
+
+#### `sendMediaMessage(conversationId, kind, objectKey, caption, permitId)` - Send Media
+Sends image/video message after S3 upload completion:
 
 ```js
-export const startConversation = mutation({
-  args: { girlId: v.id("girls") },
-  handler: async (ctx, { girlId }) => {
-    const userId = await getAuthUserId(ctx);
-
-    // Return existing conversation if found
-    const existing = await ctx.db
-      .query("conversations")
-      .withIndex("by_user_girl", q => q.eq("userId", userId).eq("girlId", girlId))
-      .first();
-    if (existing) return { conversationId: existing._id };
-
-    // Create new conversation with initial quotas
-    const conversationId = await ctx.db.insert("conversations", {
-      userId, girlId,
-      freeRemaining: {
-        text: FREE_TEXT_PER_GIRL,    // 10 messages
-        media: FREE_MEDIA_PER_GIRL,  // 2 images
-        audio: FREE_AUDIO_PER_GIRL,  // 3 audio
-      },
-      lastMessageAt: Date.now(),
-      lastMessagePreview: "",
-      lastReadAt: Date.now(),
-      createdAt: Date.now(),
-      updatedAt: Date.now(),
-    });
-    return { conversationId };
+export const sendMediaMessage = mutation({
+  args: {
+    conversationId: v.id("conversations"),
+    kind: v.union(v.literal("image"), v.literal("video")),
+    objectKey: v.string(),             // S3 key from upload
+    caption: v.optional(v.string()),   // optional caption
+    permitId: v.id("turnstile_permits"),
+  },
+  handler: async (ctx, { conversationId, kind, objectKey, caption, permitId }) => {
+    // Validate permit and consume use
+    // Insert media message with mediaKey
+    // Update conversation preview: "[Image]" or "[Video]"
+    // Schedule AI reply
   },
 });
 ```
 
-#### `sendMessage(conversationId, text, permitId)` - Send User Message
-Core message sending with security and quota enforcement:
+#### Internal Mutations for AI Replies
 
 ```js
-export const sendMessage = mutation({
+// Insert AI text response
+export const _insertAIText = internalMutation({
+  args: { conversationId: v.id("conversations"), text: v.string() },
+  // Inserts AI text message and updates conversation
+});
+
+// Insert AI media response + decrement quota
+export const _insertAIMediaAndDec = internalMutation({
   args: {
     conversationId: v.id("conversations"),
-    text: v.string(),
-    permitId: v.id("turnstile_permits"),
+    kind: v.union(v.literal("image"), v.literal("video")),
+    mediaKey: v.string(),              // Asset from girl_media table
+    caption: v.optional(v.string()),
   },
-  handler: async (ctx, { conversationId, text, permitId }) => {
-    const userId = await getAuthUserId(ctx);
-    const trimmed = text.trim();
-    if (!trimmed) throw new Error("Empty message");
-
-    // Validate and consume permit (server-side security)
-    const permit = await ctx.db.get(permitId);
-    if (!permit || permit.userId !== userId ||
-        permit.expiresAt < Date.now() || permit.usesLeft <= 0) {
-      throw new Error("Security check failed (permit)");
-    }
-    await ctx.db.patch(permitId, { usesLeft: permit.usesLeft - 1 });
-
-    const convo = await ctx.db.get(conversationId);
-    const premiumActive = await getPremiumActive(ctx, userId);
-
-    // Enforce quota for free users
-    if (!premiumActive) {
-      if (convo.freeRemaining.text <= 0) {
-        throw new Error("Free text quota exhausted");
-      }
-      await ctx.db.patch(conversationId, {
-        freeRemaining: {
-          ...convo.freeRemaining,
-          text: convo.freeRemaining.text - 1,
-        },
-      });
-    }
-
-    // Insert user message
-    const userMsgId = await ctx.db.insert("messages", {
-      conversationId, sender: "user", kind: "text",
-      text: trimmed, createdAt: Date.now(),
-    });
-
-    // Update conversation metadata
-    const preview = trimmed.length > 140 ? trimmed.slice(0, 140) + "…" : trimmed;
-    await ctx.db.patch(conversationId, {
-      lastMessagePreview: preview,
-      lastMessageAt: Date.now(),
-      updatedAt: Date.now(),
-    });
-
-    // Schedule AI reply (runs after mutation commits)
-    await ctx.scheduler.runAfter(0, api.chat_actions.aiReply, {
-      conversationId, userMessageId: userMsgId,
-    });
-
-    return { ok: true };
-  },
+  // Inserts AI media message and decrements media quota for free users
 });
 ```
 
 ### Actions (External API Calls)
 
 #### `aiReply(conversationId, userMessageId)` - Generate AI Response
-Calls external LLM APIs and inserts AI response:
+Calls external LLM APIs with media-aware context and handles media/text replies:
 
 ```js
 export const aiReply = action({
-  args: {
-    conversationId: v.id("conversations"),
-    userMessageId: v.id("messages"),
-  },
+  args: { conversationId: v.id("conversations"), userMessageId: v.optional(v.id("messages")) },
   handler: async (ctx, { conversationId }) => {
-    // Get conversation context (last 8 messages)
-    const { persona, history } = await ctx.runQuery(api.chat_actions._getContext, {
-      conversationId, limit: 8,
-    });
+    // Get context with media placeholders (not URLs)
+    const { persona, history, freeRemaining, premiumActive } =
+      await ctx.runQuery(api.chat_actions._getContextV2, { conversationId, limit: 8 });
 
-    const messages = [
-      { role: "system", content: persona },
-      ...history,
-    ];
+    // LLM decides: { type: "text|image|video", text: "...", tags: ["..."] }
+    const decision = await callLLMAndParse(persona, history);
 
-    // Try primary LLM (DeepSeek), fallback to Together.ai
-    const cfg = {
-      primary: {
-        baseUrl: process.env.LLM_BASE_URL_PRIMARY,
-        apiKey: process.env.LLM_API_KEY_PRIMARY,
-        model: process.env.LLM_MODEL_PRIMARY,
-      },
-      fallback: {
-        baseUrl: process.env.LLM_BASE_URL_FALLBACK,
-        apiKey: process.env.LLM_API_KEY_FALLBACK,
-        model: process.env.LLM_MODEL_FALLBACK,
-      },
-    };
-
-    let text;
-    try {
-      text = await callOpenAICompat({ ...cfg.primary, messages });
-    } catch (e) {
-      text = await callOpenAICompat({ ...cfg.fallback, messages });
+    // Check quota and fallback to text if needed
+    const outOfMedia = !premiumActive && freeRemaining.media <= 0;
+    if (decision.type === "text" || outOfMedia) {
+      await ctx.runMutation(api.chat_actions._insertAIText, {
+        conversationId, text: decision.text
+      });
+      return { ok: true, kind: "text" };
     }
 
-    // Insert AI response
-    await ctx.runMutation(api.chat._insertAIMessage, { conversationId, text });
-    return { ok: true };
+    // Pick media asset from girl's reply assets, optionally by tags
+    const assets = await ctx.runQuery(api.girls.listGirlAssetsForReply, {
+      girlId, kind: decision.type
+    });
+    const chosen = selectAssetByTags(assets, decision.tags);
+
+    // Insert media response and decrement quota
+    await ctx.runMutation(api.chat_actions._insertAIMediaAndDec, {
+      conversationId, kind: decision.type, mediaKey: chosen.objectKey,
+      caption: decision.text
+    });
+
+    return { ok: true, kind: decision.type };
   },
+});
+```
+
+#### S3 & CDN Actions
+
+```js
+// Sign upload URL for chat media
+export const signChatUpload = action({
+  args: { conversationId, kind, contentType, size },
+  // Returns { uploadUrl, objectKey } for client upload
+});
+
+// Validate uploaded file exists with correct size/type
+export const finalizeChatUpload = action({
+  args: { objectKey, kind },
+  // HEAD check S3 object and validate constraints
+});
+
+// Batch sign URLs for viewing media in conversation
+export const signViewBatch = action({
+  args: { keys: v.array(v.string()) },
+  // Returns { urls: { key: signedUrl }, expiresAt }
 });
 ```
 
@@ -294,209 +262,103 @@ export const aiReply = action({
 ## Client Components
 
 ### Thread List (`/chat/page.js`)
-Simple reactive list of user conversations:
-
-```jsx
-export default function ThreadsPage() {
-  const threads = useQuery(api.chat.getThreads) || [];
-
-  return (
-    <div className="max-w-screen-sm mx-auto p-4">
-      <h1 className="text-xl font-semibold mb-4">Chats</h1>
-      <ul className="divide-y">
-        {threads.map(t => (
-          <li key={t.conversationId} className="py-3">
-            <Link href={`/chat/${t.conversationId}`}>
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-gray-200" />
-                <div className="flex-1">
-                  <div className="flex items-center justify-between">
-                    <span className="font-medium">{t.girlName}</span>
-                    <span className="text-xs text-gray-500">
-                      {new Date(t.lastMessageAt).toLocaleTimeString()}
-                    </span>
-                  </div>
-                  <div className="text-sm text-gray-600">
-                    {t.lastMessagePreview || "Say hi 👋"}
-                  </div>
-                </div>
-                {t.unread && <span className="w-2 h-2 bg-blue-500 rounded-full" />}
-              </div>
-            </Link>
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
-}
-```
+Simple reactive list of user conversations with girl names, last message previews, timestamps, and unread indicators.
 
 ### Conversation Page (`/chat/[conversationId]/page.js`)
-Real-time conversation with Turnstile permit management:
+Real-time conversation with media support and Turnstile permit management:
 
-- **Reactive messages** via `getConversation` query
+- **Reactive messages** via `getConversation` query (text + media)
+- **Media bubble rendering** with batch-signed CloudFront URLs
+- **MediaComposer** component for uploading images/videos
 - **Permit prefetching** when page loads
 - **Optimistic permit decrement** for smooth UX
-- **Automatic retry** on permit validation failure
 
 Key features:
 - Auto-scroll to bottom on new messages
 - Mark as read when viewing
+- Media preview before sending
 - Quota exhaustion warnings with upgrade CTA
 - Loading states during send operations
 
-### Invisible Turnstile Hook (`useInvisibleTurnstile.js`)
-Custom hook for seamless security challenges:
+#### New Media Components
 
+**MediaComposer.js** - Handles media attachment and upload:
 ```js
-export function useInvisibleTurnstile() {
-  const [ready, setReady] = useState(false);
-
-  // Load Turnstile script once globally
-  useEffect(() => {
-    loadTurnstileScriptOnce().then(() => {
-      // Render invisible widget with appearance: "execute"
-      widgetIdRef.current = window.turnstile.render(containerRef.current, {
-        sitekey: SITE_KEY,
-        appearance: "execute",  // Hidden unless challenge needed
-        size: "flexible",
-      });
-      setReady(true);
-    });
-  }, []);
-
-  const getToken = useCallback(async () => {
-    // Serialize execute() calls to prevent conflicts
-    if (executingRef.current) return executingRef.current;
-
-    executingRef.current = new Promise((resolve, reject) => {
-      window.turnstile.execute(widgetIdRef.current, {
-        action: "chat_send",
-        callback: (token) => resolve(token),
-        "error-callback": (err) => reject(err),
-      });
-    });
-
-    return executingRef.current;
-  }, [ready]);
-
-  return { ready, getToken };
-}
+// File picker → preview → S3 upload → send message
+// Validates file type (image/video) and size (3MB/5MB)
+// Shows preview with optional caption input
 ```
+
+**useSignedMediaUrls.js** - Batch URL signing hook:
+```js
+// Maps mediaKey → signedUrl for all visible messages
+// Single batch call to signViewBatch action
+// Handles URL expiration and refresh
+```
+
+### Invisible Turnstile Hook (`useInvisibleTurnstile.js`)
+Custom hook for seamless security challenges. Loads Cloudflare Turnstile script, renders invisible widget, and provides `getToken()` method for permit generation.
 
 ---
 
-## Complete User Flow
+## Complete User Flows
 
-Here's the step-by-step flow from landing on chat page to receiving AI response:
-
-### 1. User Lands on `/chat`
-```
-User visits /chat → ThreadsPage component loads
-│
-├─ useQuery(api.chat.getThreads) fires
-├─ Convex returns list of user's conversations
-├─ Thread list renders with: girl names, last message previews, timestamps, unread dots
-└─ User sees clickable conversation list
-```
-
-### 2. User Clicks on Conversation
-```
-User clicks thread → Navigate to /chat/[conversationId]
-│
-├─ ConversationPage component loads
-├─ useQuery(api.chat.getConversation, { conversationId }) fires
-├─ useInvisibleTurnstile() hook initializes Turnstile widget
-└─ Page renders: message history, composer, upgrade banner (if quota exhausted)
-```
-
-### 3. Turnstile Initialization & Permit Prefetch
-```
-Page loads → useInvisibleTurnstile hook
-│
-├─ Load Cloudflare Turnstile script (once globally)
-├─ Render invisible widget with appearance: "execute"
-├─ Set ready = true
-└─ Trigger permit prefetch:
-    │
-    ├─ getToken() → Turnstile generates token
-    ├─ mintPermit({ token, scope: "chat_send" }) action
-    ├─ Server validates token with Cloudflare
-    ├─ Server creates permit (5 uses, 2min expiry for free users)
-    └─ Client stores permit for immediate use
-```
-
-### 4. User Types and Sends Message
-```
-User types message → clicks Send → onSend() function
-│
-├─ Check permit validity (usesLeft > 0, not expired)
-├─ If invalid: getToken() → mintPermit() → get fresh permit
-├─ Call sendMessage({ conversationId, text, permitId }) mutation
-└─ Server processes in single transaction:
-    │
-    ├─ Validate permit (server-side security check)
-    ├─ Decrement permit uses atomically
-    ├─ Check premium status
-    ├─ Enforce free quota (decrement if not premium)
-    ├─ Insert user message to database
-    ├─ Update conversation metadata (lastMessageAt, preview)
-    ├─ Schedule aiReply action via ctx.scheduler.runAfter(0, ...)
-    └─ Return { ok: true }
-```
-
-### 5. Real-time UI Updates
-```
-sendMessage mutation completes → Convex pushes updates
-│
-├─ getConversation query automatically updates (reactive)
-├─ User message appears in chat immediately
-├─ Client optimistically decrements local permit count
-├─ Auto-scroll to bottom of conversation
-└─ Clear input field and reset sending state
-```
-
-### 6. AI Reply Generation (Scheduled Action)
-```
-ctx.scheduler.runAfter(0, api.chat_actions.aiReply, { conversationId, userMessageId })
-│
-└─ Action runs in background (after mutation commits):
-    │
-    ├─ _getContext query: fetch last 8 messages + girl persona
-    ├─ Build OpenAI-compatible chat payload
-    ├─ Try primary LLM (DeepSeek):
-    │   POST https://api.deepseek.com/v1/chat/completions
-    │   Headers: Authorization: Bearer $LLM_API_KEY_PRIMARY
-    │   Body: { model, messages, temperature: 1.3, max_tokens: 220 }
-    │
-    ├─ If primary fails → Try fallback LLM (Together.ai)
-    ├─ Extract text from response.choices[0].message.content
-    └─ _insertAIMessage mutation:
-        │
-        ├─ Insert AI message to database
-        ├─ Update conversation metadata (lastMessageAt, preview)
-        └─ Convex pushes real-time update to client
-```
-
-### 7. User Sees AI Response
-```
-_insertAIMessage completes → Real-time update
-│
-├─ getConversation query receives new AI message
-├─ AI message appears in chat automatically (reactive)
-├─ Auto-scroll to show new message
-├─ Thread list updates with new preview & timestamp
-└─ Flow complete - ready for next user message
-```
+### Text Message Flow
+1. **Page Load**: Thread list → conversation selection → Turnstile initialization
+2. **Message Send**: User types → permit validation → `sendMessage` mutation → quota enforcement
+3. **AI Reply**: Scheduled action → LLM call (DeepSeek/Together.ai fallback) → response insertion
+4. **Real-time Updates**: Convex reactive queries update UI automatically
+5. **Security**: Server-side permit validation, quota enforcement, auto-retry on failures
 
 ---
 
-### 5. Enhanced Error Handling
+### 8. Enhanced Error Handling
 **Current Implementation** includes:
 - Automatic retry on permit validation failure
 - Graceful fallback from primary to secondary LLM
 - User-friendly error messages
 - Permit regeneration on security failures
+
+---
+
+## Media Message Flow (Section 2)
+
+### User Sends Media
+```
+User selects file → MediaComposer validation → Preview
+│
+├─ File type check: image/* or video/*
+├─ Size check: ≤3MB (image) or ≤5MB (video)
+├─ Show preview with caption input
+└─ User clicks "Send" → Media upload flow:
+    │
+    ├─ signChatUpload({ conversationId, kind, contentType, size })
+    ├─ S3 PUT with presigned URL
+    ├─ finalizeChatUpload({ objectKey, kind }) - HEAD validation
+    ├─ sendMediaMessage({ conversationId, kind, objectKey, caption, permitId })
+    └─ Schedule AI reply
+```
+
+### AI Responds with Media
+```
+aiReply action → LLM decision: { type: "image|video", text: "...", tags: [...] }
+│
+├─ Check user's media quota (skip if premium)
+├─ Query girl's reply assets by kind + tags
+├─ Pick random or tag-matched asset
+├─ _insertAIMediaAndDec: insert message + decrement quota
+└─ Real-time update to client
+```
+
+### Media Viewing (Batch Signed URLs)
+```
+Conversation loads → useSignedMediaUrls hook
+│
+├─ Extract all mediaKeys from visible messages
+├─ signViewBatch({ keys: [...] }) → CloudFront signed URLs
+├─ Map mediaKey → signedUrl for 5-minute expiration
+└─ Render media bubbles with signed URLs
+```
 
 ---
 
@@ -559,11 +421,51 @@ export const PERMIT_TTL_MS_PREMIUM = 10 * 60 * 1000; // 10 minutes
 5. **Optimistic updates** - Immediate UI feedback
 6. **Indexed queries** - Efficient database access patterns
 
-## Future Extensions (Section 2 & 3)
+---
 
-The current system is designed to support:
-- **Media messages** (images, videos)
-- **Audio messages** (voice notes)
-- **AI voice replies** (ElevenLabs integration)
-- **Pagination** for long conversations
-- **Typing indicators** and delivery states
+## Section 3 Planning: Audio Support
+
+The system is ready for audio extension. Key integration points:
+
+### Database Schema Extensions
+- **messages table**: Add `kind: "audio"` union member
+- **mediaKey field**: Will store audio file S3 keys (reuse existing pattern)
+- **durationSec field**: Audio length for UI progress bars
+- **text field**: Optional transcription or user note
+
+### Server Function Extensions
+- **sendAudioMessage**: Similar to sendMediaMessage but for audio uploads
+- **S3 validation**: Add audio MIME types (audio/webm, audio/mp3, audio/wav)
+- **Size limits**: ~2MB for audio files, configurable duration limits
+- **AI context**: Represent audio as "User sent AUDIO. note: '...'" placeholders
+
+### AI Integration Extensions
+- **ElevenLabs integration**: New action for text-to-speech conversion
+- **Voice selection**: Link `girls.voiceId` to ElevenLabs voice models
+- **Audio asset storage**: Store generated audio in S3 for reuse/caching
+- **Quota management**: `freeRemaining.audio` decremented on AI voice replies
+
+### Client Extensions
+- **AudioComposer**: Record → preview → upload flow (WebRTC MediaRecorder)
+- **Audio playback**: Custom audio player with progress, speed control
+- **Waveform visualization**: Optional visual representation of audio
+
+### Performance Considerations
+- **Audio transcription**: Optional OpenAI Whisper integration for searchability
+- **Audio compression**: Server-side optimization for storage/bandwidth
+- **Streaming playback**: Progressive loading for long audio files
+- **CDN delivery**: Same CloudFront pattern as images/videos
+
+### Quota & Limits
+- **Free tier**: 3 audio messages per girl (send + receive combined)
+- **Premium tier**: Unlimited audio messages
+- **File size**: 2MB limit, 5-minute duration limit
+- **Generation time**: ElevenLabs API rate limiting considerations
+
+---
+
+## Current System Status
+
+**✅ Section 1**: Text chat with LLM integration, quota management, security
+**✅ Section 2**: Image/video upload, AI media replies, batch CDN signing, quota enforcement
+**⏳ Section 3**: Audio recording, voice synthesis, transcription (planned)

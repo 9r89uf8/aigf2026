@@ -116,8 +116,9 @@ const schema = defineSchema({
   messages: defineTable({
     conversationId: v.id("conversations"),
     sender: v.union(v.literal("user"), v.literal("ai")),
-    kind: v.literal("text"),          // Section 1 = text only
-    text: v.string(),
+    kind: v.union(v.literal("text"), v.literal("image"), v.literal("video")),
+    text: v.optional(v.string()),          // caption or message text
+    mediaKey: v.optional(v.string()),      // S3 key for image/video
     createdAt: v.number(),            // ms epoch
   })
     .index("by_conversation_ts", ["conversationId", "createdAt"]),

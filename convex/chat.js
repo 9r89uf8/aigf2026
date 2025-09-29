@@ -53,6 +53,7 @@ export const getConversation = query({
     const userId = await getAuthUserId(ctx);
     if (!userId) throw new Error("Unauthenticated");
 
+
     const convo = await ctx.db.get(conversationId);
     if (!convo || convo.userId !== userId) throw new Error("Not found");
 
@@ -68,10 +69,11 @@ export const getConversation = query({
     return {
       conversationId,
       girlId: convo.girlId,
-      freeRemaining: { text: convo.freeRemaining.text },
+      freeRemaining: { text: convo.freeRemaining.text, media: convo.freeRemaining.media },
       premiumActive,
       messages: msgs.map(m => ({
-        id: m._id, sender: m.sender, text: m.text, createdAt: m.createdAt,
+        id: m._id, sender: m.sender, kind: m.kind, text: m.text,
+        mediaKey: m.mediaKey, createdAt: m.createdAt,
       })),
     };
   },
@@ -177,6 +179,49 @@ export const sendMessage = mutation({
     // Schedule AI reply action (runs outside this transaction)
     await ctx.scheduler.runAfter(0, api.chat_actions.aiReply, {
       conversationId, userMessageId: userMsgId,
+    });
+
+    return { ok: true };
+  },
+});
+
+/** Send media message (mutation) with quota + Turnstile permit */
+export const sendMediaMessage = mutation({
+  args: {
+    conversationId: v.id("conversations"),
+    kind: v.union(v.literal("image"), v.literal("video")),
+    objectKey: v.string(),
+    caption: v.optional(v.string()),
+    permitId: v.id("turnstile_permits"),
+  },
+  handler: async (ctx, { conversationId, kind, objectKey, caption, permitId }) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw new Error("Unauthenticated");
+
+    // Security: consume permit
+    const permit = await ctx.db.get(permitId);
+    if (!permit || permit.userId !== userId || permit.expiresAt < Date.now() || permit.usesLeft <= 0) {
+      throw new Error("Security check failed");
+    }
+    await ctx.db.patch(permitId, { usesLeft: permit.usesLeft - 1 });
+
+    const convo = await ctx.db.get(conversationId);
+    if (!convo || convo.userId !== userId) throw new Error("Not found");
+
+    const now = Date.now();
+    await ctx.db.insert("messages", {
+      conversationId, sender: "user", kind, mediaKey: objectKey,
+      text: (caption || "").trim() || undefined, createdAt: now,
+    });
+
+    await ctx.db.patch(conversationId, {
+      lastMessagePreview: caption?.trim() || (kind === "image" ? "[Image]" : "[Video]"),
+      lastMessageAt: now, updatedAt: now,
+    });
+
+    // Schedule AI reply
+    await ctx.scheduler.runAfter(0, api.chat_actions.aiReply, {
+      conversationId
     });
 
     return { ok: true };

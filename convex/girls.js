@@ -197,3 +197,18 @@ export const listGirlMedia = query({
       .collect();
   },
 });
+
+export const listGirlAssetsForReply = query({
+  args: {
+    girlId: v.id("girls"),
+    kind: v.union(v.literal("image"), v.literal("video")),
+  },
+  handler: async (ctx, { girlId, kind }) => {
+    return await ctx.db
+      .query("girl_media")
+      .withIndex("by_girl_assets", (q) => q.eq("girlId", girlId))
+      .filter((q) => q.eq(q.field("isReplyAsset"), true))
+      .filter((q) => q.eq(q.field("kind"), kind))
+      .collect();
+  },
+});

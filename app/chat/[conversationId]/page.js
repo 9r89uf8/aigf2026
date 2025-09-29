@@ -5,6 +5,8 @@ import { useQuery, useMutation, useAction } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { useEffect, useRef, useState } from "react";
 import { useInvisibleTurnstile } from "@/components/useInvisibleTurnstile";
+import { useSignedMediaUrls } from "@/components/chat/useSignedMediaUrls";
+import MediaComposer from "@/components/chat/MediaComposer";
 
 // Module-level flag to prevent double prefetch in React Strict Mode
 let prefetchAttempted = false;
@@ -12,6 +14,7 @@ let prefetchAttempted = false;
 export default function ConversationPage() {
   const { conversationId } = useParams();
   const data = useQuery(api.chat.getConversation, { conversationId }) || null;
+  const urlMap = useSignedMediaUrls(data?.messages);
 
   const mintPermit = useAction(api.turnstile.verifyAndMintPermit);
   const send = useMutation(api.chat.sendMessage);
@@ -103,20 +106,31 @@ export default function ConversationPage() {
 
   return (
     <div className="max-w-screen-sm mx-auto h-[100dvh] flex flex-col">
-      <div className="flex-1 overflow-y-auto p-4 space-y-2">
-        {(data?.messages || []).map(m => (
-          <div
-            key={m.id}
-            className={`max-w-[80%] p-2 rounded ${
-              m.sender === "user" ? "bg-blue-600 text-white self-end ml-auto" : "bg-gray-200"
-            }`}
-          >
-            <div className="text-sm whitespace-pre-wrap">{m.text}</div>
-            <div className="text-[10px] opacity-60 mt-1">
-              {new Date(m.createdAt).toLocaleTimeString()}
+      <div className="flex-1 overflow-y-auto p-4 space-y-3">
+        {(data?.messages || []).map(m => {
+          const mine = m.sender === "user";
+          const base = "max-w-[80%] p-2 rounded";
+          if (m.kind === "text") {
+            return (
+              <div key={m.id} className={`${base} ${mine ? "bg-blue-600 text-white self-end ml-auto" : "bg-gray-200"}`}>
+                <div className="text-sm whitespace-pre-wrap">{m.text}</div>
+                <div className="text-[10px] opacity-60 mt-1">{new Date(m.createdAt).toLocaleTimeString()}</div>
+              </div>
+            );
+          }
+          const src = urlMap[m.mediaKey];
+          return (
+            <div key={m.id} className={`${base} ${mine ? "bg-blue-50 self-end ml-auto" : "bg-gray-100"}`}>
+              {m.kind === "image" ? (
+                src ? <img src={src} alt="image" className="rounded max-h-80" /> : <div className="w-48 h-48 bg-gray-300 rounded" />
+              ) : (
+                src ? <video src={src} controls className="rounded max-h-80" /> : <div className="w-48 h-32 bg-gray-300 rounded" />
+              )}
+              {!!m.text && <div className="text-sm mt-2">{m.text}</div>}
+              <div className="text-[10px] opacity-60 mt-1">{new Date(m.createdAt).toLocaleTimeString()}</div>
             </div>
-          </div>
-        ))}
+          );
+        })}
         <div ref={bottomRef} />
       </div>
 
@@ -147,6 +161,12 @@ export default function ConversationPage() {
         {!turnstileReady && (
           <div className="text-xs text-gray-500">Preparing security…</div>
         )}
+
+        <MediaComposer
+          conversationId={conversationId}
+          ensurePermit={ensurePermit}
+          onSent={() => bottomRef.current?.scrollIntoView({ behavior: "smooth" })}
+        />
       </div>
     </div>
   );

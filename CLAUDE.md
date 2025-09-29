@@ -1,7 +1,7 @@
 # Project Guidelines
 
 we are going to implement a chat system section by section. the 3 sections are:
-Section 1 — Core Text Chat (E2E) this section is done
+Section 1 — Core Text Chat (E2E) this section is done ✅
 Section 2 — Media in Chat (Images & Video) current section
 Section 3 — Audio (Voice Notes + AI Voice Replies)
 
