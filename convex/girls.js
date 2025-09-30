@@ -52,6 +52,13 @@ export const getGirl = query({
   },
 });
 
+export const getGirlPublic = query({
+  args: { girlId: v.id("girls") },
+  handler: async (ctx, { girlId }) => {
+    return await ctx.db.get(girlId);
+  },
+});
+
 export const createGirl = mutation({
   args: { name: v.string(), bio: v.optional(v.string()), voiceId: v.optional(v.string()), personaPrompt: v.optional(v.string()) },
   handler: async (ctx, { name, bio, voiceId, personaPrompt }) => {

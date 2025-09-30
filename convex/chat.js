@@ -69,11 +69,11 @@ export const getConversation = query({
     return {
       conversationId,
       girlId: convo.girlId,
-      freeRemaining: { text: convo.freeRemaining.text, media: convo.freeRemaining.media },
+      freeRemaining: { text: convo.freeRemaining.text, media: convo.freeRemaining.media, audio: convo.freeRemaining.audio },
       premiumActive,
       messages: msgs.map(m => ({
         id: m._id, sender: m.sender, kind: m.kind, text: m.text,
-        mediaKey: m.mediaKey, createdAt: m.createdAt,
+        mediaKey: m.mediaKey, durationSec: m.durationSec, createdAt: m.createdAt,
       })),
     };
   },
@@ -121,6 +121,14 @@ export const markRead = mutation({
     if (!c || c.userId !== userId) throw new Error("Not found");
     await ctx.db.patch(conversationId, { lastReadAt: at, updatedAt: Date.now() });
     return { ok: true };
+  },
+});
+
+/** Get a single message (for audio transcription) */
+export const getMessage = query({
+  args: { messageId: v.id("messages") },
+  handler: async (ctx, { messageId }) => {
+    return await ctx.db.get(messageId);
   },
 });
 
@@ -225,6 +233,104 @@ export const sendMediaMessage = mutation({
     });
 
     return { ok: true };
+  },
+});
+
+/** Send audio message (mutation) with quota + Turnstile permit */
+export const sendAudioMessage = mutation({
+  args: {
+    conversationId: v.id("conversations"),
+    objectKey: v.string(),
+    durationSec: v.optional(v.number()),
+    permitId: v.id("turnstile_permits"),
+  },
+  handler: async (ctx, { conversationId, objectKey, durationSec, permitId }) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw new Error("Unauthenticated");
+
+    // Security: consume permit
+    const permit = await ctx.db.get(permitId);
+    if (!permit || permit.userId !== userId || permit.expiresAt < Date.now() || permit.usesLeft <= 0) {
+      throw new Error("Security check failed");
+    }
+    await ctx.db.patch(permitId, { usesLeft: permit.usesLeft - 1 });
+
+    const convo = await ctx.db.get(conversationId);
+    if (!convo || convo.userId !== userId) throw new Error("Not found");
+
+    const now = Date.now();
+
+    // Insert user audio message (transcript will be added by action)
+    const msgId = await ctx.db.insert("messages", {
+      conversationId, sender: "user", kind: "audio",
+      mediaKey: objectKey, text: undefined, durationSec, createdAt: now,
+    });
+
+    await ctx.db.patch(conversationId, {
+      lastMessagePreview: "[Voice note]",
+      lastMessageAt: now, updatedAt: now,
+    });
+
+    // Schedule transcription + AI reply
+    await ctx.scheduler.runAfter(0, api.s3.transcribeAndReply, {
+      conversationId, messageId: msgId,
+    });
+
+    return { ok: true, messageId: msgId };
+  },
+});
+
+/** Apply transcript to user audio message */
+export const _applyTranscript = internalMutation({
+  args: { messageId: v.id("messages"), transcript: v.optional(v.string()) },
+  handler: async (ctx, { messageId, transcript }) => {
+    const m = await ctx.db.get(messageId);
+    if (!m) return;
+    await ctx.db.patch(messageId, { text: transcript || "[transcription failed]" });
+
+    // Update conversation preview with transcript snippet
+    const convo = await ctx.db.get(m.conversationId);
+    if (!convo) return;
+    const preview = transcript?.slice(0, 140) || "[Voice note]";
+    await ctx.db.patch(m.conversationId, {
+      lastMessagePreview: preview,
+      updatedAt: Date.now(),
+    });
+  },
+});
+
+/** Insert AI audio message and decrement audio quota */
+export const _insertAIAudioAndDec = internalMutation({
+  args: {
+    conversationId: v.id("conversations"),
+    mediaKey: v.string(),
+    caption: v.optional(v.string()),
+    durationSec: v.optional(v.number()),
+  },
+  handler: async (ctx, { conversationId, mediaKey, caption, durationSec }) => {
+    const now = Date.now();
+    await ctx.db.insert("messages", {
+      conversationId, sender: "ai", kind: "audio",
+      mediaKey, text: caption || undefined, durationSec, createdAt: now,
+    });
+
+    const convo = await ctx.db.get(conversationId);
+    if (!convo) return;
+
+    // Decrement audio quota if not premium
+    const profile = await ctx.db
+      .query("profiles")
+      .withIndex("by_userId", (q) => q.eq("userId", convo.userId))
+      .first();
+    const premium = !!(profile?.premiumUntil && profile.premiumUntil > Date.now());
+
+    await ctx.db.patch(conversationId, {
+      freeRemaining: premium
+        ? convo.freeRemaining
+        : { ...convo.freeRemaining, audio: Math.max(0, convo.freeRemaining.audio - 1) },
+      lastMessagePreview: caption?.slice(0, 140) || "[Voice reply]",
+      lastMessageAt: now, updatedAt: now,
+    });
   },
 });
 

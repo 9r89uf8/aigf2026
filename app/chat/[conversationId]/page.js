@@ -7,6 +7,7 @@ import { useEffect, useRef, useState } from "react";
 import { useInvisibleTurnstile } from "@/components/useInvisibleTurnstile";
 import { useSignedMediaUrls } from "@/components/chat/useSignedMediaUrls";
 import MediaComposer from "@/components/chat/MediaComposer";
+import AudioComposer from "@/components/chat/AudioComposer";
 
 // Module-level flag to prevent double prefetch in React Strict Mode
 let prefetchAttempted = false;
@@ -118,6 +119,22 @@ export default function ConversationPage() {
               </div>
             );
           }
+          if (m.kind === "audio") {
+            const src = urlMap[m.mediaKey];
+            return (
+              <div key={m.id} className={`${base} ${mine ? "bg-blue-50 self-end ml-auto" : "bg-gray-100"}`}>
+                {src ? (
+                  <audio controls src={src} className="w-full" />
+                ) : (
+                  <div className="w-64 h-10 bg-gray-300 rounded animate-pulse" />
+                )}
+                {!!m.text && <div className="text-sm mt-2">{m.text}</div>}
+                <div className="text-[10px] opacity-60 mt-1">
+                  {m.durationSec ? `${m.durationSec}s • ` : ""}{new Date(m.createdAt).toLocaleTimeString()}
+                </div>
+              </div>
+            );
+          }
           const src = urlMap[m.mediaKey];
           return (
             <div key={m.id} className={`${base} ${mine ? "bg-blue-50 self-end ml-auto" : "bg-gray-100"}`}>
@@ -163,6 +180,12 @@ export default function ConversationPage() {
         )}
 
         <MediaComposer
+          conversationId={conversationId}
+          ensurePermit={ensurePermit}
+          onSent={() => bottomRef.current?.scrollIntoView({ behavior: "smooth" })}
+        />
+
+        <AudioComposer
           conversationId={conversationId}
           ensurePermit={ensurePermit}
           onSent={() => bottomRef.current?.scrollIntoView({ behavior: "smooth" })}

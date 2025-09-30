@@ -31,6 +31,10 @@ export const _getContextV2 = internalQuery({
       if (m.kind === "text") {
         return { role: m.sender === "user" ? "user" : "assistant", content: m.text || "" };
       }
+      if (m.kind === "audio") {
+        const t = m.text ? ` transcript: "${m.text}"` : " (no transcript)";
+        return { role: m.sender === "user" ? "user" : "assistant", content: `${m.sender === "user" ? "User" : "Assistant"} sent AUDIO.${t}` };
+      }
       const tag = m.kind.toUpperCase();
       const cap = m.text ? ` caption: "${m.text}"` : "";
       const content = `${m.sender === "user" ? "User" : "Assistant"} sent a ${tag}.${cap}`;
@@ -40,16 +44,17 @@ export const _getContextV2 = internalQuery({
     const persona = (girl?.personaPrompt || "You are a warm, flirty girlfriend.")
       + "\nRules:\n"
       + "- If the user explicitly asks for a photo/video, prefer media response.\n"
+      + "- If the user asks for voice/audio, prefer audio response.\n"
       + "- Reply NATURALLY like a human girlfriend. Keep messages concise.\n"
-      + "- Decide the best reply type (text/image/video). For image/video, include a short caption.\n"
-      + "- Respond ONLY in JSON with keys: {\"type\":\"text|image|video\",\"text\":\"...\",\"tags\":[\"...\"]}\n"
+      + "- Decide the best reply type (text/image/video/audio). For media/audio, include text.\n"
+      + "- When replying with audio, your text is what will be spoken.\n"
+      + "- Respond ONLY in JSON with keys: {\"type\":\"text|image|video|audio\",\"text\":\"...\",\"tags\":[\"...\"]}\n"
       + "- If unsure, return {\"type\":\"text\",\"text\":\"...\"}.\n\n"
       + `User Status:\n`
       + `- Premium: ${premiumActive ? "yes" : "no"}\n`
       + `- Remaining free quotas: text: ${convo?.freeRemaining?.text || 0}, media: ${convo?.freeRemaining?.media || 0}, audio: ${convo?.freeRemaining?.audio || 0}\n`
-      + "- If media quota is 0 and user asks for photo/video, kindly suggest upgrading for unlimited media.\n"
-      + "- If you want to send media but quota is 0, mention the upgrade option naturally in your text response."
-    + "- If you want to send media but quota is 0, mention the upgrade option naturally in your text response.";
+      + "- If media/audio quota is 0 and user asks for it, kindly suggest upgrading.\n"
+      + "- If you want to send media/audio but quota is 0, mention the upgrade option naturally in your text response.";
 
     return {
       persona,
@@ -79,7 +84,8 @@ function parseDecision(s) {
   if (!m) return { type: "text", text: s.slice(0, 180) };
   try {
     const obj = JSON.parse(m[0]);
-    const type = obj.type === "image" || obj.type === "video" ? obj.type : "text";
+    const allowed = new Set(["text", "image", "video", "audio"]);
+    const type = allowed.has(obj.type) ? obj.type : "text";
     const text = typeof obj.text === "string" && obj.text.trim() ? obj.text.trim() : "";
     const tags = Array.isArray(obj.tags) ? obj.tags.slice(0, 3) : [];
     return { type, text, tags };
@@ -157,12 +163,45 @@ export const aiReply = action({
 
     const decision = parseDecision(raw);
 
-    // If LLM chose text, or the user is out of media quota, send text.
-    // Check quota (only matters when AI sends media).
-    const outOfMedia = !premiumActive && freeRemaining?.media <= 0;
-
-    if (decision.type === "text" || outOfMedia) {
+    // Handle text response
+    if (decision.type === "text") {
       const fallbackText = decision.text || "I'm here with you 💕";
+      await ctx.runMutation(api.chat_actions._insertAIText, { conversationId, text: fallbackText });
+      return { ok: true, kind: "text" };
+    }
+
+    // Handle audio response
+    if (decision.type === "audio") {
+      const outOfAudio = !premiumActive && freeRemaining?.audio <= 0;
+      if (outOfAudio) {
+        const fallbackText = decision.text || "I can send you a voice note once you upgrade 💖";
+        await ctx.runMutation(api.chat_actions._insertAIText, { conversationId, text: fallbackText });
+        return { ok: true, kind: "text" };
+      }
+
+      // Get girl's voiceId for TTS
+      const girl = await ctx.runQuery(api.girls.getGirlPublic, { girlId });
+      const voiceId = girl?.voiceId || "EXAVITQu4vr4xnSDxMaL"; // default ElevenLabs voice
+
+      try {
+        const { key } = await ctx.runAction(api.s3.ensureTtsAudio, { voiceId, text: decision.text || "Hey 💞" });
+        await ctx.runMutation(api.chat._insertAIAudioAndDec, {
+          conversationId, mediaKey: key, caption: decision.text || undefined,
+        });
+        return { ok: true, kind: "audio" };
+      } catch (e) {
+        // TTS failed - fallback to text (no quota decrement)
+        console.error("TTS failed:", e);
+        const fallbackText = decision.text || "I'm having trouble with audio right now—still here for you!";
+        await ctx.runMutation(api.chat_actions._insertAIText, { conversationId, text: fallbackText });
+        return { ok: true, kind: "text" };
+      }
+    }
+
+    // Handle media (image/video) response
+    const outOfMedia = !premiumActive && freeRemaining?.media <= 0;
+    if (outOfMedia) {
+      const fallbackText = decision.text || "I'd love to send you a photo but you've used your free media quota 💕";
       await ctx.runMutation(api.chat_actions._insertAIText, { conversationId, text: fallbackText });
       return { ok: true, kind: "text" };
     }

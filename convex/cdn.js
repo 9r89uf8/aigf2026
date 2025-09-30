@@ -88,14 +88,17 @@ export const signViewBatch = action({
     const map = {};
 
     for (const k of unique) {
-      // Basic access control - only allow girls/ and chat/ paths
-      if (!k.startsWith("girls/") && !k.startsWith("chat/")) {
+      // Basic access control - only allow girls/, chat/, and tts/ paths
+      if (!k.startsWith("girls/") && !k.startsWith("chat/") && !k.startsWith("tts/")) {
         throw new Error(`Forbidden path: ${k}`);
       }
 
       // For chat/ paths, we could add more detailed ownership checks here
       // but for simplicity, we rely on the frontend only requesting
       // keys from conversations the user has access to
+
+      // For tts/ paths, these are cached AI voice responses accessible to all authenticated users
+      // The hash-based key provides sufficient security (voiceId + text hash)
 
       map[k] = signUrlDirect(k, expires);
     }

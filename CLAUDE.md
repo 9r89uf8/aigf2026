@@ -1,15 +1,5 @@
 # Project Guidelines
 
-we are going to implement a chat system section by section. the 3 sections are:
-Section 1 — Core Text Chat (E2E) this section is done ✅
-Section 2 — Media in Chat (Images & Video) current section
-Section 3 — Audio (Voice Notes + AI Voice Replies)
-
-we are currently going to implement section 2. you can find the plan for it below. please follow it:
-[section_2_chat.md](section_2_chat.md)
-
-you can find the current completed section docs at:
-[CHAT_SYSTEM.md](CHAT_SYSTEM.md)
 
 ## Coding Standards
 - Never use TypeScript anywhere - JavaScript only

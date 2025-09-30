@@ -9,7 +9,7 @@ export function useSignedMediaUrls(messages) {
 
   useEffect(() => {
     const keys = (messages || [])
-      .filter(m => (m.kind === "image" || m.kind === "video") && m.mediaKey)
+      .filter(m => (m.kind === "image" || m.kind === "video" || m.kind === "audio") && m.mediaKey)
       .map(m => m.mediaKey);
     const uniq = Array.from(new Set(keys));
     if (uniq.length === 0) { setUrls({}); return; }
