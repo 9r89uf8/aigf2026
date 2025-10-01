@@ -54,17 +54,37 @@ export const listGirlsPublic = query({
       .withIndex("by_active", (q) => q.eq("isActive", true))
       .collect();
 
+    // Recent published stories across all girls (descending)
+    const recentStories = await ctx.db
+      .query("girl_stories")
+      .withIndex("by_published_createdAt", (q) => q.eq("published", true))
+      .order("desc")
+      .take(400);
+
+    // Pick newest story per girl
+    const latestByGirl = new Map();
+    for (const s of recentStories) {
+      const gid = s.girlId.toString();
+      if (!latestByGirl.has(gid)) latestByGirl.set(gid, s);
+      if (latestByGirl.size === girls.length) break;
+    }
+
     // Sort alphabetically by name for better discovery
     const sorted = girls.sort((a, b) => a.name.localeCompare(b.name));
 
-    // Return only the fields needed for the listing page
-    return sorted.map((g) => ({
-      _id: g._id,
-      name: g.name,
-      bio: g.bio,
-      avatarKey: g.avatarKey,
-      counts: g.counts,
-    }));
+    // Return only the fields needed for the listing page (+ hasStory & latestStoryKind for ring)
+    return sorted.map((g) => {
+      const s = latestByGirl.get(g._id.toString());
+      return {
+        _id: g._id,
+        name: g.name,
+        bio: g.bio,
+        avatarKey: g.avatarKey,
+        counts: g.counts,
+        hasStory: !!s,
+        latestStoryKind: s?.kind ?? null,
+      };
+    });
   },
 });
 

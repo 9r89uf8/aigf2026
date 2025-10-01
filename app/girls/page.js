@@ -101,24 +101,45 @@ export default function GirlsListingPage() {
 }
 
 function GirlCard({ girl, avatarUrl }) {
+  // Gradient ring colors: pink→yellow when hasStory, gray otherwise
+  const ringClass = girl.hasStory
+    ? "from-pink-500 to-yellow-400"
+    : "from-gray-300 to-gray-300";
+
   return (
     <div className="bg-white rounded-lg shadow-sm hover:shadow-lg transition-shadow overflow-hidden group">
       <div className="p-6">
-        {/* Avatar */}
-        <div className="relative w-32 h-32 mx-auto mb-4">
-          {avatarUrl ? (
-            <img
-              src={avatarUrl}
-              alt={girl.name}
-              className="w-full h-full rounded-full object-cover border-4 border-gray-100 group-hover:border-purple-200 transition-colors"
-            />
-          ) : (
-            <div className="w-full h-full rounded-full bg-gradient-to-br from-purple-400 to-pink-400 flex items-center justify-center border-4 border-gray-100 group-hover:border-purple-200 transition-colors">
-              <span className="text-4xl font-bold text-white">
-                {girl.name?.[0]?.toUpperCase()}
-              </span>
+        {/* Avatar with gradient ring that opens the story viewer */}
+        <div className="relative mx-auto mb-4 w-32 h-32">
+          <Link
+            href={`/stories/${girl._id}`}
+            className="block"
+            title={`Open ${girl.name}'s stories`}
+          >
+            <div className={`p-[3px] rounded-full bg-gradient-to-tr ${ringClass}`}>
+              <div className="w-32 h-32 rounded-full overflow-hidden border-4 border-white bg-gray-100 flex items-center justify-center relative">
+                {avatarUrl ? (
+                  <img
+                    src={avatarUrl}
+                    alt={girl.name}
+                    className="w-full h-full object-cover"
+                    draggable={false}
+                  />
+                ) : (
+                  <span className="text-4xl font-bold text-gray-400">
+                    {girl.name?.[0]?.toUpperCase()}
+                  </span>
+                )}
+
+                {/* Small ▶ glyph if their latest story is a video */}
+                {girl.latestStoryKind === "video" && (
+                  <span className="absolute bottom-2 right-2 text-xs px-1.5 py-0.5 bg-black/60 text-white rounded">
+                    ▶
+                  </span>
+                )}
+              </div>
             </div>
-          )}
+          </Link>
         </div>
 
         {/* Name */}
