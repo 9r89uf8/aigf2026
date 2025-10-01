@@ -238,6 +238,8 @@ export const sendMessage = mutation({
         ? convo.freeRemaining
         : { ...convo.freeRemaining, text: convo.freeRemaining.text - 1 },
       lastMessagePreview: preview,
+      lastMessageKind: "text",
+      lastMessageSender: "user",
       lastMessageAt: now,
       updatedAt: now,
     });
@@ -282,6 +284,8 @@ export const sendMediaMessage = mutation({
 
     await ctx.db.patch(conversationId, {
       lastMessagePreview: caption?.trim() || (kind === "image" ? "[Image]" : "[Video]"),
+      lastMessageKind: kind,
+      lastMessageSender: "user",
       lastMessageAt: now, updatedAt: now,
     });
 
@@ -344,6 +348,8 @@ export const sendAudioMessage = mutation({
 
     await ctx.db.patch(conversationId, {
       lastMessagePreview: "[Voice note]",
+      lastMessageKind: "audio",
+      lastMessageSender: "user",
       lastMessageAt: now, updatedAt: now,
     });
 
@@ -370,6 +376,8 @@ export const _applyTranscript = internalMutation({
     const preview = transcript?.slice(0, 140) || "[Voice note]";
     await ctx.db.patch(m.conversationId, {
       lastMessagePreview: preview,
+      lastMessageKind: "audio",
+      lastMessageSender: "user",
       updatedAt: Date.now(),
     });
   },
@@ -406,6 +414,8 @@ export const _insertAIAudioAndDec = internalMutation({
         ? freeRemaining
         : { ...freeRemaining, audio: Math.max(0, freeRemaining.audio - 1) },
       lastMessagePreview: caption?.slice(0, 140) || "[Voice reply]",
+      lastMessageKind: "audio",
+      lastMessageSender: "ai",
       lastMessageAt: now, updatedAt: now,
     });
   },

@@ -20,6 +20,7 @@ import type * as auth from "../auth.js";
 import type * as cdn from "../cdn.js";
 import type * as chat from "../chat.js";
 import type * as chat_actions from "../chat_actions.js";
+import type * as chat_home from "../chat_home.js";
 import type * as girls from "../girls.js";
 import type * as http from "../http.js";
 import type * as mediaInsights from "../mediaInsights.js";
@@ -47,6 +48,7 @@ declare const fullApi: ApiFromModules<{
   cdn: typeof cdn;
   chat: typeof chat;
   chat_actions: typeof chat_actions;
+  chat_home: typeof chat_home;
   girls: typeof girls;
   http: typeof http;
   mediaInsights: typeof mediaInsights;

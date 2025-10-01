@@ -37,3 +37,13 @@ body {
 .btn-ghost {
   @apply px-4 py-2 text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors;
 }
+
+/* Hide scrollbar for stories rail (Instagram-style) */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}

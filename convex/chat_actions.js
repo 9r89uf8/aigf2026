@@ -184,6 +184,8 @@ export const _insertAIText = internalMutation({
 
     await ctx.db.patch(conversationId, {
       lastMessagePreview: text.length > 140 ? text.slice(0, 140) + "…" : text,
+      lastMessageKind: "text",
+      lastMessageSender: "ai",
       lastMessageAt: now, updatedAt: now,
     });
   },
@@ -219,6 +221,8 @@ export const _insertAIMediaAndDec = internalMutation({
         ? freeRemaining
         : { ...freeRemaining, media: Math.max(0, freeRemaining.media - 1) },
       lastMessagePreview: caption?.trim() || (kind === "image" ? "[Image]" : "[Video]"),
+      lastMessageKind: kind,
+      lastMessageSender: "ai",
       lastMessageAt: now, updatedAt: now,
     });
   },

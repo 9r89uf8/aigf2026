@@ -80,7 +80,8 @@ const schema = defineSchema({
     createdAt: v.number(),
   })
     .index("by_girl", ["girlId"])
-    .index("by_girl_published", ["girlId", "published", "createdAt"]),
+    .index("by_girl_published", ["girlId", "published", "createdAt"])
+    .index("by_published_createdAt", ["published", "createdAt"]),
 
   likes: defineTable({
     userId: v.id("users"),
@@ -134,6 +135,9 @@ const schema = defineSchema({
     voiceId: v.optional(v.string()),       // denormalized from girls
     lastMessageAt: v.number(),        // ms epoch
     lastMessagePreview: v.string(),   // denormalized for thread list
+    lastMessageKind: v.optional(v.union(v.literal("text"), v.literal("image"), v.literal("video"), v.literal("audio"))), // denormalized for thread list
+    lastMessageSender: v.optional(v.union(v.literal("user"), v.literal("ai"))), // denormalized for thread list
+    lastStorySeenAt: v.optional(v.number()), // ms epoch; for "new" story ring indicator
     lastReadAt: v.number(),           // ms epoch
     clearedAt: v.optional(v.number()), // soft-clear pivot: only show messages created after this timestamp
     createdAt: v.number(),
