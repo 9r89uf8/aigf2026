@@ -1,10 +1,11 @@
-//app/chat/page.js
+// app/chat/page.js
 "use client";
 
 import { useQuery, useAction } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
+import AvatarWithStoryRing from "@/components/AvatarWithStoryRing";
 
 function formatTime(ts) {
   try {
@@ -22,27 +23,29 @@ function lastLine({ lastMessageKind, lastMessageSender, lastMessagePreview, girl
     return `${who}: ${quoted}`;
   }
   const label =
-    lastMessageKind === "image" ? "sent a photo" :
-    lastMessageKind === "video" ? "sent a video" :
-    lastMessageKind === "audio" ? "sent a voice note" :
-    "sent a message";
+      lastMessageKind === "image" ? "sent a photo" :
+          lastMessageKind === "video" ? "sent a video" :
+              lastMessageKind === "audio" ? "sent a voice note" :
+                  "sent a message";
   return `${who} ${label}`;
 }
 
 export default function ChatHomePage() {
+  // Data
   const data = useQuery(api.chat_home.getHome) || { threads: [], stories: [] };
   const signViewBatch = useAction(api.cdn.signViewBatch);
+
+  // UI state
   const [signedUrls, setSignedUrls] = useState({});
+  const [search, setSearch] = useState("");
 
   // Collect keys to sign (image stories + avatars)
   const keysToSign = useMemo(() => {
     const keys = new Set();
-    // Story previews: only image stories can be shown
     for (const s of data.stories) {
       if (s.kind === "image" && s.objectKey) keys.add(s.objectKey);
       if (s.girlAvatarKey) keys.add(s.girlAvatarKey);
     }
-    // Thread avatars
     for (const t of data.threads) {
       if (t.girlAvatarKey) keys.add(t.girlAvatarKey);
     }
@@ -56,7 +59,6 @@ export default function ChatHomePage() {
         setSignedUrls({});
         return;
       }
-
       try {
         const { urls } = await signViewBatch({ keys: keysToSign });
         setSignedUrls(urls || {});
@@ -64,117 +66,189 @@ export default function ChatHomePage() {
         console.error("Failed to sign URLs:", error);
       }
     }
-
     fetchSignedUrls();
   }, [keysToSign, signViewBatch]);
 
+  // Derived: filtered threads (search + sort only)
+  const threads = useMemo(() => {
+    let list = data.threads || [];
+    if (search.trim()) {
+      const q = search.trim().toLowerCase();
+      list = list.filter((t) => {
+        const preview = lastLine({
+          lastMessageKind: t.lastMessageKind,
+          lastMessageSender: t.lastMessageSender,
+          lastMessagePreview: t.lastMessagePreview,
+          girlName: t.girlName,
+        }).toLowerCase();
+        return t.girlName.toLowerCase().includes(q) || preview.includes(q);
+      });
+    }
+    return [...list].sort((a, b) => (b.lastMessageAt || 0) - (a.lastMessageAt || 0));
+  }, [data.threads, search]);
+
   return (
-    <div className="max-w-screen-sm mx-auto p-4">
-      <h1 className="text-xl font-semibold mb-4">Messages</h1>
-
-      {/* Stories rail (Explore-style: all active girls with a story) */}
-      {data.stories.length > 0 && (
-        <div className="mb-4 overflow-x-auto no-scrollbar">
-          <div className="flex gap-4">
-            {data.stories.map(s => {
-              const ring = s.hasNew ? "from-pink-500 to-yellow-400" : "from-gray-300 to-gray-300";
-              // Prefer actual image story for preview; otherwise use avatar
-              const storyImgSrc = s.kind === "image" && s.objectKey ? signedUrls[s.objectKey] : undefined;
-              const avatarSrc = s.girlAvatarKey ? signedUrls[s.girlAvatarKey] : undefined;
-              const imgSrc = storyImgSrc || avatarSrc;
-
-              return (
-                <Link
-                  key={`story-${s.girlId}`}
-                  href={`/stories/${s.girlId}?returnTo=/chat`}
-                  className="flex flex-col items-center gap-1 shrink-0"
-                  title={s.girlName}
-                >
-                  <div className={`p-[2px] rounded-full bg-gradient-to-tr ${ring}`}>
-                    <div className="w-14 h-14 rounded-full overflow-hidden border-2 border-white bg-gray-200 flex items-center justify-center relative">
-                      {imgSrc ? (
-                        <img
-                          src={imgSrc}
-                          alt={`${s.girlName} story`}
-                          className="w-full h-full object-cover"
-                          draggable={false}
-                        />
-                      ) : (
-                        <span className="text-xs text-gray-500">{s.girlName[0]}</span>
-                      )}
-                      {/* Show play icon for video stories */}
-                      {s.kind === "video" && (
-                        <div className="absolute inset-0 flex items-center justify-center">
-                          <span className="text-white text-lg drop-shadow-lg">▶</span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                  <span className="text-[11px] text-gray-700 max-w-14 truncate">{s.girlName}</span>
-                </Link>
-              );
-            })}
+      <div className="min-h-screen bg-white">
+        {/* Sticky header with title + search only */}
+        <header className="sticky top-0 z-20 bg-white/80 backdrop-blur border-b">
+          <div className="max-w-screen-sm mx-auto px-4 py-3 flex items-center justify-center">
+            <h1 className="text-lg font-semibold">Messages</h1>
           </div>
-        </div>
-      )}
 
-      {/* Thread list */}
-      {data.threads.length === 0 ? (
-        <div className="text-center py-12 text-gray-500">
-          <p className="text-sm">No conversations yet</p>
-          <p className="text-xs mt-1">Start chatting with your favorite AI girlfriends</p>
-        </div>
-      ) : (
-        <ul className="divide-y">
-          {data.threads.map(t => {
-            const avatarSrc = t.girlAvatarKey ? signedUrls[t.girlAvatarKey] : undefined;
-            return (
-              <li key={t.conversationId} className="py-3">
-                <div className="flex items-center gap-3">
-                  <Link href={`/chat/${t.conversationId}`} className="flex items-center gap-3 flex-1 min-w-0">
-                    <div className="w-10 h-10 rounded-full bg-gray-200 shrink-0 overflow-hidden flex items-center justify-center">
-                      {avatarSrc ? (
-                        <img
-                          src={avatarSrc}
-                          alt={`${t.girlName} avatar`}
-                          className="w-full h-full object-cover"
-                          draggable={false}
-                        />
-                      ) : (
-                        <span className="text-xs text-gray-500">{t.girlName[0]}</span>
-                      )}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between">
-                        <span className="font-medium truncate">{t.girlName}</span>
-                        <span className="text-xs text-gray-500 shrink-0 ml-2">{formatTime(t.lastMessageAt)}</span>
-                      </div>
-                      <div className={`text-sm ${t.unread ? "text-black font-medium" : "text-gray-600"} truncate`}>
-                        {lastLine({
-                          lastMessageKind: t.lastMessageKind,
-                          lastMessageSender: t.lastMessageSender,
-                          lastMessagePreview: t.lastMessagePreview,
-                          girlName: t.girlName
-                        })}
-                      </div>
-                    </div>
-                  </Link>
-
-                  {/* "Reply" pill */}
-                  <Link
-                    href={`/chat/${t.conversationId}`}
-                    className="px-3 py-1 rounded-full border text-sm hover:bg-gray-50 shrink-0"
+          {/* Search */}
+          <div className="max-w-screen-sm mx-auto px-4 pb-3">
+            <div className="relative">
+              <input
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="w-full h-9 rounded-lg bg-gray-100 pl-9 pr-3 text-sm placeholder:text-gray-500 outline-none focus:ring-2 focus:ring-gray-300"
+                  placeholder="Search"
+                  aria-label="Search messages"
+              />
+              <svg
+                  className="absolute left-3 top-1/2 -translate-y-1/2 w-4.5 h-4.5"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  aria-hidden="true"
+              >
+                <circle cx="11" cy="11" r="7" />
+                <path strokeLinecap="round" d="M20 20l-2-2" />
+              </svg>
+              {search && (
+                  <button
+                      onClick={() => setSearch("")}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 text-xs px-2 py-0.5 bg-gray-200 rounded-full"
                   >
-                    Reply
-                  </Link>
+                    Clear
+                  </button>
+              )}
+            </div>
+          </div>
+        </header>
 
-                  {t.unread && <span className="w-2 h-2 bg-blue-500 rounded-full ml-1" />}
+        {/* Content */}
+        <main className="max-w-screen-sm mx-auto px-4 pb-24">
+          {/* Stories rail */}
+          {data.stories.length > 0 && (
+              <section className="mt-3 mb-2 overflow-x-auto no-scrollbar">
+                <div className="flex gap-4">
+                  {data.stories.map((s) => {
+                    const storyImgSrc = s.kind === "image" && s.objectKey ? signedUrls[s.objectKey] : undefined;
+                    const avatarSrc = s.girlAvatarKey ? signedUrls[s.girlAvatarKey] : undefined;
+                    const imgSrc = storyImgSrc || avatarSrc;
+
+                    return (
+                        <div key={`story-${s.girlId}`} className="flex flex-col items-center gap-1 shrink-0">
+                          <AvatarWithStoryRing
+                              href={`/stories/${s.girlId}?returnTo=/chat`}
+                              src={imgSrc}
+                              name={s.girlName}
+                              hasStory={s.hasNew}
+                              isVideo={s.kind === "video"}
+                              size={64}
+                          />
+                          <span className="text-[11px] text-gray-700 max-w-16 truncate">{s.girlName}</span>
+                        </div>
+                    );
+                  })}
                 </div>
-              </li>
-            );
-          })}
-        </ul>
-      )}
-    </div>
+              </section>
+          )}
+
+          {/* Threads */}
+          {threads.length === 0 ? (
+              <div className="text-center py-16 text-gray-500">
+                <p className="text-sm">No conversations yet</p>
+                <p className="text-xs mt-1">Start chatting with your favorite AI companions</p>
+                <Link
+                    href="/girls"
+                    className="inline-flex items-center gap-2 mt-4 px-4 py-2 rounded-full bg-black text-white text-sm"
+                >
+                  Find companions
+                  <svg viewBox="0 0 24 24" className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="1.8">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                  </svg>
+                </Link>
+              </div>
+          ) : (
+              <ul className="divide-y">
+                {threads.map((t) => {
+                  const avatarSrc = t.girlAvatarKey ? signedUrls[t.girlAvatarKey] : undefined;
+                  const preview = lastLine({
+                    lastMessageKind: t.lastMessageKind,
+                    lastMessageSender: t.lastMessageSender,
+                    lastMessagePreview: t.lastMessagePreview,
+                    girlName: t.girlName,
+                  });
+
+                  return (
+                      <li key={t.conversationId}>
+                        <Link
+                            href={`/chat/${t.conversationId}`}
+                            className="flex items-center gap-3 py-3 active:bg-gray-50"
+                        >
+                          {/* Avatar (with unread dot in the corner) */}
+                          <div className="relative shrink-0">
+                            <div className="w-12 h-12 rounded-full bg-gray-200 overflow-hidden flex items-center justify-center">
+                              {avatarSrc ? (
+                                  <img
+                                      src={avatarSrc}
+                                      alt={`${t.girlName} avatar`}
+                                      className="w-full h-full object-cover"
+                                      draggable={false}
+                                  />
+                              ) : (
+                                  <span className="text-sm text-gray-500">{t.girlName?.[0]}</span>
+                              )}
+                            </div>
+                            {t.unread && (
+                                <span
+                                    className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-blue-500 ring-2 ring-white"
+                                    aria-hidden
+                                />
+                            )}
+                          </div>
+
+                          {/* Texts */}
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between gap-2">
+                        <span className={`truncate ${t.unread ? "font-semibold" : "font-medium"}`}>
+                          {t.girlName}
+                        </span>
+                              <span className="text-xs text-gray-500 shrink-0">{formatTime(t.lastMessageAt)}</span>
+                            </div>
+                            <div
+                                className={`text-sm truncate ${
+                                    t.unread ? "text-black font-medium" : "text-gray-600"
+                                }`}
+                            >
+                              {preview}
+                            </div>
+                          </div>
+
+                          {/* Chevron */}
+                          <svg
+                              viewBox="0 0 24 24"
+                              className="w-5 h-5 text-gray-300 shrink-0"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="1.8"
+                              aria-hidden="true"
+                          >
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                          </svg>
+                        </Link>
+                      </li>
+                  );
+                })}
+              </ul>
+          )}
+
+          {/* Footer spacer */}
+          <div className="h-10" />
+        </main>
+      </div>
   );
 }
