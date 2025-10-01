@@ -1,0 +1,9 @@
+{
+  "node": {
+    "externalPackages": [
+      "ffmpeg-static",
+      "@aws-sdk/client-s3",
+      "@aws-sdk/client-rekognition"
+    ]
+  }
+}

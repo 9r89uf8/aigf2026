@@ -27,6 +27,22 @@ export const _getContextV2 = internalQuery({
       .order("desc")
       .take(limit);
 
+    // Fetch media insights for all media messages (for context enrichment)
+    const mediaMessageIds = msgs
+      .filter(m => (m.kind === "image" || m.kind === "video") && m.sender === "user")
+      .map(m => m._id);
+
+    const insightsMap = new Map();
+    for (const msgId of mediaMessageIds) {
+      const insights = await ctx.db
+        .query("mediaInsights")
+        .withIndex("by_message", q => q.eq("messageId", msgId))
+        .first();
+      if (insights) {
+        insightsMap.set(msgId.toString(), insights);
+      }
+    }
+
     const history = msgs.reverse().map((m) => {
       if (m.kind === "text") {
         return { role: m.sender === "user" ? "user" : "assistant", content: m.text || "" };
@@ -35,9 +51,38 @@ export const _getContextV2 = internalQuery({
         const t = m.text ? ` transcript: "${m.text}"` : " (no transcript)";
         return { role: m.sender === "user" ? "user" : "assistant", content: `${m.sender === "user" ? "User" : "Assistant"} sent AUDIO.${t}` };
       }
+
+      // Media messages (image/video) with AI-powered content understanding
       const tag = m.kind.toUpperCase();
       const cap = m.text ? ` caption: "${m.text}"` : "";
-      const content = `${m.sender === "user" ? "User" : "Assistant"} sent a ${tag}.${cap}`;
+      let content = `${m.sender === "user" ? "User" : "Assistant"} sent a ${tag}.${cap}`;
+
+      // Add media insights for user messages (AI content understanding)
+      if (m.sender === "user" && (m.kind === "image" || m.kind === "video")) {
+        const insights = insightsMap.get(m._id.toString());
+        if (insights) {
+          const topModLabels = insights.moderationLabels
+            .filter(l => l.confidence > 80)
+            .slice(0, 5)
+            .map(l => `${l.name} (${l.confidence.toFixed(0)}%)`)
+            .join(", ");
+
+          const topSceneLabels = (insights.sceneLabels || [])
+            .filter(l => l.confidence > 80)
+            .slice(0, 3)
+            .map(l => l.name)
+            .join(", ");
+
+          if (topModLabels || topSceneLabels) {
+            content += `\n[Content analysis: `;
+            if (topModLabels) content += `${topModLabels}`;
+            if (topModLabels && topSceneLabels) content += `; `;
+            if (topSceneLabels) content += `Scene: ${topSceneLabels}`;
+            content += `]`;
+          }
+        }
+      }
+
       return { role: m.sender === "user" ? "user" : "assistant", content };
     });
 
@@ -55,6 +100,7 @@ export const _getContextV2 = internalQuery({
       + `- Remaining free quotas: text: ${convo?.freeRemaining?.text || 0}, media: ${convo?.freeRemaining?.media || 0}, audio: ${convo?.freeRemaining?.audio || 0}\n`
       + "- If media/audio quota is 0 and user asks for it, kindly suggest upgrading.\n"
       + "- If you want to send media/audio but quota is 0, mention the upgrade option naturally in your text response.";
+
 
     return {
       persona,

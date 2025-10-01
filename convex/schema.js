@@ -124,6 +124,32 @@ const schema = defineSchema({
   })
     .index("by_conversation_ts", ["conversationId", "createdAt"]),
 
+  mediaInsights: defineTable({
+    messageId: v.id("messages"),
+    kind: v.union(v.literal("image"), v.literal("video")),
+
+    // Moderation labels (explicit content detection)
+    moderationLabels: v.array(v.object({
+      name: v.string(),
+      confidence: v.number(),
+      parentName: v.optional(v.string()),  // hierarchical parent label
+    })),
+
+    // Scene/object labels (contextual understanding)
+    sceneLabels: v.optional(v.array(v.object({
+      name: v.string(),
+      confidence: v.number(),
+    }))),
+
+    // Video-specific metadata
+    framesAnalyzed: v.optional(v.number()),
+
+    // Analysis metadata
+    analysisMethod: v.string(),  // "rekognition-image" | "frame-sampling"
+    createdAt: v.number(),
+  })
+    .index("by_message", ["messageId"]),
+
   // Turnstile nonces (short-lived)
   turnstile_nonces: defineTable({
     userId: v.id("users"),

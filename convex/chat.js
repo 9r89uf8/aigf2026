@@ -217,7 +217,7 @@ export const sendMediaMessage = mutation({
     if (!convo || convo.userId !== userId) throw new Error("Not found");
 
     const now = Date.now();
-    await ctx.db.insert("messages", {
+    const messageId = await ctx.db.insert("messages", {
       conversationId, sender: "user", kind, mediaKey: objectKey,
       text: (caption || "").trim() || undefined, createdAt: now,
     });
@@ -227,10 +227,26 @@ export const sendMediaMessage = mutation({
       lastMessageAt: now, updatedAt: now,
     });
 
-    // Schedule AI reply
-    await ctx.scheduler.runAfter(0, api.chat_actions.aiReply, {
-      conversationId
-    });
+    // Schedule media analysis (Rekognition)
+    if (kind === "image") {
+      // Images: analyze immediately, AI reply waits 1.5s for insights
+      await ctx.scheduler.runAfter(0, api.actions.analyzeImage.analyzeImageContent, {
+        messageId,
+        objectKey,
+      });
+      await ctx.scheduler.runAfter(1500, api.chat_actions.aiReply, {
+        conversationId
+      });
+    } else if (kind === "video") {
+      // Videos: frame sampling takes longer, AI reply waits 2.5s for insights
+      await ctx.scheduler.runAfter(0, api.actions.analyzeVideo.analyzeVideoContent, {
+        messageId,
+        objectKey,
+      });
+      await ctx.scheduler.runAfter(3000, api.chat_actions.aiReply, {
+        conversationId
+      });
+    }
 
     return { ok: true };
   },
