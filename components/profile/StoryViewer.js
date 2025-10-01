@@ -1,5 +1,5 @@
 "use client";
-
+//components/profile/StoryViewer.js
 import { useEffect } from "react";
 
 export default function StoryViewer({ story, signedUrl, onClose, onNext, onPrev }) {
