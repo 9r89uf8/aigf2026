@@ -20,17 +20,7 @@ export const _getContextV2 = internalQuery({
   args: { conversationId: v.id("conversations"), limit: v.number() },
   handler: async (ctx, { conversationId, limit }) => {
     const convo = await ctx.db.get(conversationId);
-    const girl = convo ? await ctx.db.get(convo.girlId) : null;
-
-    // Get premium status
-    let premiumActive = false;
-    if (convo) {
-      const profile = await ctx.db
-        .query("profiles")
-        .withIndex("by_userId", (q) => q.eq("userId", convo.userId))
-        .first();
-      premiumActive = !!(profile?.premiumUntil && profile.premiumUntil > Date.now());
-    }
+    if (!convo) throw new Error("Conversation not found");
 
     const msgs = await ctx.db
       .query("messages")
@@ -38,19 +28,19 @@ export const _getContextV2 = internalQuery({
       .order("desc")
       .take(limit);
 
-    // Fetch media insights for all media messages (for context enrichment)
+    // Batch fetch media insights for all media messages (eliminates N+1)
     const mediaMessageIds = msgs
       .filter(m => (m.kind === "image" || m.kind === "video") && m.sender === "user")
       .map(m => m._id);
 
     const insightsMap = new Map();
-    for (const msgId of mediaMessageIds) {
-      const insights = await ctx.db
-        .query("mediaInsights")
-        .withIndex("by_message", q => q.eq("messageId", msgId))
-        .first();
-      if (insights) {
-        insightsMap.set(msgId.toString(), insights);
+    if (mediaMessageIds.length > 0) {
+      const allInsights = await ctx.db.query("mediaInsights").collect();
+      const relevantInsights = allInsights.filter(insight =>
+        mediaMessageIds.some(id => id.toString() === insight.messageId.toString())
+      );
+      for (const insight of relevantInsights) {
+        insightsMap.set(insight.messageId.toString(), insight);
       }
     }
 
@@ -97,7 +87,7 @@ export const _getContextV2 = internalQuery({
       return { role: m.sender === "user" ? "user" : "assistant", content };
     });
 
-    const persona = (girl?.personaPrompt || "You are a warm, flirty girlfriend.")
+    const persona = (convo.personaPrompt || "You are a warm, flirty girlfriend.")
       + "\nRules:\n"
       + "- If the user explicitly asks for a photo/video, prefer media response.\n"
       + "- If the user asks for voice/audio, prefer audio response.\n"
@@ -107,8 +97,8 @@ export const _getContextV2 = internalQuery({
       + "- Respond ONLY in JSON with keys: {\"type\":\"text|image|video|audio\",\"text\":\"...\",\"tags\":[\"...\"]}\n"
       + "- If unsure, return {\"type\":\"text\",\"text\":\"...\"}.\n\n"
       + `User Status:\n`
-      + `- Premium: ${premiumActive ? "yes" : "no"}\n`
-      + `- Remaining free quotas: text: ${convo?.freeRemaining?.text || 0}, media: ${convo?.freeRemaining?.media || 0}, audio: ${convo?.freeRemaining?.audio || 0}\n`
+      + `- Premium: ${convo.premiumActive ? "yes" : "no"}\n`
+      + `- Remaining free quotas: text: ${convo.freeRemaining.text}, media: ${convo.freeRemaining.media}, audio: ${convo.freeRemaining.audio}\n`
       + "- If media/audio quota is 0 and user asks for it, kindly suggest upgrading.\n"
       + "- If you want to send media/audio but quota is 0, mention the upgrade option naturally in your text response.";
 
@@ -116,10 +106,12 @@ export const _getContextV2 = internalQuery({
     return {
       persona,
       history,
-      girlId: convo?.girlId,
+      girlId: convo.girlId,
       conversationId,
-      premiumActive,
-      freeRemaining: convo?.freeRemaining || { text: 0, media: 0, audio: 0 }
+      userId: convo.userId,
+      voiceId: convo.voiceId,
+      premiumActive: convo.premiumActive,
+      freeRemaining: convo.freeRemaining
     };
   },
 });
@@ -155,17 +147,15 @@ function parseDecision(s) {
 export const _insertAIText = internalMutation({
   args: {
     conversationId: v.id("conversations"),
+    ownerUserId: v.id("users"),
     text: v.string(),
     shouldLikeUserMsg: v.optional(v.boolean()),
     lastUserMsgId: v.optional(v.id("messages")),
   },
-  handler: async (ctx, { conversationId, text, shouldLikeUserMsg, lastUserMsgId }) => {
-    const convo = await ctx.db.get(conversationId);
-    if (!convo) throw new Error("Conversation not found");
-
+  handler: async (ctx, { conversationId, ownerUserId, text, shouldLikeUserMsg, lastUserMsgId }) => {
     const now = Date.now();
     await ctx.db.insert("messages", {
-      conversationId, sender: "ai", kind: "text", text, ownerUserId: convo.userId, createdAt: now,
+      conversationId, sender: "ai", kind: "text", text, ownerUserId, createdAt: now,
     });
 
     // Atomically like user's message if requested
@@ -184,26 +174,20 @@ export const _insertAIText = internalMutation({
 export const _insertAIMediaAndDec = internalMutation({
   args: {
     conversationId: v.id("conversations"),
+    ownerUserId: v.id("users"),
+    premiumActive: v.boolean(),
+    freeRemaining: v.object({ text: v.number(), media: v.number(), audio: v.number() }),
     kind: v.union(v.literal("image"), v.literal("video")),
     mediaKey: v.string(),
     caption: v.optional(v.string()),
     shouldLikeUserMsg: v.optional(v.boolean()),
     lastUserMsgId: v.optional(v.id("messages")),
   },
-  handler: async (ctx, { conversationId, kind, mediaKey, caption, shouldLikeUserMsg, lastUserMsgId }) => {
-    // Decrement media quota if not premium
-    const convo = await ctx.db.get(conversationId);
-    if (!convo) return;
-    const profile = await ctx.db
-      .query("profiles")
-      .withIndex("by_userId", (q) => q.eq("userId", convo.userId))
-      .first();
-    const premium = !!(profile?.premiumUntil && profile.premiumUntil > Date.now());
-
+  handler: async (ctx, { conversationId, ownerUserId, premiumActive, freeRemaining, kind, mediaKey, caption, shouldLikeUserMsg, lastUserMsgId }) => {
     const now = Date.now();
     // Insert media message
     await ctx.db.insert("messages", {
-      conversationId, sender: "ai", kind, mediaKey, text: caption || undefined, ownerUserId: convo.userId, createdAt: now,
+      conversationId, sender: "ai", kind, mediaKey, text: caption || undefined, ownerUserId, createdAt: now,
     });
 
     // Atomically like user's message if requested
@@ -212,9 +196,9 @@ export const _insertAIMediaAndDec = internalMutation({
     }
 
     await ctx.db.patch(conversationId, {
-      freeRemaining: premium
-        ? convo.freeRemaining
-        : { ...convo.freeRemaining, media: Math.max(0, convo.freeRemaining.media - 1) },
+      freeRemaining: premiumActive
+        ? freeRemaining
+        : { ...freeRemaining, media: Math.max(0, freeRemaining.media - 1) },
       lastMessagePreview: caption?.trim() || (kind === "image" ? "[Image]" : "[Video]"),
       lastMessageAt: now, updatedAt: now,
     });
@@ -224,7 +208,7 @@ export const _insertAIMediaAndDec = internalMutation({
 export const aiReply = action({
   args: { conversationId: v.id("conversations"), userMessageId: v.optional(v.id("messages")) },
   handler: async (ctx, { conversationId, userMessageId }) => {
-    const { persona, history, girlId, premiumActive, freeRemaining } = await ctx.runQuery(api.chat_actions._getContextV2, {
+    const { persona, history, girlId, userId, voiceId, premiumActive, freeRemaining } = await ctx.runQuery(api.chat_actions._getContextV2, {
       conversationId, limit: CONTEXT_TURNS,
     });
 
@@ -249,6 +233,7 @@ export const aiReply = action({
       const fallbackText = decision.text || "I'm here with you 💕";
       await ctx.runMutation(api.chat_actions._insertAIText, {
         conversationId,
+        ownerUserId: userId,
         text: fallbackText,
         shouldLikeUserMsg: shouldLike,
         lastUserMsgId: userMessageId,
@@ -263,6 +248,7 @@ export const aiReply = action({
         const fallbackText = decision.text || "I can send you a voice note once you upgrade 💖";
         await ctx.runMutation(api.chat_actions._insertAIText, {
           conversationId,
+          ownerUserId: userId,
           text: fallbackText,
           shouldLikeUserMsg: shouldLike,
           lastUserMsgId: userMessageId,
@@ -270,14 +256,16 @@ export const aiReply = action({
         return { ok: true, kind: "text" };
       }
 
-      // Get girl's voiceId for TTS
-      const girl = await ctx.runQuery(api.girls.getGirlPublic, { girlId });
-      const voiceId = girl?.voiceId || "EXAVITQu4vr4xnSDxMaL"; // default ElevenLabs voice
+      // Use denormalized voiceId from conversation
+      const voiceIdToUse = voiceId || "EXAVITQu4vr4xnSDxMaL"; // default ElevenLabs voice
 
       try {
-        const { key } = await ctx.runAction(api.s3.ensureTtsAudio, { voiceId, text: decision.text || "Hey 💞" });
+        const { key } = await ctx.runAction(api.s3.ensureTtsAudio, { voiceId: voiceIdToUse, text: decision.text || "Hey 💞" });
         await ctx.runMutation(api.chat._insertAIAudioAndDec, {
           conversationId,
+          ownerUserId: userId,
+          premiumActive,
+          freeRemaining,
           mediaKey: key,
           caption: decision.text || undefined,
           shouldLikeUserMsg: shouldLike,
@@ -290,6 +278,7 @@ export const aiReply = action({
         const fallbackText = decision.text || "I'm having trouble with audio right now—still here for you!";
         await ctx.runMutation(api.chat_actions._insertAIText, {
           conversationId,
+          ownerUserId: userId,
           text: fallbackText,
           shouldLikeUserMsg: shouldLike,
           lastUserMsgId: userMessageId,
@@ -304,6 +293,7 @@ export const aiReply = action({
       const fallbackText = decision.text || "I'd love to send you a photo but you've used your free media quota 💕";
       await ctx.runMutation(api.chat_actions._insertAIText, {
         conversationId,
+        ownerUserId: userId,
         text: fallbackText,
         shouldLikeUserMsg: shouldLike,
         lastUserMsgId: userMessageId,
@@ -318,6 +308,7 @@ export const aiReply = action({
       const fallbackText = decision.text || "I don't have a media to share right now, but I'm all yours 🥰";
       await ctx.runMutation(api.chat_actions._insertAIText, {
         conversationId,
+        ownerUserId: userId,
         text: fallbackText,
         shouldLikeUserMsg: shouldLike,
         lastUserMsgId: userMessageId,
@@ -336,6 +327,9 @@ export const aiReply = action({
 
     await ctx.runMutation(api.chat_actions._insertAIMediaAndDec, {
       conversationId,
+      ownerUserId: userId,
+      premiumActive,
+      freeRemaining,
       kind: decision.type,
       mediaKey: chosen.objectKey,
       caption: decision.text || undefined,

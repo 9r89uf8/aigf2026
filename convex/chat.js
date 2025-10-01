@@ -7,15 +7,6 @@ import {
   FREE_TEXT_PER_GIRL, FREE_MEDIA_PER_GIRL, FREE_AUDIO_PER_GIRL,
 } from "./chat.config.js";
 
-// Helper: compute premium from profile (one read; no external calls)
-async function getPremiumActive(ctx, userId) {
-  const profile = await ctx.db
-    .query("profiles")
-    .withIndex("by_userId", q => q.eq("userId", userId))
-    .first();
-  return !!(profile?.premiumUntil && profile.premiumUntil > Date.now());
-}
-
 /** THREAD LIST (per-user) */
 export const getThreads = query({
   args: {},
@@ -57,8 +48,6 @@ export const getConversation = query({
     const convo = await ctx.db.get(conversationId);
     if (!convo || convo.userId !== userId) throw new Error("Not found");
 
-    const premiumActive = await getPremiumActive(ctx, userId);
-
     const msgs = await ctx.db
       .query("messages")
       .withIndex("by_conversation_ts", q => q.eq("conversationId", conversationId))
@@ -70,7 +59,7 @@ export const getConversation = query({
       conversationId,
       girlId: convo.girlId,
       freeRemaining: { text: convo.freeRemaining.text, media: convo.freeRemaining.media, audio: convo.freeRemaining.audio },
-      premiumActive,
+      premiumActive: convo.premiumActive,
       messages: msgs.map(m => ({
         id: m._id, sender: m.sender, kind: m.kind, text: m.text,
         mediaKey: m.mediaKey, durationSec: m.durationSec, createdAt: m.createdAt,
@@ -94,6 +83,17 @@ export const startConversation = mutation({
       .first();
     if (existing) return { conversationId: existing._id };
 
+    // Fetch user's premium status
+    const profile = await ctx.db
+      .query("profiles")
+      .withIndex("by_userId", q => q.eq("userId", userId))
+      .first();
+    const premiumActive = profile?.premiumActive ?? false;
+
+    // Fetch girl's persona and voice for denormalization
+    const girl = await ctx.db.get(girlId);
+    if (!girl) throw new Error("Girl not found");
+
     const now = Date.now();
     const conversationId = await ctx.db.insert("conversations", {
       userId, girlId,
@@ -102,6 +102,9 @@ export const startConversation = mutation({
         media: FREE_MEDIA_PER_GIRL,
         audio: FREE_AUDIO_PER_GIRL,
       },
+      premiumActive,
+      personaPrompt: girl.personaPrompt,
+      voiceId: girl.voiceId,
       lastMessageAt: now,
       lastMessagePreview: "",
       lastReadAt: now,
@@ -178,20 +181,11 @@ export const sendMessage = mutation({
     const convo = await ctx.db.get(conversationId);
     if (!convo || convo.userId !== userId) throw new Error("Not found");
 
-    // Premium check
-    const premiumActive = await getPremiumActive(ctx, userId);
-
-    // Quota enforcement for free users (text only in Section 1)
-    if (!premiumActive) {
+    // Quota enforcement for free users (text only)
+    if (!convo.premiumActive) {
       if (convo.freeRemaining.text <= 0) {
         throw new Error("Free text quota exhausted");
       }
-      await ctx.db.patch(conversationId, {
-        freeRemaining: {
-          ...convo.freeRemaining,
-          text: convo.freeRemaining.text - 1,
-        },
-      });
     }
 
     const now = Date.now();
@@ -199,8 +193,12 @@ export const sendMessage = mutation({
       conversationId, sender: "user", kind: "text", text: trimmed, ownerUserId: userId, createdAt: now,
     });
 
+    // Single patch: update quota + metadata together
     const preview = trimmed.length > 140 ? trimmed.slice(0, 140) + "…" : trimmed;
     await ctx.db.patch(conversationId, {
+      freeRemaining: convo.premiumActive
+        ? convo.freeRemaining
+        : { ...convo.freeRemaining, text: convo.freeRemaining.text - 1 },
       lastMessagePreview: preview,
       lastMessageAt: now,
       updatedAt: now,
@@ -341,20 +339,20 @@ export const _applyTranscript = internalMutation({
 export const _insertAIAudioAndDec = internalMutation({
   args: {
     conversationId: v.id("conversations"),
+    ownerUserId: v.id("users"),
+    premiumActive: v.boolean(),
+    freeRemaining: v.object({ text: v.number(), media: v.number(), audio: v.number() }),
     mediaKey: v.string(),
     caption: v.optional(v.string()),
     durationSec: v.optional(v.number()),
     shouldLikeUserMsg: v.optional(v.boolean()),
     lastUserMsgId: v.optional(v.id("messages")),
   },
-  handler: async (ctx, { conversationId, mediaKey, caption, durationSec, shouldLikeUserMsg, lastUserMsgId }) => {
-    const convo = await ctx.db.get(conversationId);
-    if (!convo) return;
-
+  handler: async (ctx, { conversationId, ownerUserId, premiumActive, freeRemaining, mediaKey, caption, durationSec, shouldLikeUserMsg, lastUserMsgId }) => {
     const now = Date.now();
     await ctx.db.insert("messages", {
       conversationId, sender: "ai", kind: "audio",
-      mediaKey, text: caption || undefined, durationSec, ownerUserId: convo.userId, createdAt: now,
+      mediaKey, text: caption || undefined, durationSec, ownerUserId, createdAt: now,
     });
 
     // Atomically like user's message if requested
@@ -363,16 +361,10 @@ export const _insertAIAudioAndDec = internalMutation({
     }
 
     // Decrement audio quota if not premium
-    const profile = await ctx.db
-      .query("profiles")
-      .withIndex("by_userId", (q) => q.eq("userId", convo.userId))
-      .first();
-    const premium = !!(profile?.premiumUntil && profile.premiumUntil > Date.now());
-
     await ctx.db.patch(conversationId, {
-      freeRemaining: premium
-        ? convo.freeRemaining
-        : { ...convo.freeRemaining, audio: Math.max(0, convo.freeRemaining.audio - 1) },
+      freeRemaining: premiumActive
+        ? freeRemaining
+        : { ...freeRemaining, audio: Math.max(0, freeRemaining.audio - 1) },
       lastMessagePreview: caption?.slice(0, 140) || "[Voice reply]",
       lastMessageAt: now, updatedAt: now,
     });

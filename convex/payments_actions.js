@@ -174,6 +174,12 @@ export const checkoutVerify = action({
       premiumUntil: expiresAt,
     });
 
+    // Update all existing conversations to reflect premium status
+    await ctx.runMutation(internal.payments.updateUserConversationsPremium, {
+      userId,
+      premiumActive: true,
+    });
+
     // Write history row
     const paidAtMs = (session.created ?? Math.floor(now / 1000)) * 1000;
     const amountTotal = session.amount_total ?? 0;

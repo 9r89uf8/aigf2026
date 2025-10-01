@@ -101,7 +101,7 @@ export const verifyAndMintPermit = action({
 
     // Premium-aware permit size/TTL (optional; tweak or keep same)
     const profile = await ctx.runQuery(api.turnstile._profileByUserId, { userId });
-    const premium = !!(profile?.premiumUntil && profile.premiumUntil > Date.now());
+    const premium = profile?.premiumActive ?? false;
     const uses = premium ? PERMIT_USES_PREMIUM : PERMIT_USES_FREE;
     const ttl  = premium ? PERMIT_TTL_MS_PREMIUM : PERMIT_TTL_MS_FREE;
 

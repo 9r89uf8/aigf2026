@@ -16,7 +16,8 @@ const schema = defineSchema({
     age: v.optional(v.number()),
     country: v.optional(v.string()),    // ISO 3166-1 alpha-2 (e.g., "US")
     avatarKey: v.optional(v.string()),  // S3 key (private object)
-    premiumUntil: v.optional(v.number()), // ms epoch UTC; undefined => not premium
+    premiumUntil: v.optional(v.number()), // ms epoch UTC; undefined => not premium (deprecated, use premiumActive)
+    premiumActive: v.optional(v.boolean()), // lifetime premium status
     updatedAt: v.number(),
   })
     .index("by_userId", ["userId"])
@@ -104,6 +105,9 @@ const schema = defineSchema({
       media: v.number(),
       audio: v.number(),
     }),
+    premiumActive: v.boolean(),       // denormalized from profiles (snapshot)
+    personaPrompt: v.optional(v.string()), // denormalized from girls
+    voiceId: v.optional(v.string()),       // denormalized from girls
     lastMessageAt: v.number(),        // ms epoch
     lastMessagePreview: v.string(),   // denormalized for thread list
     lastReadAt: v.number(),           // ms epoch

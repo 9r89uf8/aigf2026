@@ -41,7 +41,8 @@ export const getPremiumStatus = query({
       .first();
     const now = Date.now();
     const premiumUntil = profile?.premiumUntil || 0;
-    return { active: premiumUntil > now, premiumUntil };
+    const premiumActive = profile?.premiumActive ?? false;
+    return { active: premiumActive, premiumUntil }; // Use premiumActive boolean
   },
 });
 
@@ -114,8 +115,8 @@ export const upsertProfile = internalMutation({
 
     const now = Date.now();
     if (existing) {
-      // Update existing profile
-      await ctx.db.patch(existing._id, { premiumUntil, updatedAt: now });
+      // Update existing profile - set premiumActive to true (lifetime premium)
+      await ctx.db.patch(existing._id, { premiumUntil, premiumActive: true, updatedAt: now });
       return existing._id;
     } else {
       // Create new profile with default values
@@ -128,9 +129,30 @@ export const upsertProfile = internalMutation({
         country: "",
         avatarKey: undefined,
         premiumUntil,
+        premiumActive: true, // Lifetime premium
         updatedAt: now,
       });
     }
+  },
+});
+
+export const updateUserConversationsPremium = internalMutation({
+  args: { userId: v.id("users"), premiumActive: v.boolean() },
+  handler: async (ctx, { userId, premiumActive }) => {
+    // Update all conversations for this user to reflect new premium status
+    const conversations = await ctx.db
+      .query("conversations")
+      .withIndex("by_user_updated", (q) => q.eq("userId", userId))
+      .collect();
+
+    for (const convo of conversations) {
+      await ctx.db.patch(convo._id, {
+        premiumActive,
+        updatedAt: Date.now()
+      });
+    }
+
+    return conversations.length;
   },
 });
 
