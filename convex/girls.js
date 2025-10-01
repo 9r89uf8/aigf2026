@@ -44,6 +44,30 @@ export const listGirls = query({
   },
 });
 
+export const listGirlsPublic = query({
+  args: {},
+  handler: async (ctx) => {
+    // Public query - no auth required
+    // Returns only active girls with basic info for the listing page
+    const girls = await ctx.db
+      .query("girls")
+      .withIndex("by_active", (q) => q.eq("isActive", true))
+      .collect();
+
+    // Sort alphabetically by name for better discovery
+    const sorted = girls.sort((a, b) => a.name.localeCompare(b.name));
+
+    // Return only the fields needed for the listing page
+    return sorted.map((g) => ({
+      _id: g._id,
+      name: g.name,
+      bio: g.bio,
+      avatarKey: g.avatarKey,
+      counts: g.counts,
+    }));
+  },
+});
+
 export const getGirl = query({
   args: { girlId: v.id("girls") },
   handler: async (ctx, { girlId }) => {

@@ -12,7 +12,6 @@ export default function ThreadsPage() {
   return (
     <div className="max-w-screen-sm mx-auto p-4">
       <h1 className="text-xl font-semibold mb-4">Chats</h1>
-        <StartChatButton girlId={'k97f3bpzd0tzap6jf36wr46psd7rdef3'}/>
       <ul className="divide-y">
         {threads.map(t => (
           <li key={t.conversationId} className="py-3">
@@ -30,6 +29,7 @@ export default function ThreadsPage() {
                 </div>
               </div>
               {t.unread && <span className="w-2 h-2 bg-blue-500 rounded-full" />}
+                <StartChatButton girlId={t.conversationId}/>
             </Link>
           </li>
         ))}

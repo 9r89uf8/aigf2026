@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import StartChatButton from "@/components/StartChatButton";
 
 export default function ProfileHero({ girl, backgroundUrl, avatarUrl }) {
   return (
@@ -55,12 +55,7 @@ export default function ProfileHero({ girl, backgroundUrl, avatarUrl }) {
               </div>
 
               {/* Talk Button */}
-              <Link
-                href={`/chat/${girl.id}`}
-                className="inline-flex items-center justify-center px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white font-semibold rounded-full hover:from-purple-700 hover:to-pink-700 transition-all shadow-lg hover:shadow-xl whitespace-nowrap"
-              >
-                💬 Talk to {girl.name}
-              </Link>
+              <StartChatButton girlId={girl.id} />
             </div>
           </div>
         </div>
