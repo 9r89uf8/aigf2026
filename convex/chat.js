@@ -1,6 +1,6 @@
 // convex/chat.js
 import { v } from "convex/values";
-import { query, mutation, internalMutation } from "./_generated/server";
+import { query, mutation, internalMutation, internalQuery } from "./_generated/server";
 import { api } from "./_generated/api";
 import { getAuthUserId } from "@convex-dev/auth/server";
 import {
@@ -138,6 +138,14 @@ export const getMessage = query({
     if (msg.ownerUserId !== userId) throw new Error("Unauthorized");
 
     return msg;
+  },
+});
+
+/** Internal: Get message without auth (for scheduled actions) */
+export const _getMessageInternal = internalQuery({
+  args: { messageId: v.id("messages") },
+  handler: async (ctx, { messageId }) => {
+    return await ctx.db.get(messageId);
   },
 });
 

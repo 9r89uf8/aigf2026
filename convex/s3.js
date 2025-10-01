@@ -192,7 +192,7 @@ export const transcribeAndReply = action({
   args: { conversationId: v.id("conversations"), messageId: v.id("messages") },
   handler: async (ctx, { conversationId, messageId }) => {
     // Load audio message
-    const msg = await ctx.runQuery(api.chat.getMessage, { messageId });
+    const msg = await ctx.runQuery(api.chat._getMessageInternal, { messageId });
     if (!msg || msg.kind !== "audio" || !msg.mediaKey) return;
 
     // Download audio from S3
