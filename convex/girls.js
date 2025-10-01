@@ -82,17 +82,81 @@ export const createGirl = mutation({
   },
 });
 
+export const updateGirlBasicInfo = mutation({
+  args: {
+    girlId: v.id("girls"),
+    name: v.optional(v.string()),
+    bio: v.optional(v.string()),
+    voiceId: v.optional(v.string()),
+    personaPrompt: v.optional(v.string()),
+  },
+  handler: async (ctx, { girlId, name, bio, voiceId, personaPrompt }) => {
+    await assertAdmin(ctx);
+    const girl = await ctx.db.get(girlId);
+    if (!girl) throw new Error("Girl not found");
+
+    const updates = { updatedAt: now() };
+    if (name !== undefined) {
+      updates.name = name;
+      updates.nameLower = toLowerSafe(name);
+    }
+    if (bio !== undefined) updates.bio = bio;
+    if (voiceId !== undefined) updates.voiceId = voiceId;
+    if (personaPrompt !== undefined) updates.personaPrompt = personaPrompt;
+
+    await ctx.db.patch(girlId, updates);
+
+    // Sync denormalized fields to conversations
+    if (name !== undefined || voiceId !== undefined || personaPrompt !== undefined) {
+      const conversations = await ctx.db
+        .query("conversations")
+        .filter(q => q.eq(q.field("girlId"), girlId))
+        .collect();
+
+      for (const convo of conversations) {
+        const convoUpdates = { updatedAt: now() };
+        if (name !== undefined) convoUpdates.girlName = name;
+        if (voiceId !== undefined) convoUpdates.voiceId = voiceId;
+        if (personaPrompt !== undefined) convoUpdates.personaPrompt = personaPrompt;
+
+        await ctx.db.patch(convo._id, convoUpdates);
+      }
+    }
+
+    return true;
+  },
+});
+
 export const updateGirlProfileImages = mutation({
   args: { girlId: v.id("girls"), avatarKey: v.optional(v.string()), backgroundKey: v.optional(v.string()) },
   handler: async (ctx, { girlId, avatarKey, backgroundKey }) => {
     await assertAdmin(ctx);
     const girl = await ctx.db.get(girlId);
     if (!girl) throw new Error("Girl not found");
+
+    const newAvatarKey = avatarKey ?? girl.avatarKey;
+
     await ctx.db.patch(girlId, {
-      avatarKey: avatarKey ?? girl.avatarKey,
+      avatarKey: newAvatarKey,
       backgroundKey: backgroundKey ?? girl.backgroundKey,
       updatedAt: now(),
     });
+
+    // Sync denormalized avatarKey to all conversations with this girl
+    if (avatarKey) {
+      const conversations = await ctx.db
+        .query("conversations")
+        .filter(q => q.eq(q.field("girlId"), girlId))
+        .collect();
+
+      for (const convo of conversations) {
+        await ctx.db.patch(convo._id, {
+          girlAvatarKey: newAvatarKey,
+          updatedAt: now(),
+        });
+      }
+    }
+
     return true;
   },
 });

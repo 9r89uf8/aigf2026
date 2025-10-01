@@ -31,6 +31,17 @@ export const _insertPermit = internalMutation({
   },
 });
 
+export const _insertNonce = internalMutation({
+  args: {
+    userId: v.id("users"),
+    createdAt: v.number(),
+    expiresAt: v.number(),
+  },
+  handler: async (ctx, args) => {
+    return await ctx.db.insert("turnstile_nonces", args);
+  },
+});
+
 export const verify = action({
   args: { token: v.string() },
   handler: async (ctx, { token }) => {
@@ -71,10 +82,10 @@ export const verifyAndMintNonce = action({
     // Mint short-lived nonce stored in DB (2 minutes)
     const now = Date.now();
     const expiresAt = now + 2 * 60 * 1000;
-    const nonceId = await ctx.runMutation({
-      args: {},
-      handler: async (mctx) =>
-        mctx.db.insert("turnstile_nonces", { userId, createdAt: now, expiresAt }),
+    const nonceId = await ctx.runMutation(api.turnstile._insertNonce, {
+      userId,
+      createdAt: now,
+      expiresAt,
     });
     return { nonceId };
   },

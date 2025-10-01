@@ -28,19 +28,19 @@ export const _getContextV2 = internalQuery({
       .order("desc")
       .take(limit);
 
-    // Batch fetch media insights for all media messages (eliminates N+1)
+    // Fetch media insights using indexed lookups (no table scan)
     const mediaMessageIds = msgs
       .filter(m => (m.kind === "image" || m.kind === "video") && m.sender === "user")
       .map(m => m._id);
 
     const insightsMap = new Map();
-    if (mediaMessageIds.length > 0) {
-      const allInsights = await ctx.db.query("mediaInsights").collect();
-      const relevantInsights = allInsights.filter(insight =>
-        mediaMessageIds.some(id => id.toString() === insight.messageId.toString())
-      );
-      for (const insight of relevantInsights) {
-        insightsMap.set(insight.messageId.toString(), insight);
+    for (const messageId of mediaMessageIds) {
+      const insight = await ctx.db
+        .query("mediaInsights")
+        .withIndex("by_message", q => q.eq("messageId", messageId))
+        .first();
+      if (insight) {
+        insightsMap.set(messageId.toString(), insight);
       }
     }
 
@@ -213,7 +213,7 @@ export const aiReply = action({
     });
 
     // Deterministic 1/4 chance to like user's message
-    const shouldLike = userMessageId ? (hashCode(userMessageId) % 4) === 0 : false;
+    const shouldLike = userMessageId ? (hashCode(userMessageId.toString()) % 4) === 0 : false;
 
     const messages = [{ role: "system", content: persona }, ...history];
 

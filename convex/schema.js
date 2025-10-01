@@ -100,6 +100,8 @@ const schema = defineSchema({
   conversations: defineTable({
     userId: v.id("users"),
     girlId: v.id("girls"),
+    girlName: v.string(),             // denormalized from girls (for thread list)
+    girlAvatarKey: v.optional(v.string()), // denormalized from girls (for thread list)
     freeRemaining: v.object({
       text: v.number(),
       media: v.number(),

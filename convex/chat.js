@@ -20,20 +20,16 @@ export const getThreads = query({
       .order("desc")
       .collect();
 
-    // Attach minimal girl info (avoid heavy joins; no signing here)
-    const results = [];
-    for (const c of threads) {
-      const girl = await ctx.db.get(c.girlId);
-      results.push({
-        conversationId: c._id,
-        girlId: c.girlId,
-        girlName: girl?.name ?? "Unknown",
-        lastMessagePreview: c.lastMessagePreview,
-        lastMessageAt: c.lastMessageAt,
-        unread: c.lastMessageAt > (c.lastReadAt || 0),
-      });
-    }
-    return results;
+    // Return threads with denormalized girl info (no extra reads)
+    return threads.map(c => ({
+      conversationId: c._id,
+      girlId: c.girlId,
+      girlName: c.girlName,
+      girlAvatarKey: c.girlAvatarKey,
+      lastMessagePreview: c.lastMessagePreview,
+      lastMessageAt: c.lastMessageAt,
+      unread: c.lastMessageAt > (c.lastReadAt || 0),
+    }));
   },
 });
 
@@ -97,6 +93,8 @@ export const startConversation = mutation({
     const now = Date.now();
     const conversationId = await ctx.db.insert("conversations", {
       userId, girlId,
+      girlName: girl.name,
+      girlAvatarKey: girl.avatarKey,
       freeRemaining: {
         text: FREE_TEXT_PER_GIRL,
         media: FREE_MEDIA_PER_GIRL,
@@ -132,7 +130,14 @@ export const markRead = mutation({
 export const getMessage = query({
   args: { messageId: v.id("messages") },
   handler: async (ctx, { messageId }) => {
-    return await ctx.db.get(messageId);
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw new Error("Unauthenticated");
+
+    const msg = await ctx.db.get(messageId);
+    if (!msg) throw new Error("Message not found");
+    if (msg.ownerUserId !== userId) throw new Error("Unauthorized");
+
+    return msg;
   },
 });
 
