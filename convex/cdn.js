@@ -81,24 +81,31 @@ export const signViewBatch = action({
   args: { keys: v.array(v.string()) },
   handler: async (ctx, { keys }) => {
     const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error("Unauthenticated");
 
     const unique = Array.from(new Set(keys)).filter(Boolean);
     const expires = Math.floor(Date.now() / 1000) + 5 * 60; // 5 min
     const map = {};
 
     for (const k of unique) {
-      // Basic access control - only allow girls/, chat/, and tts/ paths
-      if (!k.startsWith("girls/") && !k.startsWith("chat/") && !k.startsWith("tts/")) {
+      // Access control by path prefix:
+      // - girls/ paths: PUBLIC (no auth required)
+      // - chat/ and tts/ paths: AUTHENTICATED users only
+
+      if (k.startsWith("girls/")) {
+        // Public access for girl content (profiles, gallery, posts, stories)
+        // No auth check needed
+      } else if (k.startsWith("chat/") || k.startsWith("tts/")) {
+        // Private content - require authentication
+        if (!userId) throw new Error("Unauthenticated");
+
+        // For chat/ paths, we rely on the frontend only requesting
+        // keys from conversations the user has access to
+
+        // For tts/ paths, these are cached AI voice responses accessible
+        // to all authenticated users (hash-based key provides security)
+      } else {
         throw new Error(`Forbidden path: ${k}`);
       }
-
-      // For chat/ paths, we could add more detailed ownership checks here
-      // but for simplicity, we rely on the frontend only requesting
-      // keys from conversations the user has access to
-
-      // For tts/ paths, these are cached AI voice responses accessible to all authenticated users
-      // The hash-based key provides sufficient security (voiceId + text hash)
 
       map[k] = signUrlDirect(k, expires);
     }

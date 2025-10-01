@@ -1,5 +1,5 @@
 "use client";
-
+//app/admin/girls/page.js
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import Link from "next/link";
@@ -97,6 +97,12 @@ export default function GirlsListPage() {
                       className="text-indigo-600 hover:text-indigo-900"
                     >
                       Edit
+                    </Link>
+                    <Link
+                      href={`/admin/girls/${girl._id}/stories`}
+                      className="text-pink-600 hover:text-pink-900"
+                    >
+                      Stories
                     </Link>
                     <Link
                       href={`/admin/girls/${girl._id}/gallery`}

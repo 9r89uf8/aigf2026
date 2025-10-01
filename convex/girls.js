@@ -283,3 +283,253 @@ export const listGirlAssetsForReply = query({
       .collect();
   },
 });
+
+// ── Public Profile Page Query ────────────────────────────────────────────────
+import { getAuthUserId } from "@convex-dev/auth/server";
+
+export const profilePage = query({
+  args: {
+    girlId: v.id("girls"),
+    galleryLimit: v.optional(v.number()),
+    postsLimit: v.optional(v.number()),
+  },
+  handler: async (ctx, { girlId, galleryLimit = 12, postsLimit = 12 }) => {
+    // 1. Load girl (must be active)
+    const girl = await ctx.db.get(girlId);
+    if (!girl || !girl.isActive) return null;
+
+    // 2. Check viewer's premium status (if authenticated)
+    const userId = await getAuthUserId(ctx);
+    let viewerPremium = false;
+    let likedMediaIds = [];
+
+    if (userId) {
+      const profile = await ctx.db
+        .query("profiles")
+        .withIndex("by_userId", (q) => q.eq("userId", userId))
+        .first();
+      viewerPremium = profile?.premiumActive ?? false;
+
+      // 3. Fetch liked media IDs for this girl (for initial render)
+      const userLikes = await ctx.db
+        .query("likes")
+        .withIndex("by_user_girl", (q) => q.eq("userId", userId).eq("girlId", girlId))
+        .collect();
+      likedMediaIds = userLikes.map((like) => like.mediaId);
+    }
+
+    // 4. Fetch stories (last 10 published, newest first)
+    const storiesRaw = await ctx.db
+      .query("girl_stories")
+      .withIndex("by_girl_published", (q) => q.eq("girlId", girlId).eq("published", true))
+      .order("desc")
+      .take(10);
+
+    const stories = storiesRaw.map((s) => ({
+      id: s._id,
+      kind: s.kind,
+      text: s.text,
+      objectKey: s.objectKey, // Always included for stories (no premium gating)
+      createdAt: s.createdAt,
+    }));
+
+    // 5. Fetch gallery items (published only, respect premiumOnly)
+    const galleryRaw = await ctx.db
+      .query("girl_media")
+      .withIndex("by_girl_gallery", (q) => q.eq("girlId", girlId).eq("isGallery", true))
+      .filter((q) => q.eq(q.field("published"), true))
+      .order("desc")
+      .take(galleryLimit);
+
+    const gallery = galleryRaw.map((m) => {
+      const isLocked = m.premiumOnly && !viewerPremium;
+      return {
+        id: m._id,
+        kind: m.kind,
+        text: m.text,
+        likeCount: m.likeCount,
+        canBeLiked: m.canBeLiked,
+        premiumOnly: m.premiumOnly,
+        createdAt: m.createdAt,
+        objectKey: isLocked ? undefined : m.objectKey, // Exclude key if locked
+      };
+    });
+
+    // 6. Fetch posts (published, always public)
+    const postsRaw = await ctx.db
+      .query("girl_media")
+      .withIndex("by_girl_posts", (q) => q.eq("girlId", girlId).eq("isPost", true))
+      .filter((q) => q.eq(q.field("published"), true))
+      .order("desc")
+      .take(postsLimit);
+
+    const posts = postsRaw.map((m) => ({
+      id: m._id,
+      kind: m.kind,
+      text: m.text,
+      likeCount: m.likeCount,
+      canBeLiked: m.canBeLiked,
+      location: m.location,
+      createdAt: m.createdAt,
+      objectKey: m.objectKey, // Always included (posts are never premium-gated)
+    }));
+
+    // 7. Collect all keys that need signing
+    const keysToSign = [];
+    if (girl.avatarKey) keysToSign.push(girl.avatarKey);
+    if (girl.backgroundKey) keysToSign.push(girl.backgroundKey);
+
+    stories.forEach((s) => {
+      if (s.objectKey) keysToSign.push(s.objectKey);
+    });
+    gallery.forEach((g) => {
+      if (g.objectKey) keysToSign.push(g.objectKey);
+    });
+    posts.forEach((p) => {
+      if (p.objectKey) keysToSign.push(p.objectKey);
+    });
+
+    // 8. Return view model
+    return {
+      girl: {
+        id: girl._id,
+        name: girl.name,
+        bio: girl.bio,
+        avatarKey: girl.avatarKey,
+        backgroundKey: girl.backgroundKey,
+      },
+      viewer: {
+        premiumActive: viewerPremium,
+        likedIds: likedMediaIds,
+      },
+      stories,
+      gallery,
+      posts,
+      keysToSign,
+    };
+  },
+});
+
+// ── Likes System ──────────────────────────────────────────────────────────
+export const toggleLike = mutation({
+  args: { mediaId: v.id("girl_media") },
+  handler: async (ctx, { mediaId }) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw new Error("Unauthenticated");
+
+    // Load media item
+    const media = await ctx.db.get(mediaId);
+    if (!media) throw new Error("Media not found");
+    if (!media.canBeLiked) throw new Error("This media cannot be liked");
+
+    // Determine surface for denormalization
+    const surface = media.isGallery ? "gallery" : media.isPost ? "post" : null;
+    if (!surface) throw new Error("Only gallery and post items can be liked");
+
+    // Check if user already liked this media
+    const existingLike = await ctx.db
+      .query("likes")
+      .withIndex("by_user_media", (q) => q.eq("userId", userId).eq("mediaId", mediaId))
+      .first();
+
+    let liked = false;
+    let newLikeCount = media.likeCount;
+
+    if (existingLike) {
+      // Unlike: remove like record and decrement count
+      await ctx.db.delete(existingLike._id);
+      newLikeCount = Math.max(0, media.likeCount - 1);
+      liked = false;
+    } else {
+      // Like: insert like record and increment count
+      await ctx.db.insert("likes", {
+        userId,
+        girlId: media.girlId,
+        mediaId,
+        surface,
+        createdAt: now(),
+      });
+      newLikeCount = media.likeCount + 1;
+      liked = true;
+    }
+
+    // Update denormalized likeCount on media
+    await ctx.db.patch(mediaId, { likeCount: newLikeCount, updatedAt: now() });
+
+    return { liked, likeCount: newLikeCount };
+  },
+});
+
+// ── Stories CRUD (Admin) ──────────────────────────────────────────────────
+export const createStory = mutation({
+  args: {
+    girlId: v.id("girls"),
+    kind: v.union(v.literal("image"), v.literal("video"), v.literal("text")),
+    objectKey: v.optional(v.string()),
+    text: v.optional(v.string()),
+  },
+  handler: async (ctx, { girlId, kind, objectKey, text }) => {
+    await assertAdmin(ctx);
+
+    // Validate: image/video must have objectKey, text stories must have text
+    if ((kind === "image" || kind === "video") && !objectKey) {
+      throw new Error("Image and video stories require an objectKey");
+    }
+    if (kind === "text" && !text) {
+      throw new Error("Text stories require text content");
+    }
+
+    const storyId = await ctx.db.insert("girl_stories", {
+      girlId,
+      kind,
+      objectKey: objectKey ?? undefined,
+      text: text ?? undefined,
+      published: true,
+      createdAt: now(),
+    });
+
+    return storyId;
+  },
+});
+
+export const updateStory = mutation({
+  args: {
+    storyId: v.id("girl_stories"),
+    text: v.optional(v.string()),
+    published: v.optional(v.boolean()),
+  },
+  handler: async (ctx, { storyId, text, published }) => {
+    await assertAdmin(ctx);
+
+    const story = await ctx.db.get(storyId);
+    if (!story) throw new Error("Story not found");
+
+    const updates = {};
+    if (text !== undefined) updates.text = text;
+    if (published !== undefined) updates.published = published;
+
+    await ctx.db.patch(storyId, updates);
+    return true;
+  },
+});
+
+export const deleteStory = mutation({
+  args: { storyId: v.id("girl_stories") },
+  handler: async (ctx, { storyId }) => {
+    await assertAdmin(ctx);
+    await ctx.db.delete(storyId);
+    return true;
+  },
+});
+
+export const listGirlStories = query({
+  args: { girlId: v.id("girls") },
+  handler: async (ctx, { girlId }) => {
+    await assertAdmin(ctx);
+    return await ctx.db
+      .query("girl_stories")
+      .withIndex("by_girl", (q) => q.eq("girlId", girlId))
+      .order("desc")
+      .collect();
+  },
+});

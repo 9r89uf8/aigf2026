@@ -71,6 +71,28 @@ const schema = defineSchema({
     .index("by_girl_posts", ["girlId", "isPost"])
     .index("by_girl_assets", ["girlId", "isReplyAsset"]),
 
+  girl_stories: defineTable({
+    girlId: v.id("girls"),
+    kind: v.union(v.literal("image"), v.literal("video"), v.literal("text")),
+    objectKey: v.optional(v.string()),  // S3 key for image/video, undefined for text
+    text: v.optional(v.string()),       // Text content or caption
+    published: v.boolean(),
+    createdAt: v.number(),
+  })
+    .index("by_girl", ["girlId"])
+    .index("by_girl_published", ["girlId", "published", "createdAt"]),
+
+  likes: defineTable({
+    userId: v.id("users"),
+    girlId: v.id("girls"),              // denormalized for efficient fetching
+    mediaId: v.id("girl_media"),
+    surface: v.union(v.literal("gallery"), v.literal("post")),
+    createdAt: v.number(),
+  })
+    .index("by_user_media", ["userId", "mediaId"])
+    .index("by_user_girl", ["userId", "girlId"])
+    .index("by_media", ["mediaId"]),
+
   payments: defineTable({
     userId: v.id("users"),
     sessionId: v.string(),

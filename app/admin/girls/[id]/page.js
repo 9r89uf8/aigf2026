@@ -1,5 +1,5 @@
 "use client";
-
+//app/admin/girls/[id]/page.js
 import { useQuery, useAction, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { useParams } from "next/navigation";
