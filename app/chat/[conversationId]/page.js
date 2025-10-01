@@ -20,6 +20,7 @@ export default function ConversationPage() {
   const mintPermit = useAction(api.turnstile.verifyAndMintPermit);
   const send = useMutation(api.chat.sendMessage);
   const markRead = useMutation(api.chat.markRead);
+  const likeMsg = useMutation(api.chat.likeMessage);
 
   const [text, setText] = useState("");
   const [isSending, setIsSending] = useState(false);
@@ -115,7 +116,22 @@ export default function ConversationPage() {
             return (
               <div key={m.id} className={`${base} ${mine ? "bg-blue-600 text-white self-end ml-auto" : "bg-gray-200"}`}>
                 <div className="text-sm whitespace-pre-wrap">{m.text}</div>
-                <div className="text-[10px] opacity-60 mt-1">{new Date(m.createdAt).toLocaleTimeString()}</div>
+                <div className="flex items-center gap-2 mt-1">
+                  <div className="text-[10px] opacity-60">{new Date(m.createdAt).toLocaleTimeString()}</div>
+                  {!mine && (
+                    <button
+                      onClick={() => likeMsg({ messageId: m.id })}
+                      className="text-sm transition-all hover:scale-110"
+                    >
+                      {m.userLiked ? (
+                        <span className="text-red-500">❤️</span>
+                      ) : (
+                        <span className="text-gray-400">🤍</span>
+                      )}
+                    </button>
+                  )}
+                  {mine && m.aiLiked && <span className="text-pink-500 text-sm">❤️</span>}
+                </div>
               </div>
             );
           }
@@ -129,8 +145,23 @@ export default function ConversationPage() {
                   <div className="w-64 h-10 bg-gray-300 rounded animate-pulse" />
                 )}
                 {!!m.text && <div className="text-sm mt-2">{m.text}</div>}
-                <div className="text-[10px] opacity-60 mt-1">
-                  {m.durationSec ? `${m.durationSec}s • ` : ""}{new Date(m.createdAt).toLocaleTimeString()}
+                <div className="flex items-center gap-2 mt-1">
+                  <div className="text-[10px] opacity-60">
+                    {m.durationSec ? `${m.durationSec}s • ` : ""}{new Date(m.createdAt).toLocaleTimeString()}
+                  </div>
+                  {!mine && (
+                    <button
+                      onClick={() => likeMsg({ messageId: m.id })}
+                      className="text-sm transition-all hover:scale-110"
+                    >
+                      {m.userLiked ? (
+                        <span className="text-red-500">❤️</span>
+                      ) : (
+                        <span className="text-gray-400">🤍</span>
+                      )}
+                    </button>
+                  )}
+                  {mine && m.aiLiked && <span className="text-pink-500 text-sm">❤️</span>}
                 </div>
               </div>
             );
@@ -144,7 +175,18 @@ export default function ConversationPage() {
                 src ? <video src={src} controls className="rounded max-h-80" /> : <div className="w-48 h-32 bg-gray-300 rounded" />
               )}
               {!!m.text && <div className="text-sm mt-2">{m.text}</div>}
-              <div className="text-[10px] opacity-60 mt-1">{new Date(m.createdAt).toLocaleTimeString()}</div>
+              <div className="flex items-center gap-2 mt-1">
+                <div className="text-[10px] opacity-60">{new Date(m.createdAt).toLocaleTimeString()}</div>
+                {!mine && (
+                  <button
+                    onClick={() => likeMsg({ messageId: m.id })}
+                    className="text-sm transition-colors hover:scale-110"
+                  >
+                    <span className={m.userLiked ? "text-red-500" : "text-gray-400"}>❤️</span>
+                  </button>
+                )}
+                {mine && m.aiLiked && <span className="text-pink-500 text-sm">❤️</span>}
+              </div>
             </div>
           );
         })}

@@ -74,6 +74,7 @@ export const getConversation = query({
       messages: msgs.map(m => ({
         id: m._id, sender: m.sender, kind: m.kind, text: m.text,
         mediaKey: m.mediaKey, durationSec: m.durationSec, createdAt: m.createdAt,
+        userLiked: m.userLiked, aiLiked: m.aiLiked,
       })),
     };
   },
@@ -132,6 +133,27 @@ export const getMessage = query({
   },
 });
 
+/** Toggle like on an AI message */
+export const likeMessage = mutation({
+  args: { messageId: v.id("messages") },
+  handler: async (ctx, { messageId }) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw new Error("Unauthenticated");
+
+    const msg = await ctx.db.get(messageId);
+    if (!msg) throw new Error("Message not found");
+    if (msg.sender !== "ai") throw new Error("Can only like AI messages");
+    if (msg.ownerUserId !== userId) throw new Error("Unauthorized");
+
+    // Toggle like
+    await ctx.db.patch(messageId, {
+      userLiked: !msg.userLiked
+    });
+
+    return { ok: true };
+  },
+});
+
 /** Send message (mutation) with quota + Turnstile permit */
 export const sendMessage = mutation({
   args: {
@@ -174,7 +196,7 @@ export const sendMessage = mutation({
 
     const now = Date.now();
     const userMsgId = await ctx.db.insert("messages", {
-      conversationId, sender: "user", kind: "text", text: trimmed, createdAt: now,
+      conversationId, sender: "user", kind: "text", text: trimmed, ownerUserId: userId, createdAt: now,
     });
 
     const preview = trimmed.length > 140 ? trimmed.slice(0, 140) + "…" : trimmed;
@@ -219,7 +241,7 @@ export const sendMediaMessage = mutation({
     const now = Date.now();
     const messageId = await ctx.db.insert("messages", {
       conversationId, sender: "user", kind, mediaKey: objectKey,
-      text: (caption || "").trim() || undefined, createdAt: now,
+      text: (caption || "").trim() || undefined, ownerUserId: userId, createdAt: now,
     });
 
     await ctx.db.patch(conversationId, {
@@ -279,7 +301,7 @@ export const sendAudioMessage = mutation({
     // Insert user audio message (transcript will be added by action)
     const msgId = await ctx.db.insert("messages", {
       conversationId, sender: "user", kind: "audio",
-      mediaKey: objectKey, text: undefined, durationSec, createdAt: now,
+      mediaKey: objectKey, text: undefined, durationSec, ownerUserId: userId, createdAt: now,
     });
 
     await ctx.db.patch(conversationId, {
@@ -322,16 +344,23 @@ export const _insertAIAudioAndDec = internalMutation({
     mediaKey: v.string(),
     caption: v.optional(v.string()),
     durationSec: v.optional(v.number()),
+    shouldLikeUserMsg: v.optional(v.boolean()),
+    lastUserMsgId: v.optional(v.id("messages")),
   },
-  handler: async (ctx, { conversationId, mediaKey, caption, durationSec }) => {
+  handler: async (ctx, { conversationId, mediaKey, caption, durationSec, shouldLikeUserMsg, lastUserMsgId }) => {
+    const convo = await ctx.db.get(conversationId);
+    if (!convo) return;
+
     const now = Date.now();
     await ctx.db.insert("messages", {
       conversationId, sender: "ai", kind: "audio",
-      mediaKey, text: caption || undefined, durationSec, createdAt: now,
+      mediaKey, text: caption || undefined, durationSec, ownerUserId: convo.userId, createdAt: now,
     });
 
-    const convo = await ctx.db.get(conversationId);
-    if (!convo) return;
+    // Atomically like user's message if requested
+    if (shouldLikeUserMsg && lastUserMsgId) {
+      await ctx.db.patch(lastUserMsgId, { aiLiked: true });
+    }
 
     // Decrement audio quota if not premium
     const profile = await ctx.db
@@ -352,12 +381,26 @@ export const _insertAIAudioAndDec = internalMutation({
 
 /** Insert AI message (internal; called by action) */
 export const _insertAIMessage = internalMutation({
-  args: { conversationId: v.id("conversations"), text: v.string() },
-  handler: async (ctx, { conversationId, text }) => {
+  args: {
+    conversationId: v.id("conversations"),
+    text: v.string(),
+    shouldLikeUserMsg: v.optional(v.boolean()),
+    lastUserMsgId: v.optional(v.id("messages")),
+  },
+  handler: async (ctx, { conversationId, text, shouldLikeUserMsg, lastUserMsgId }) => {
+    const convo = await ctx.db.get(conversationId);
+    if (!convo) throw new Error("Conversation not found");
+
     const now = Date.now();
     await ctx.db.insert("messages", {
-      conversationId, sender: "ai", kind: "text", text, createdAt: now,
+      conversationId, sender: "ai", kind: "text", text, ownerUserId: convo.userId, createdAt: now,
     });
+
+    // Atomically like user's message if requested
+    if (shouldLikeUserMsg && lastUserMsgId) {
+      await ctx.db.patch(lastUserMsgId, { aiLiked: true });
+    }
+
     const preview = text.length > 140 ? text.slice(0, 140) + "…" : text;
     await ctx.db.patch(conversationId, {
       lastMessagePreview: preview,

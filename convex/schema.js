@@ -120,6 +120,9 @@ const schema = defineSchema({
     text: v.optional(v.string()),          // caption, message text, or audio transcript
     mediaKey: v.optional(v.string()),      // S3 key for image/video/audio
     durationSec: v.optional(v.number()),   // duration for audio/video
+    userLiked: v.optional(v.boolean()),    // user liked this AI message
+    aiLiked: v.optional(v.boolean()),      // AI liked this user message
+    ownerUserId: v.id("users"),            // denormalized for fast auth
     createdAt: v.number(),            // ms epoch
   })
     .index("by_conversation_ts", ["conversationId", "createdAt"]),
