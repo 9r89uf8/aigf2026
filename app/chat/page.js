@@ -86,7 +86,7 @@ export default function ChatHomePage() {
               return (
                 <Link
                   key={`story-${s.girlId}`}
-                  href={`/stories/${s.girlId}`}
+                  href={`/stories/${s.girlId}?returnTo=/chat`}
                   className="flex flex-col items-center gap-1 shrink-0"
                   title={s.girlName}
                 >

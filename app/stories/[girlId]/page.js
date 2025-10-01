@@ -2,13 +2,17 @@
 //app/stories/[girlId]/page.js
 import { useQuery, useAction, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useState, useEffect } from "react";
 import StoryViewer from "@/components/profile/StoryViewer";
 
 export default function StoryViewerPage() {
   const { girlId } = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const returnToParam = searchParams.get("returnTo");
+  // Guard against open redirects; only allow same-origin paths:
+  const returnTo = returnToParam && returnToParam.startsWith("/") ? returnToParam : "/chat";
   const profileData = useQuery(api.girls.profilePage, { girlId });
   const signViewBatch = useAction(api.cdn.signViewBatch);
   const ensureConvo = useMutation(api.chat_home.ensureConversationAndMarkStoriesSeen);
@@ -80,10 +84,10 @@ export default function StoryViewerPage() {
           <h1 className="text-2xl font-bold mb-2">No Stories</h1>
           <p className="text-gray-400">{girl.name} hasn't posted any stories yet.</p>
           <button
-            onClick={() => router.push("/chat")}
+            onClick={() => router.push(returnTo)}
             className="mt-4 px-4 py-2 bg-white text-black rounded-md hover:bg-gray-200 transition-colors"
           >
-            Back to Messages
+            Go Back
           </button>
         </div>
       </div>
@@ -94,7 +98,7 @@ export default function StoryViewerPage() {
   const signedUrl = currentStory?.objectKey ? signedUrls[currentStory.objectKey] : undefined;
 
   function handleClose() {
-    router.push("/chat");
+    router.push(returnTo);
   }
 
   function handleNext() {

@@ -112,7 +112,7 @@ function GirlCard({ girl, avatarUrl }) {
         {/* Avatar with gradient ring that opens the story viewer */}
         <div className="relative mx-auto mb-4 w-32 h-32">
           <Link
-            href={`/stories/${girl._id}`}
+            href={`/stories/${girl._id}?returnTo=/girls`}
             className="block"
             title={`Open ${girl.name}'s stories`}
           >
