@@ -113,6 +113,7 @@ const schema = defineSchema({
     lastMessageAt: v.number(),        // ms epoch
     lastMessagePreview: v.string(),   // denormalized for thread list
     lastReadAt: v.number(),           // ms epoch
+    clearedAt: v.optional(v.number()), // soft-clear pivot: only show messages created after this timestamp
     createdAt: v.number(),
     updatedAt: v.number(),
   })

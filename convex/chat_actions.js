@@ -22,9 +22,13 @@ export const _getContextV2 = internalQuery({
     const convo = await ctx.db.get(conversationId);
     if (!convo) throw new Error("Conversation not found");
 
+    const cutoff = convo.clearedAt ?? 0;
+
     const msgs = await ctx.db
       .query("messages")
-      .withIndex("by_conversation_ts", q => q.eq("conversationId", conversationId))
+      .withIndex("by_conversation_ts", q =>
+        q.eq("conversationId", conversationId).gt("createdAt", cutoff)
+      )
       .order("desc")
       .take(limit);
 

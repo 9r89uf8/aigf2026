@@ -44,9 +44,13 @@ export const getConversation = query({
     const convo = await ctx.db.get(conversationId);
     if (!convo || convo.userId !== userId) throw new Error("Not found");
 
+    const cutoff = convo.clearedAt ?? 0;
+
     const msgs = await ctx.db
       .query("messages")
-      .withIndex("by_conversation_ts", q => q.eq("conversationId", conversationId))
+      .withIndex("by_conversation_ts", q =>
+        q.eq("conversationId", conversationId).gt("createdAt", cutoff)
+      )
       .order("desc")
       .take(limit);
     msgs.reverse(); // ascending for UI
@@ -123,6 +127,27 @@ export const markRead = mutation({
     if (!c || c.userId !== userId) throw new Error("Not found");
     await ctx.db.patch(conversationId, { lastReadAt: at, updatedAt: Date.now() });
     return { ok: true };
+  },
+});
+
+/** Clear all messages in a conversation (soft-clear) */
+export const clearConversation = mutation({
+  args: { conversationId: v.id("conversations") },
+  handler: async (ctx, { conversationId }) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw new Error("Unauthenticated");
+
+    const convo = await ctx.db.get(conversationId);
+    if (!convo || convo.userId !== userId) throw new Error("Not found");
+
+    const now = Date.now();
+    await ctx.db.patch(conversationId, {
+      clearedAt: now,             // soft clear pivot
+      lastReadAt: now,            // no unread after a clear
+      lastMessagePreview: "",     // thread list shows empty preview
+      updatedAt: now,
+    });
+    return { ok: true, clearedAt: now };
   },
 });
 

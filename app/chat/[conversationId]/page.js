@@ -21,6 +21,7 @@ export default function ConversationPage() {
   const send = useMutation(api.chat.sendMessage);
   const markRead = useMutation(api.chat.markRead);
   const likeMsg = useMutation(api.chat.likeMessage);
+  const clearConversation = useMutation(api.chat.clearConversation);
 
   const [text, setText] = useState("");
   const [isSending, setIsSending] = useState(false);
@@ -106,8 +107,29 @@ export default function ConversationPage() {
     }
   }
 
+  async function onClearAll() {
+    if (!confirm("Delete all messages in this chat? This won't restore any free quotas.")) return;
+    try {
+      await clearConversation({ conversationId });
+      // After reactive query updates, ensure we are at the bottom
+      bottomRef.current?.scrollIntoView({ behavior: "instant" });
+    } catch (e) {
+      alert((e && e.message) || "Could not clear chat");
+    }
+  }
+
   return (
     <div className="max-w-screen-sm mx-auto h-[100dvh] flex flex-col">
+      <div className="p-3 border-b flex items-center justify-between">
+        <div className="text-sm font-medium">Chat</div>
+        <button
+          onClick={onClearAll}
+          className="text-xs px-2 py-1 border rounded hover:bg-gray-50"
+          title="Delete all messages (does not reset quotas)"
+        >
+          Clear chat
+        </button>
+      </div>
       <div className="flex-1 overflow-y-auto p-4 space-y-3">
         {(data?.messages || []).map(m => {
           const mine = m.sender === "user";
