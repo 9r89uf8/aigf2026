@@ -59,7 +59,7 @@ export const getConversation = query({
       messages: msgs.map(m => ({
         id: m._id, sender: m.sender, kind: m.kind, text: m.text,
         mediaKey: m.mediaKey, durationSec: m.durationSec, createdAt: m.createdAt,
-        userLiked: m.userLiked, aiLiked: m.aiLiked,
+        userLiked: m.userLiked, aiLiked: m.aiLiked, aiError: m.aiError,
       })),
     };
   },
@@ -260,7 +260,8 @@ export const sendMediaMessage = mutation({
         objectKey,
       });
       await ctx.scheduler.runAfter(1500, api.chat_actions.aiReply, {
-        conversationId
+        conversationId,
+        userMessageId: messageId
       });
     } else if (kind === "video") {
       // Videos: frame sampling takes longer, AI reply waits 2.5s for insights
@@ -269,7 +270,8 @@ export const sendMediaMessage = mutation({
         objectKey,
       });
       await ctx.scheduler.runAfter(3000, api.chat_actions.aiReply, {
-        conversationId
+        conversationId,
+        userMessageId: messageId
       });
     }
 
@@ -360,9 +362,9 @@ export const _insertAIAudioAndDec = internalMutation({
       mediaKey, text: caption || undefined, durationSec, ownerUserId, createdAt: now,
     });
 
-    // Atomically like user's message if requested
-    if (shouldLikeUserMsg && lastUserMsgId) {
-      await ctx.db.patch(lastUserMsgId, { aiLiked: true });
+    // Atomically like user's message if requested, and clear any error flag
+    if (lastUserMsgId) {
+      await ctx.db.patch(lastUserMsgId, { aiLiked: !!shouldLikeUserMsg, aiError: false });
     }
 
     // Decrement audio quota if not premium

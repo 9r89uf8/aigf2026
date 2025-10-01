@@ -28,8 +28,12 @@ export const _getContextV2 = internalQuery({
       .order("desc")
       .take(limit);
 
+    // Filter out user messages that failed (aiError=true)
+    // Keeps context clean without broken conversation flow
+    const usable = msgs.filter(m => !(m.sender === "user" && m.aiError));
+
     // Fetch media insights using indexed lookups (no table scan)
-    const mediaMessageIds = msgs
+    const mediaMessageIds = usable
       .filter(m => (m.kind === "image" || m.kind === "video") && m.sender === "user")
       .map(m => m._id);
 
@@ -44,7 +48,7 @@ export const _getContextV2 = internalQuery({
       }
     }
 
-    const history = msgs.reverse().map((m) => {
+    const history = usable.reverse().map((m) => {
       if (m.kind === "text") {
         return { role: m.sender === "user" ? "user" : "assistant", content: m.text || "" };
       }
@@ -116,6 +120,17 @@ export const _getContextV2 = internalQuery({
   },
 });
 
+/** Mark a user message as failed (AI couldn't respond) */
+export const _markAIError = internalMutation({
+  args: { messageId: v.id("messages") },
+  handler: async (ctx, { messageId }) => {
+    const msg = await ctx.db.get(messageId);
+    if (!msg) return;
+    if (msg.sender !== "user") return;
+    await ctx.db.patch(messageId, { aiError: true });
+  },
+});
+
 async function callLLM({ baseUrl, apiKey, model, messages }) {
   const res = await fetch(`${baseUrl}/v1/chat/completions`, {
     method: "POST",
@@ -158,9 +173,9 @@ export const _insertAIText = internalMutation({
       conversationId, sender: "ai", kind: "text", text, ownerUserId, createdAt: now,
     });
 
-    // Atomically like user's message if requested
-    if (shouldLikeUserMsg && lastUserMsgId) {
-      await ctx.db.patch(lastUserMsgId, { aiLiked: true });
+    // Atomically like user's message if requested, and clear any error flag
+    if (lastUserMsgId) {
+      await ctx.db.patch(lastUserMsgId, { aiLiked: !!shouldLikeUserMsg, aiError: false });
     }
 
     await ctx.db.patch(conversationId, {
@@ -190,9 +205,9 @@ export const _insertAIMediaAndDec = internalMutation({
       conversationId, sender: "ai", kind, mediaKey, text: caption || undefined, ownerUserId, createdAt: now,
     });
 
-    // Atomically like user's message if requested
-    if (shouldLikeUserMsg && lastUserMsgId) {
-      await ctx.db.patch(lastUserMsgId, { aiLiked: true });
+    // Atomically like user's message if requested, and clear any error flag
+    if (lastUserMsgId) {
+      await ctx.db.patch(lastUserMsgId, { aiLiked: !!shouldLikeUserMsg, aiError: false });
     }
 
     await ctx.db.patch(conversationId, {
@@ -221,10 +236,25 @@ export const aiReply = action({
       primary: { baseUrl: process.env.LLM_BASE_URL_PRIMARY, apiKey: process.env.LLM_API_KEY_PRIMARY, model: process.env.LLM_MODEL_PRIMARY },
       fallback: { baseUrl: process.env.LLM_BASE_URL_FALLBACK, apiKey: process.env.LLM_API_KEY_FALLBACK, model: process.env.LLM_MODEL_FALLBACK },
     };
+    const fallbackEnabled = process.env.LLM_FALLBACK_ENABLED === "1"
+      && !!cfg.fallback.baseUrl && !!cfg.fallback.apiKey && !!cfg.fallback.model;
 
     let raw;
-    try { raw = await callLLM({ ...cfg.primary, messages }); }
-    catch { raw = await callLLM({ ...cfg.fallback, messages }); }
+    try {
+      raw = await callLLM({ ...cfg.primary, messages });
+    } catch (e1) {
+      if (fallbackEnabled) {
+        try {
+          raw = await callLLM({ ...cfg.fallback, messages });
+        } catch (e2) {
+          if (userMessageId) await ctx.runMutation(api.chat_actions._markAIError, { messageId: userMessageId });
+          return { ok: false, error: "llm_unavailable" };
+        }
+      } else {
+        if (userMessageId) await ctx.runMutation(api.chat_actions._markAIError, { messageId: userMessageId });
+        return { ok: false, error: "llm_unavailable" };
+      }
+    }
 
     const decision = parseDecision(raw);
 

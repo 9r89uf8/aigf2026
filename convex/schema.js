@@ -128,6 +128,7 @@ const schema = defineSchema({
     durationSec: v.optional(v.number()),   // duration for audio/video
     userLiked: v.optional(v.boolean()),    // user liked this AI message
     aiLiked: v.optional(v.boolean()),      // AI liked this user message
+    aiError: v.optional(v.boolean()),      // mark if AI failed to respond to THIS user message
     ownerUserId: v.id("users"),            // denormalized for fast auth
     createdAt: v.number(),            // ms epoch
   })

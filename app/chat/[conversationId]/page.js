@@ -1,5 +1,5 @@
 "use client";
-
+//app/chat/[conversationId]/page.js
 import { useParams } from "next/navigation";
 import { useQuery, useMutation, useAction } from "convex/react";
 import { api } from "@/convex/_generated/api";
@@ -114,79 +114,94 @@ export default function ConversationPage() {
           const base = "max-w-[80%] p-2 rounded";
           if (m.kind === "text") {
             return (
-              <div key={m.id} className={`${base} ${mine ? "bg-blue-600 text-white self-end ml-auto" : "bg-gray-200"}`}>
-                <div className="text-sm whitespace-pre-wrap">{m.text}</div>
-                <div className="flex items-center gap-2 mt-1">
-                  <div className="text-[10px] opacity-60">{new Date(m.createdAt).toLocaleTimeString()}</div>
-                  {!mine && (
-                    <button
-                      onClick={() => likeMsg({ messageId: m.id })}
-                      className="text-sm transition-all hover:scale-110"
-                    >
-                      {m.userLiked ? (
-                        <span className="text-red-500">❤️</span>
-                      ) : (
-                        <span className="text-gray-400">🤍</span>
-                      )}
-                    </button>
-                  )}
-                  {mine && m.aiLiked && <span className="text-pink-500 text-sm">❤️</span>}
+              <div key={m.id} className="flex flex-col items-end">
+                <div className={`${base} ${mine ? "bg-blue-600 text-white self-end ml-auto" : "bg-gray-200"}`}>
+                  <div className="text-sm whitespace-pre-wrap">{m.text}</div>
+                  <div className="flex items-center gap-2 mt-1">
+                    <div className="text-[10px] opacity-60">{new Date(m.createdAt).toLocaleTimeString()}</div>
+                    {!mine && (
+                      <button
+                        onClick={() => likeMsg({ messageId: m.id })}
+                        className="text-sm transition-all hover:scale-110"
+                      >
+                        {m.userLiked ? (
+                          <span className="text-red-500">❤️</span>
+                        ) : (
+                          <span className="text-gray-400">🤍</span>
+                        )}
+                      </button>
+                    )}
+                    {mine && m.aiLiked && <span className="text-pink-500 text-sm">❤️</span>}
+                  </div>
                 </div>
+                {mine && m.aiError && (
+                  <div className="text-xs text-red-600 mt-1">AI temporarily unavailable</div>
+                )}
               </div>
             );
           }
           if (m.kind === "audio") {
             const src = urlMap[m.mediaKey];
             return (
-              <div key={m.id} className={`${base} ${mine ? "bg-blue-50 self-end ml-auto" : "bg-gray-100"}`}>
-                {src ? (
-                  <audio controls src={src} className="w-full" />
-                ) : (
-                  <div className="w-64 h-10 bg-gray-300 rounded animate-pulse" />
-                )}
-                {!!m.text && <div className="text-sm mt-2">{m.text}</div>}
-                <div className="flex items-center gap-2 mt-1">
-                  <div className="text-[10px] opacity-60">
-                    {m.durationSec ? `${m.durationSec}s • ` : ""}{new Date(m.createdAt).toLocaleTimeString()}
-                  </div>
-                  {!mine && (
-                    <button
-                      onClick={() => likeMsg({ messageId: m.id })}
-                      className="text-sm transition-all hover:scale-110"
-                    >
-                      {m.userLiked ? (
-                        <span className="text-red-500">❤️</span>
-                      ) : (
-                        <span className="text-gray-400">🤍</span>
-                      )}
-                    </button>
+              <div key={m.id} className="flex flex-col items-end">
+                <div className={`${base} ${mine ? "bg-blue-50 self-end ml-auto" : "bg-gray-100"}`}>
+                  {src ? (
+                    <audio controls src={src} className="w-full" />
+                  ) : (
+                    <div className="w-64 h-10 bg-gray-300 rounded animate-pulse" />
                   )}
-                  {mine && m.aiLiked && <span className="text-pink-500 text-sm">❤️</span>}
+                  {!!m.text && <div className="text-sm mt-2">{m.text}</div>}
+                  <div className="flex items-center gap-2 mt-1">
+                    <div className="text-[10px] opacity-60">
+                      {m.durationSec ? `${m.durationSec}s • ` : ""}{new Date(m.createdAt).toLocaleTimeString()}
+                    </div>
+                    {!mine && (
+                      <button
+                        onClick={() => likeMsg({ messageId: m.id })}
+                        className="text-sm transition-all hover:scale-110"
+                      >
+                        {m.userLiked ? (
+                          <span className="text-red-500">❤️</span>
+                        ) : (
+                          <span className="text-gray-400">🤍</span>
+                        )}
+                      </button>
+                    )}
+                    {mine && m.aiLiked && <span className="text-pink-500 text-sm">❤️</span>}
+                  </div>
                 </div>
+                {mine && m.aiError && (
+                  <div className="text-xs text-red-600 mt-1">AI temporarily unavailable</div>
+                )}
               </div>
             );
           }
           const src = urlMap[m.mediaKey];
           return (
-            <div key={m.id} className={`${base} ${mine ? "bg-blue-50 self-end ml-auto" : "bg-gray-100"}`}>
-              {m.kind === "image" ? (
-                src ? <img src={src} alt="image" className="rounded max-h-80" /> : <div className="w-48 h-48 bg-gray-300 rounded" />
-              ) : (
-                src ? <video src={src} controls className="rounded max-h-80" /> : <div className="w-48 h-32 bg-gray-300 rounded" />
-              )}
-              {!!m.text && <div className="text-sm mt-2">{m.text}</div>}
-              <div className="flex items-center gap-2 mt-1">
-                <div className="text-[10px] opacity-60">{new Date(m.createdAt).toLocaleTimeString()}</div>
-                {!mine && (
-                  <button
-                    onClick={() => likeMsg({ messageId: m.id })}
-                    className="text-sm transition-colors hover:scale-110"
-                  >
-                    <span className={m.userLiked ? "text-red-500" : "text-gray-400"}>❤️</span>
-                  </button>
+            <div key={m.id} className="flex flex-col items-end">
+              <div className={`${base} ${mine ? "bg-blue-50 self-end ml-auto" : "bg-gray-100"}`}>
+                {m.kind === "image" ? (
+                  src ? <img src={src} alt="image" className="rounded max-h-80" /> : <div className="w-48 h-48 bg-gray-300 rounded" />
+                ) : (
+                  src ? <video src={src} controls className="rounded max-h-80" /> : <div className="w-48 h-32 bg-gray-300 rounded" />
                 )}
-                {mine && m.aiLiked && <span className="text-pink-500 text-sm">❤️</span>}
+                {!!m.text && <div className="text-sm mt-2">{m.text}</div>}
+                <div className="flex items-center gap-2 mt-1">
+                  <div className="text-[10px] opacity-60">{new Date(m.createdAt).toLocaleTimeString()}</div>
+                  {!mine && (
+                    <button
+                      onClick={() => likeMsg({ messageId: m.id })}
+                      className="text-sm transition-colors hover:scale-110"
+                    >
+                      <span className={m.userLiked ? "text-red-500" : "text-gray-400"}>❤️</span>
+                    </button>
+                  )}
+                  {mine && m.aiLiked && <span className="text-pink-500 text-sm">❤️</span>}
+                </div>
               </div>
+              {mine && m.aiError && (
+                <div className="text-xs text-red-600 mt-1">AI temporarily unavailable</div>
+              )}
             </div>
           );
         })}
