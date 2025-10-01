@@ -100,46 +100,60 @@ export default function GirlsListingPage() {
   );
 }
 
+function AvatarWithStoryRing({ href, src, name, hasStory, isVideo }) {
+  // IG-like rainbow using a conic gradient; fall back to gray when no story
+  const ringClass = hasStory
+    ? "bg-[conic-gradient(from_220deg_at_50%_50%,#f58529,#feda77,#dd2a7b,#8134af,#515bd4,#f58529)]"
+    : "bg-gray-300";
+
+  return (
+    <Link href={href} className="block" title={name ? `Open ${name}'s stories` : "Open stories"}>
+      {/* OUTER: gradient ring */}
+      <div className={`w-36 h-36 rounded-full p-[3px] ${ringClass} transition-transform duration-200 group-hover:scale-[1.02]`}>
+        {/* MIDDLE: white gap ring */}
+        <div className="w-full h-full rounded-full p-[3px] bg-white">
+          {/* INNER: the avatar */}
+          <div className="w-full h-full rounded-full overflow-hidden bg-gray-100 relative flex items-center justify-center">
+            {src ? (
+              <img
+                src={src}
+                alt={name || "Avatar"}
+                className="w-full h-full object-cover select-none"
+                draggable={false}
+              />
+            ) : (
+              <span className="text-4xl font-bold text-gray-400 select-none">
+                {name?.[0]?.toUpperCase()}
+              </span>
+            )}
+
+            {/* Optional ▶ glyph if latest story is a video */}
+            {isVideo && (
+              <span className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-xs px-1.5 py-0.5 bg-black/60 text-white rounded">
+                ▶
+              </span>
+            )}
+          </div>
+        </div>
+      </div>
+    </Link>
+  );
+}
+
 function GirlCard({ girl, avatarUrl }) {
-  // Gradient ring colors: pink→yellow when hasStory, gray otherwise
-  const ringClass = girl.hasStory
-    ? "from-pink-500 to-yellow-400"
-    : "from-gray-300 to-gray-300";
 
   return (
     <div className="bg-white rounded-lg shadow-sm hover:shadow-lg transition-shadow overflow-hidden group">
       <div className="p-6">
         {/* Avatar with gradient ring that opens the story viewer */}
-        <div className="relative mx-auto mb-4 w-32 h-32">
-          <Link
+        <div className="relative mx-auto mb-4">
+          <AvatarWithStoryRing
             href={`/stories/${girl._id}?returnTo=/girls`}
-            className="block"
-            title={`Open ${girl.name}'s stories`}
-          >
-            <div className={`p-[3px] rounded-full bg-gradient-to-tr ${ringClass}`}>
-              <div className="w-32 h-32 rounded-full overflow-hidden border-4 border-white bg-gray-100 flex items-center justify-center relative">
-                {avatarUrl ? (
-                  <img
-                    src={avatarUrl}
-                    alt={girl.name}
-                    className="w-full h-full object-cover"
-                    draggable={false}
-                  />
-                ) : (
-                  <span className="text-4xl font-bold text-gray-400">
-                    {girl.name?.[0]?.toUpperCase()}
-                  </span>
-                )}
-
-                {/* Small ▶ glyph if their latest story is a video */}
-                {girl.latestStoryKind === "video" && (
-                  <span className="absolute bottom-2 right-2 text-xs px-1.5 py-0.5 bg-black/60 text-white rounded">
-                    ▶
-                  </span>
-                )}
-              </div>
-            </div>
-          </Link>
+            src={avatarUrl}
+            name={girl.name}
+            hasStory={girl.hasStory}
+            isVideo={girl.latestStoryKind === "video"}
+          />
         </div>
 
         {/* Name */}
