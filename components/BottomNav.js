@@ -18,6 +18,12 @@ const Item = ({ href, active, label, children }) => (
 
 export function BottomNav() {
     const pathname = usePathname() || "/";
+
+    // Hide on individual chat pages (e.g., /chat/[conversationId])
+    if (pathname.startsWith("/chat/")) {
+        return null;
+    }
+
     const isGirls = pathname.startsWith("/girls");
     const isChat = pathname.startsWith("/chat");
     const isAccount = pathname.startsWith("/account");

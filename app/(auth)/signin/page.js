@@ -41,9 +41,41 @@ export default function SignInPage() {
   };
 
   return (
-    <main className="mx-auto max-w-sm p-6 mt-20">
+    <main className="mx-auto max-w-sm p-6 mt-8">
+      {/* Tab-style toggle */}
+      <div className="flex gap-2 mb-6 p-1 bg-gray-100 rounded-lg">
+        <button
+          type="button"
+          onClick={() => {
+            setFlow("signUp");
+            setError("");
+          }}
+          className={`flex-1 py-2.5 px-4 rounded-md font-medium transition-all ${
+            flow === "signUp"
+              ? "bg-white text-blue-600 shadow-sm"
+              : "text-gray-600 hover:text-gray-900"
+          }`}
+        >
+          Create Account
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            setFlow("signIn");
+            setError("");
+          }}
+          className={`flex-1 py-2.5 px-4 rounded-md font-medium transition-all ${
+            flow === "signIn"
+              ? "bg-white text-blue-600 shadow-sm"
+              : "text-gray-600 hover:text-gray-900"
+          }`}
+        >
+          Sign In
+        </button>
+      </div>
+
       <h1 className="text-2xl font-semibold mb-6 text-center">
-        {flow === "signIn" ? "Sign in to AI Girls" : "Create your account"}
+        {flow === "signIn" ? "Welcome back" : "Join AI Girls"}
       </h1>
 
       {error && (
@@ -103,25 +135,13 @@ export default function SignInPage() {
         </button>
       </form>
 
-      <div className="mt-6 text-center space-y-2">
-        <button
-          className="text-blue-500 hover:text-blue-600 text-sm"
-          onClick={() => {
-            setFlow((f) => (f === "signIn" ? "signUp" : "signIn"));
-            setError("");
-          }}
-        >
-          {flow === "signIn" ? "Don't have an account? Sign up" : "Already have an account? Sign in"}
-        </button>
-
-        {flow === "signIn" && (
-          <div>
-            <a className="text-blue-500 hover:text-blue-600 text-sm" href="/reset-password">
-              Forgot your password?
-            </a>
-          </div>
-        )}
-      </div>
+      {flow === "signIn" && (
+        <div className="mt-6 text-center">
+          <a className="text-blue-500 hover:text-blue-600 text-sm" href="/reset-password">
+            Forgot your password?
+          </a>
+        </div>
+      )}
     </main>
   );
 }

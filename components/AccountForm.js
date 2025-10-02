@@ -156,195 +156,240 @@ export default function AccountForm() {
     }
   }
 
-  if (!data) return <div className="p-6">Loading...</div>;
+  if (!data) return <div className="min-h-screen flex items-center justify-center">
+    <div className="text-lg text-gray-400">Loading...</div>
+  </div>;
 
   return (
-    <main className="max-w-2xl mx-auto p-6">
-      <h1 className="text-2xl font-semibold mb-6">Account</h1>
+    <main className="min-h-screen bg-gray-50">
+      {/* Cover Header - Social Media Style */}
+      <div className="relative pt-6 px-6">
+        <div className="h-48 bg-gradient-to-br from-indigo-600 via-amber-500 to-cyan-400 rounded-2xl"></div>
 
-      <form onSubmit={onSave} className="space-y-6">
-        {/* Email (read-only) */}
-        <div>
-          <label className="block text-sm font-medium mb-1">Email</label>
-          <input
-            value={email}
-            disabled
-            className="input w-full bg-gray-50 px-3 py-2 border border-gray-300 rounded-md"
-          />
-          <p className="text-xs text-gray-500 mt-1">Email cannot be changed.</p>
-        </div>
-
-        {/* Username */}
-        <div>
-          <label className="block text-sm font-medium mb-1">Username</label>
-          <input
-            className="input w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            required
-            pattern="[a-z0-9._]{3,24}"
-            title="3–24 chars; a–z, 0–9, dot, underscore"
-          />
-        </div>
-
-        {/* Name */}
-        <div>
-          <label className="block text-sm font-medium mb-1">Name</label>
-          <input
-            className="input w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            maxLength={80}
-          />
-        </div>
-
-        {/* Age + Country */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium mb-1">Age</label>
-            <input
-              className="input w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              type="number"
-              min={13}
-              max={120}
-              value={age}
-              onChange={(e) => {
-                const v = e.target.value;
-                setAge(v === "" ? "" : Number(v));
-              }}
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-1">Country</label>
-            <select
-              className="input w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              value={country}
-              onChange={(e) => setCountry(e.target.value)}
-            >
-              {COUNTRY_OPTIONS.map((c) => (
-                <option key={c.code} value={c.code}>{c.label}</option>
-              ))}
-            </select>
-          </div>
-        </div>
-
-        {/* Avatar */}
-        <div className="flex items-start gap-4">
-          <div className="w-24 h-24 rounded-full overflow-hidden bg-gray-100 flex items-center justify-center">
-            {avatarUrl ? (
-              <img src={avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
-            ) : (
-              <span className="text-xs text-gray-400">No photo</span>
-            )}
-          </div>
-          <div className="space-x-2">
-            <input
-              ref={fileRef}
-              type="file"
-              accept="image/png,image/jpeg,image/webp"
-              className="hidden"
-              onChange={(e) => {
-                const f = e.target.files?.[0];
-                if (f) onPickAvatar(f);
-              }}
-            />
-            <button
-              type="button"
-              className="btn-gradient-blue disabled:opacity-50 disabled:cursor-not-allowed"
-              onClick={() => fileRef.current?.click()}
-              disabled={uploading}
-            >
-              {uploading ? "Uploading..." : "Change photo"}
-            </button>
-            {avatarUrl && (
+        {/* Avatar Overlapping Cover */}
+        <div className="max-w-5xl mx-auto px-6">
+          <div className="relative -mt-20 flex flex-col items-center pb-6">
+            <div className="relative">
+              <div className="w-32 h-32 rounded-full overflow-hidden bg-white border-4 border-white shadow-xl flex items-center justify-center">
+                {avatarUrl ? (
+                  <img src={avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+                ) : (
+                  <span className="text-sm text-gray-400">No photo</span>
+                )}
+              </div>
+              <input
+                ref={fileRef}
+                type="file"
+                accept="image/png,image/jpeg,image/webp"
+                className="hidden"
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  if (f) onPickAvatar(f);
+                }}
+              />
               <button
                 type="button"
-                className="btn-gradient-black"
-                onClick={async () => {
-                  await removeAvatar({});
-                  setAvatarUrl(null);
-                }}
+                onClick={() => fileRef.current?.click()}
+                disabled={uploading}
+                className="absolute bottom-0 right-0 w-8 h-8 bg-blue-500 hover:bg-blue-600 text-white rounded-full flex items-center justify-center shadow-lg transition-colors disabled:opacity-50"
               >
-                Remove photo
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
               </button>
-            )}
+            </div>
+
+            <div className="mt-4 text-center">
+              <h1 className="text-3xl font-bold text-gray-900">{name || username || "User"}</h1>
+              <p className="text-gray-600 mt-1">@{username || "username"}</p>
+              {avatarUrl && (
+                <button
+                  type="button"
+                  onClick={async () => {
+                    await removeAvatar({});
+                    setAvatarUrl(null);
+                  }}
+                  className="mt-2 text-sm text-red-600 hover:text-red-700 transition-colors"
+                >
+                  Remove photo
+                </button>
+              )}
+            </div>
           </div>
         </div>
+      </div>
 
-        <div className="pt-2">
-          <button
-            className="btn-gradient-blue disabled:opacity-50 disabled:cursor-not-allowed"
-            type="submit"
-            disabled={saving}
-          >
-            {saving ? "Saving..." : "Save changes"}
-          </button>
-        </div>
-      </form>
+      {/* Profile Information - Card Based */}
+      <div className="max-w-5xl mx-auto px-6 py-8">
+        <form onSubmit={onSave}>
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
+            <h2 className="text-xl font-semibold mb-6 flex items-center gap-2">
+              <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+              </svg>
+              Profile Information
+            </h2>
 
-      {/* Premium Status Section */}
-      <div className="space-y-6 mt-8">
-        <div className="border-t pt-6">
-          <h2 className="text-xl font-semibold mb-4">Premium Status</h2>
-          <div className="rounded border p-4 bg-gray-50">
-            {premiumStatus ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Email */}
               <div>
-                <div className="font-medium text-lg mb-2">
-                  {premiumStatus.active ? (
-                    <span className="text-green-600">✓ Premium Active</span>
-                  ) : (
-                    <span className="text-gray-600">Free Plan</span>
-                  )}
-                </div>
-                {premiumStatus.active && premiumStatus.premiumUntil > 0 && (
-                  <div className="text-sm text-gray-600 mb-3">
-                    Premium until{" "}
-                    <strong>
-                      {new Date(premiumStatus.premiumUntil).toLocaleDateString("en-US", {
-                        year: "numeric",
-                        month: "long",
-                        day: "numeric",
-                        hour: "2-digit",
-                        minute: "2-digit"
-                      })}
-                    </strong>
-                  </div>
-                )}
-                <a
-                  href="/plans"
-                  className="inline-block btn-gradient-blue text-sm"
+                <label className="block text-sm font-medium text-gray-700 mb-2">Email Address</label>
+                <input
+                  value={email}
+                  disabled
+                  className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg text-gray-600 cursor-not-allowed"
+                />
+                <p className="text-xs text-gray-500 mt-1.5">Email cannot be changed</p>
+              </div>
+
+              {/* Username */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Username</label>
+                <input
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-shadow"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  required
+                  pattern="[a-z0-9._]{3,24}"
+                  title="3–24 chars; a–z, 0–9, dot, underscore"
+                />
+              </div>
+
+              {/* Name */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Full Name</label>
+                <input
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-shadow"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  maxLength={80}
+                />
+              </div>
+
+              {/* Age */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Age</label>
+                <input
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-shadow"
+                  type="number"
+                  min={13}
+                  max={120}
+                  value={age}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    setAge(v === "" ? "" : Number(v));
+                  }}
+                />
+              </div>
+
+              {/* Country */}
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2">Country</label>
+                <select
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-shadow"
+                  value={country}
+                  onChange={(e) => setCountry(e.target.value)}
                 >
-                  {premiumStatus.active ? "Extend Premium" : "Upgrade to Premium"}
+                  {COUNTRY_OPTIONS.map((c) => (
+                    <option key={c.code} value={c.code}>{c.label}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div className="mt-6 flex justify-center">
+              <button
+                className="px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg font-medium hover:from-blue-600 hover:to-blue-700 transition-all shadow-lg shadow-blue-500/30 disabled:opacity-50 disabled:cursor-not-allowed"
+                type="submit"
+                disabled={saving || uploading}
+              >
+                {saving ? "Saving..." : "Save Changes"}
+              </button>
+            </div>
+          </div>
+        </form>
+
+        {/* Membership Status - Bank UI Style */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
+          <h2 className="text-xl font-semibold mb-6 flex items-center gap-2">
+            <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+            </svg>
+            Membership Status
+          </h2>
+
+          {premiumStatus ? (
+            <div className={`p-6 rounded-lg border-2 ${premiumStatus.active ? 'bg-gradient-to-br from-green-50 to-emerald-50 border-green-200' : 'bg-gray-50 border-gray-200'}`}>
+              <div className="flex items-center gap-2 mb-2">
+                {premiumStatus.active ? (
+                  <>
+                    <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                    <span className="text-lg font-semibold text-green-700">Premium Account</span>
+                  </>
+                ) : (
+                  <>
+                    <div className="w-3 h-3 bg-gray-400 rounded-full"></div>
+                    <span className="text-lg font-semibold text-gray-700">Free Plan</span>
+                  </>
+                )}
+              </div>
+              {premiumStatus.active && premiumStatus.premiumUntil > 0 && (
+                <div className="text-sm text-gray-600">
+                  Valid until{" "}
+                  <span className="font-semibold text-gray-900">
+                    {new Date(premiumStatus.premiumUntil).toLocaleDateString("en-US", {
+                      year: "numeric",
+                      month: "long",
+                      day: "numeric"
+                    })}
+                  </span>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="p-6 bg-gray-50 rounded-lg text-center text-gray-500">
+              Loading status...
+            </div>
+          )}
+        </div>
+
+        {/* Transaction History - Bank Statement Style */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          <h2 className="text-xl font-semibold mb-6 flex items-center gap-2">
+            <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+            </svg>
+            Transaction History
+          </h2>
+
+          {paymentHistory ? (
+            paymentHistory.length === 0 ? (
+              <div className="p-8 text-center">
+                <svg className="w-16 h-16 mx-auto text-gray-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
+                </svg>
+                <p className="text-gray-500 mb-2">No transactions yet</p>
+                <a href="/plans" className="text-blue-500 hover:text-blue-600 font-medium text-sm">
+                  Browse premium plans →
                 </a>
               </div>
             ) : (
-              <div className="text-gray-500">Loading premium status...</div>
-            )}
-          </div>
-        </div>
-
-        {/* Payment History Section */}
-        <div>
-          <h2 className="text-xl font-semibold mb-4">Payment History</h2>
-          <div className="rounded border">
-            {paymentHistory ? (
-              paymentHistory.length === 0 ? (
-                <div className="p-4 text-center text-gray-500">
-                  No purchases yet.{" "}
-                  <a href="/plans" className="text-blue-500 hover:underline">
-                    Browse premium plans
-                  </a>
-                </div>
-              ) : (
-                <div className="divide-y">
-                  {paymentHistory.map(payment => (
-                    <div key={payment.id} className="p-4">
-                      <div className="flex items-center justify-between">
+              <div className="divide-y divide-gray-100">
+                {paymentHistory.map(payment => (
+                  <div key={payment.id} className="py-4 hover:bg-gray-50 transition-colors px-4 -mx-4 rounded-lg">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-4">
+                        <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center">
+                          <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                          </svg>
+                        </div>
                         <div>
-                          <div className="font-medium">
-                            {(payment.amountTotal / 100).toFixed(2)} {payment.currency.toUpperCase()}
+                          <div className="font-semibold text-gray-900">
+                            Premium Subscription
                           </div>
-                          <div className="text-sm text-gray-600">
+                          <div className="text-sm text-gray-500">
                             {new Date(payment.paidAt).toLocaleDateString("en-US", {
                               year: "numeric",
                               month: "short",
@@ -353,31 +398,36 @@ export default function AccountForm() {
                               minute: "2-digit"
                             })}
                           </div>
-                          <div className="text-xs text-gray-500">
-                            {payment.durationDays} day{payment.durationDays !== 1 ? 's' : ''} •
-                            Expires {new Date(payment.expiresAt).toLocaleDateString()}
+                          <div className="text-xs text-gray-400 mt-0.5">
+                            {payment.durationDays} day{payment.durationDays !== 1 ? 's' : ''} • Expires {new Date(payment.expiresAt).toLocaleDateString()}
                           </div>
                         </div>
-                        <div className="text-right">
-                          <div className="text-sm font-medium text-green-600">
-                            {payment.status === "paid" ? "Paid" : payment.status}
-                          </div>
-                          {payment.features && payment.features.length > 0 && (
-                            <div className="text-xs text-gray-500 mt-1">
-                              {payment.features.slice(0, 2).join(", ")}
-                              {payment.features.length > 2 && "..."}
-                            </div>
-                          )}
+                      </div>
+
+                      <div className="text-right">
+                        <div className="font-semibold text-lg text-gray-900">
+                          ${(payment.amountTotal / 100).toFixed(2)}
+                        </div>
+                        <div className="text-xs text-gray-500 uppercase">
+                          {payment.currency}
+                        </div>
+                        <div className="inline-flex items-center gap-1 mt-1 px-2 py-0.5 bg-green-100 text-green-700 text-xs font-medium rounded">
+                          <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                          </svg>
+                          {payment.status === "paid" ? "Paid" : payment.status}
                         </div>
                       </div>
                     </div>
-                  ))}
-                </div>
-              )
-            ) : (
-              <div className="p-4 text-center text-gray-500">Loading payment history...</div>
-            )}
-          </div>
+                  </div>
+                ))}
+              </div>
+            )
+          ) : (
+            <div className="p-6 bg-gray-50 rounded-lg text-center text-gray-500">
+              Loading transactions...
+            </div>
+          )}
         </div>
       </div>
     </main>
