@@ -5,6 +5,7 @@ import { api } from "@/convex/_generated/api";
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import AvatarWithStoryRing from "@/components/AvatarWithStoryRing";
+import StartChatButton from "@/components/StartChatButton";
 
 export default function GirlsListingPage() {
   const girls = useQuery(api.girls.listGirlsPublic);
@@ -145,12 +146,7 @@ function GirlCard({ girl, avatarUrl }) {
 
         {/* Action Buttons */}
         <div className="flex gap-2">
-          <Link
-            href={`/chat/${girl._id}`}
-            className="flex-1 px-4 py-2 bg-white text-indigo-700 font-semibold text-center rounded-lg hover:bg-gray-100 transition-all shadow-md hover:shadow-lg"
-          >
-            Message
-          </Link>
+          <StartChatButton girlId={girl._id} />
           <Link
             href={`/girls/${girl._id}`}
             className="flex-1 px-4 py-2 bg-white/20 backdrop-blur-sm text-white font-semibold text-center rounded-lg hover:bg-white/30 transition-all shadow-md hover:shadow-lg border border-white/30"

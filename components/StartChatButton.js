@@ -9,7 +9,7 @@ export default function StartChatButton({ girlId }) {
   const start = useMutation(api.chat.startConversation);
   return (
     <button
-      className="px-4 py-2 bg-blue-600 text-white rounded-md font-medium hover:bg-blue-700 transition-colors"
+      className="flex-1 px-4 py-2 bg-white text-indigo-700 font-semibold text-center rounded-lg hover:bg-gray-100 transition-all shadow-md hover:shadow-lg"
       onClick={async () => {
         const { conversationId } = await start({ girlId });
         router.push(`/chat/${conversationId}`);
