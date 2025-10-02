@@ -12,6 +12,54 @@ import AudioComposer from "@/components/chat/AudioComposer";
 // Module-level flag to prevent double prefetch in React Strict Mode
 let prefetchAttempted = false;
 
+function TypingBubble({ avatarUrl, girlName }) {
+  return (
+    <div
+      role="status"
+      aria-live="polite"
+      aria-label={`${girlName || "Assistant"} is typing`}
+      className="flex items-end gap-2"
+    >
+      {avatarUrl ? (
+        <img
+          src={avatarUrl}
+          alt={girlName || "Profile"}
+          className="w-7 h-7 rounded-full object-cover flex-shrink-0"
+        />
+      ) : (
+        <div className="w-7 h-7 rounded-full bg-gradient-to-br from-purple-400 to-pink-400 flex-shrink-0" />
+      )}
+
+      <div className="bg-gray-100 text-gray-900 rounded-3xl px-3 py-2">
+        <div className="flex items-center gap-1.5">
+          <span className="typing-dot" />
+          <span className="typing-dot" />
+          <span className="typing-dot" />
+        </div>
+      </div>
+
+      {/* Local, scoped CSS (no global styles required) */}
+      <style jsx>{`
+        .typing-dot {
+          width: 6px;
+          height: 6px;
+          border-radius: 9999px;
+          background: #9ca3af; /* gray-400 */
+          display: inline-block;
+          animation: blink 1.4s infinite both;
+        }
+        .typing-dot:nth-child(2) { animation-delay: .2s; }
+        .typing-dot:nth-child(3) { animation-delay: .4s; }
+        @keyframes blink {
+          0% { opacity: .2; transform: translateY(0px); }
+          20% { opacity: 1; transform: translateY(-1px); }
+          100% { opacity: .2; transform: translateY(0px); }
+        }
+      `}</style>
+    </div>
+  );
+}
+
 export default function ConversationPage() {
   const router = useRouter();
   const { conversationId } = useParams();
@@ -35,12 +83,23 @@ export default function ConversationPage() {
   const { ready: turnstileReady, getToken } = useInvisibleTurnstile();
   const prefetchGuard = useRef(false);
 
+  // Compute typing state from existing messages
+  const lastMsg = data?.messages?.[data.messages.length - 1] || null;
+  const isAiTyping = !!lastMsg && lastMsg.sender === "user" && !lastMsg.aiError;
+
   useEffect(() => {
     if (data) {
       bottomRef.current?.scrollIntoView({ behavior: "smooth" });
       markRead({ conversationId, at: Date.now() });
     }
   }, [data, conversationId, markRead]);
+
+  // Auto-scroll when typing indicator appears
+  useEffect(() => {
+    if (isAiTyping) {
+      bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [isAiTyping]);
 
   // Fetch girl's avatar URL
   useEffect(() => {
@@ -356,6 +415,16 @@ export default function ConversationPage() {
             </div>
           );
         })}
+        {isAiTyping && (
+          <div className="flex items-end gap-2">
+            <div className="flex flex-col items-start max-w-[70%]">
+              <TypingBubble avatarUrl={avatarUrl} girlName={data?.girlName} />
+              <div className="flex items-center gap-1.5 mt-1 px-2">
+                <span className="text-[11px] text-gray-400">typing…</span>
+              </div>
+            </div>
+          </div>
+        )}
         <div ref={bottomRef} />
       </div>
 
