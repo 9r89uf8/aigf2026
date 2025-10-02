@@ -89,7 +89,7 @@ export default function GirlProfilePage() {
   const currentStoryIndex = stories.findIndex((s) => s.id === viewingStory?.id);
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen">
       {/* Hero Section */}
       <ProfileHero
         girl={girl}

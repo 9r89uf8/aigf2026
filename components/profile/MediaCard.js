@@ -41,7 +41,7 @@ export default function MediaCard({
   }
 
   return (
-    <div className="bg-white border rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow">
+    <div className="rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow">
       {/* Media Content */}
       <div className="relative aspect-[4/5] bg-gray-100">
         {signedUrl ? (
@@ -68,9 +68,9 @@ export default function MediaCard({
       </div>
 
       {/* Media Info */}
-      <div className="p-3">
+      <div className="p-3 bg-gradient-to-br from-indigo-600 via-amber-500 to-cyan-400">
         {media.text && (
-          <p className="text-sm text-gray-700 mb-2 line-clamp-2">{media.text}</p>
+          <p className="text-sm text-white mb-2 line-clamp-2">{media.text}</p>
         )}
 
         <div className="flex items-center justify-between">
@@ -81,8 +81,8 @@ export default function MediaCard({
               disabled={isLiking}
               className={`flex items-center gap-1.5 transition-colors ${
                 localLiked
-                  ? "text-red-500"
-                  : "text-gray-400 hover:text-red-400"
+                  ? "text-white"
+                  : "text-white/70 hover:text-white"
               } disabled:opacity-50`}
             >
               <svg
@@ -104,7 +104,7 @@ export default function MediaCard({
 
           {/* Location (for posts) */}
           {media.location && (
-            <span className="text-xs text-gray-500 flex items-center gap-1">
+            <span className="text-xs text-white/80 flex items-center gap-1">
               <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />

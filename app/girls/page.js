@@ -101,10 +101,10 @@ export default function GirlsListingPage() {
 function GirlCard({ girl, avatarUrl }) {
 
   return (
-    <div className="bg-white rounded-lg shadow-sm hover:shadow-lg transition-shadow overflow-hidden group">
+    <div className="bg-gradient-to-br from-indigo-600 via-amber-500 to-cyan-400 rounded-lg shadow-lg hover:shadow-xl transition-all overflow-hidden group hover:scale-[1.02] duration-300">
       <div className="p-6">
         {/* Avatar with gradient ring that opens the story viewer */}
-        <div className="relative mx-auto mb-4">
+        <div className="relative mx-auto mb-4 flex justify-center">
           <AvatarWithStoryRing
             href={`/stories/${girl._id}?returnTo=/girls`}
             src={avatarUrl}
@@ -115,26 +115,26 @@ function GirlCard({ girl, avatarUrl }) {
         </div>
 
         {/* Name */}
-        <h2 className="text-xl font-bold text-gray-900 text-center mb-2">
+        <h2 className="text-xl font-bold text-white text-center mb-2">
           {girl.name}
         </h2>
 
         {/* Bio */}
         {girl.bio && (
-          <p className="text-sm text-gray-600 text-center mb-4 line-clamp-3 min-h-[3.5rem]">
+          <p className="text-sm text-white/90 text-center mb-4 line-clamp-3 min-h-[3.5rem]">
             {girl.bio}
           </p>
         )}
 
         {/* Stats */}
-        <div className="flex items-center justify-center gap-4 mb-4 text-sm text-gray-500">
+        <div className="flex items-center justify-center gap-4 mb-4 text-sm text-white/80">
           <span className="flex items-center gap-1">
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
             </svg>
             {girl.counts.gallery}
           </span>
-          <span className="text-gray-300">•</span>
+          <span className="text-white/50">•</span>
           <span className="flex items-center gap-1">
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" />
@@ -143,13 +143,21 @@ function GirlCard({ girl, avatarUrl }) {
           </span>
         </div>
 
-        {/* View Profile Button */}
-        <Link
-          href={`/girls/${girl._id}`}
-          className="block w-full px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white font-semibold text-center rounded-lg hover:from-purple-700 hover:to-pink-700 transition-all shadow-md hover:shadow-lg"
-        >
-          View Profile
-        </Link>
+        {/* Action Buttons */}
+        <div className="flex gap-2">
+          <Link
+            href={`/chat/${girl._id}`}
+            className="flex-1 px-4 py-2 bg-white text-indigo-700 font-semibold text-center rounded-lg hover:bg-gray-100 transition-all shadow-md hover:shadow-lg"
+          >
+            Message
+          </Link>
+          <Link
+            href={`/girls/${girl._id}`}
+            className="flex-1 px-4 py-2 bg-white/20 backdrop-blur-sm text-white font-semibold text-center rounded-lg hover:bg-white/30 transition-all shadow-md hover:shadow-lg border border-white/30"
+          >
+            View Profile
+          </Link>
+        </div>
       </div>
     </div>
   );

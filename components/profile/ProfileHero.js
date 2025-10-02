@@ -4,9 +4,9 @@ import StartChatButton from "@/components/StartChatButton";
 
 export default function ProfileHero({ girl, backgroundUrl, avatarUrl }) {
   return (
-    <div className="relative w-full">
+    <div className="relative w-full pt-4 px-4">
       {/* Background Image */}
-      <div className="relative h-64 md:h-80 w-full overflow-hidden">
+      <div className="relative h-64 md:h-80 w-full overflow-hidden rounded-2xl">
         {backgroundUrl ? (
           <img
             src={backgroundUrl}
@@ -42,19 +42,19 @@ export default function ProfileHero({ girl, backgroundUrl, avatarUrl }) {
 
           {/* Name, Bio, and CTA */}
           <div className="mt-4 mb-6">
-            <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
-              <div className="flex-1">
-                <h1 className="text-3xl md:text-4xl font-bold text-gray-900">
-                  {girl.name}
-                </h1>
-                {girl.bio && (
-                  <p className="mt-2 text-gray-600 text-base md:text-lg max-w-2xl">
-                    {girl.bio}
-                  </p>
-                )}
-              </div>
+            <div className="flex-1">
+              <h1 className="text-3xl md:text-4xl font-bold text-gray-900">
+                {girl.name}
+              </h1>
+              {girl.bio && (
+                <p className="mt-2 text-gray-600 text-base md:text-lg max-w-2xl">
+                  {girl.bio}
+                </p>
+              )}
+            </div>
 
-              {/* Talk Button */}
+            {/* Talk Button */}
+            <div className="mt-4">
               <StartChatButton girlId={girl.id} />
             </div>
           </div>
