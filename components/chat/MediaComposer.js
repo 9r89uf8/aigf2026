@@ -123,9 +123,9 @@ export default function MediaComposer({
 
             <div className="p-4 space-y-3">
               {kind === "image" ? (
-                <img src={previewUrl} alt="preview" className="w-full max-h-96 object-contain rounded-lg" />
+                <img src={previewUrl} alt="preview" className="w-full max-h-56 object-contain rounded-lg" />
               ) : (
-                <video src={previewUrl} controls className="w-full max-h-96 rounded-lg" />
+                <video src={previewUrl} controls className="w-full max-h-56 rounded-lg" />
               )}
 
               <input

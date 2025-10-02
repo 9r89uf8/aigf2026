@@ -29,6 +29,7 @@ export default function ConversationPage() {
   const [isSending, setIsSending] = useState(false);
   const [permit, setPermit] = useState(null); // { permitId, usesLeft, expiresAt }
   const [avatarUrl, setAvatarUrl] = useState(null);
+  const [showDeleteButton, setShowDeleteButton] = useState(false);
   const bottomRef = useRef(null);
 
   const { ready: turnstileReady, getToken } = useInvisibleTurnstile();
@@ -60,6 +61,14 @@ export default function ConversationPage() {
     })();
     return () => { cancelled = true; };
   }, [data?.girlAvatarKey, signBatch]);
+
+  // Auto-hide delete button after 5 seconds
+  useEffect(() => {
+    if (showDeleteButton) {
+      const timer = setTimeout(() => setShowDeleteButton(false), 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [showDeleteButton]);
 
   // Optional: prefetch a permit once the Turnstile script is ready
   useEffect(() => {
@@ -131,9 +140,9 @@ export default function ConversationPage() {
   }
 
   async function onClearAll() {
-    if (!confirm("Delete all messages in this chat? This won't restore any free quotas.")) return;
     try {
       await clearConversation({ conversationId });
+      setShowDeleteButton(false);
       // After reactive query updates, ensure we are at the bottom
       bottomRef.current?.scrollIntoView({ behavior: "instant" });
     } catch (e) {
@@ -168,15 +177,27 @@ export default function ConversationPage() {
           <span className="font-semibold text-base">{data?.girlName || "Chat"}</span>
         </div>
 
-        <button
-          onClick={onClearAll}
-          className="p-1 hover:bg-gray-100 rounded-full transition-colors"
-          title="Delete all messages"
-        >
-          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-        </button>
+        {!showDeleteButton ? (
+          <button
+            onClick={() => setShowDeleteButton(true)}
+            className="p-1 hover:bg-gray-100 rounded-full transition-colors"
+            title="Delete conversation"
+          >
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </button>
+        ) : (
+          <button
+            onClick={onClearAll}
+            className="p-1 hover:bg-red-100 rounded-full transition-colors"
+            title="Confirm delete"
+          >
+            <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+            </svg>
+          </button>
+        )}
       </div>
       <div className="flex-1 overflow-y-auto px-4 py-3 space-y-2 bg-white">
         {(data?.messages || []).map(m => {
@@ -199,7 +220,7 @@ export default function ConversationPage() {
                   <div
                     className={`px-4 py-2.5 rounded-3xl ${
                       mine
-                        ? "bg-gradient-to-r from-blue-500 to-purple-500 text-white"
+                        ? "bg-gradient-to-r from-blue-400 to-blue-600 text-white"
                         : "bg-gray-100 text-gray-900"
                     }`}
                   >
@@ -244,7 +265,7 @@ export default function ConversationPage() {
                 <div className={`flex flex-col ${mine ? "items-end" : "items-start"} max-w-[70%]`}>
                   <div
                     className={`px-3 py-2 rounded-3xl ${
-                      mine ? "bg-gradient-to-r from-blue-500 to-purple-500" : "bg-gray-100"
+                      mine ? "bg-gradient-to-r from-blue-400 to-blue-600" : "bg-gray-100"
                     }`}
                   >
                     {src ? (
@@ -292,7 +313,7 @@ export default function ConversationPage() {
               <div className={`flex flex-col ${mine ? "items-end" : "items-start"} max-w-[70%]`}>
                 <div
                   className={`rounded-2xl overflow-hidden ${
-                    mine ? "bg-gradient-to-r from-blue-500/10 to-purple-500/10" : "bg-gray-100"
+                    mine ? "bg-gradient-to-r from-blue-400/10 to-blue-600/10" : "bg-gray-100"
                   }`}
                 >
                   {m.kind === "image" ? (
