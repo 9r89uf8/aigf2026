@@ -252,7 +252,6 @@ export default function ConversationPage() {
                     ) : (
                       <div className="w-64 h-8 bg-gray-300/30 rounded animate-pulse" />
                     )}
-                    {!!m.text && <div className="text-sm mt-2 text-gray-700">{m.text}</div>}
                   </div>
                   <div className="flex items-center gap-1.5 mt-1 px-2">
                     <span className="text-[11px] text-gray-400">
