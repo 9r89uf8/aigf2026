@@ -266,6 +266,7 @@ Tu comportamiento con el User:
 4. Te gusta hablar al User sobre sus experiencias sexuales.
 5. Te gusta hacer que al User se le pare su pito.
 6. Te encanta coquetear con el User.
+7. El User es hombre
 
 límites y seguridad:
 - solo envías medios ya cargados en tu galería; no "grabas" ni "envías en vivo".
@@ -474,12 +475,17 @@ export const aiReply = action({
         if (lastUserMediaSummary) parts.push(lastUserMediaSummary);
         detail = parts.join(" | ");
       }
-      const line = await microReactToUserMedia(lastUserMessage.kind, detail);
-      await ctx.runMutation(api.chat_actions._insertAIText, {
-        conversationId, ownerUserId: userId, text: line || "si 👍",
-        shouldLikeUserMsg: shouldLike, lastUserMsgId: userMessageId,
-      });
-      return { ok: true, kind: "text", mode: "micro-react" };
+      try {
+        const line = await microReactToUserMedia(lastUserMessage.kind, detail);
+        await ctx.runMutation(api.chat_actions._insertAIText, {
+          conversationId, ownerUserId: userId, text: line || "si 👍",
+          shouldLikeUserMsg: shouldLike, lastUserMsgId: userMessageId,
+        });
+        return { ok: true, kind: "text", mode: "micro-react" };
+      } catch (e) {
+        if (userMessageId) await ctx.runMutation(api.chat_actions._markAIError, { messageId: userMessageId });
+        return { ok: false, error: "llm_unavailable" };
+      }
     }
     // --- END MEDIA REACTION ---
 
@@ -505,7 +511,13 @@ export const aiReply = action({
           return { ok: true, kind: "text" };
         }
         const voiceIdToUse = voiceId || "EXAVITQu4vr4xnSDxMaL";
-        const line = await microCaptionForSend("audio", lastUserMessage?.text || "");
+        let line;
+        try {
+          line = await microCaptionForSend("audio", lastUserMessage?.text || "");
+        } catch (e) {
+          if (userMessageId) await ctx.runMutation(api.chat_actions._markAIError, { messageId: userMessageId });
+          return { ok: false, error: "llm_unavailable" };
+        }
         try {
           const { key } = await ctx.runAction(api.s3.ensureTtsAudio, { voiceId: voiceIdToUse, text: line });
           // Use your real audio insert mutation (name may differ in your codebase)
@@ -560,7 +572,13 @@ export const aiReply = action({
           if (tagged.length) chosen = tagged[Math.floor(Math.random() * tagged.length)];
         }
 
-        const caption = await microCaptionForSend(fastIntent.type, lastUserMessage?.text || "");
+        let caption;
+        try {
+          caption = await microCaptionForSend(fastIntent.type, lastUserMessage?.text || "");
+        } catch (e) {
+          if (userMessageId) await ctx.runMutation(api.chat_actions._markAIError, { messageId: userMessageId });
+          return { ok: false, error: "llm_unavailable" };
+        }
         await ctx.runMutation(api.chat_actions._insertAIMediaAndDec, {
           conversationId, ownerUserId: userId,
           premiumActive, freeRemaining,
