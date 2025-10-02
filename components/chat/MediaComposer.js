@@ -36,6 +36,10 @@ export default function MediaComposer({
       setError("Unsupported file type");
       return;
     }
+    if (f.type === "image/webp" || f.type === "video/webp") {
+      setError("WebP format is not supported. Please use JPEG or PNG for images.");
+      return;
+    }
     if (isImage && f.size > MAX_IMAGE_MB * 1024 * 1024) {
       setError(`Image must be ≤ ${MAX_IMAGE_MB}MB`);
       return;
@@ -91,7 +95,7 @@ export default function MediaComposer({
       <label className="p-2 hover:bg-gray-100 rounded-full cursor-pointer transition-colors" title="Attach photo or video">
         <input
           type="file"
-          accept="image/jpeg,image/png,image/webp,video/mp4,video/webm"
+          accept="image/jpeg,image/png,video/mp4,video/webm"
           className="hidden"
           onChange={onPick}
         />
