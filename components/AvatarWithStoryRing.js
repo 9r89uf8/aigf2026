@@ -39,11 +39,11 @@ export default function AvatarWithStoryRing({
             )}
 
             {/* Optional ▶ glyph if latest story is a video */}
-            {isVideo && (
-              <span className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-xs px-1.5 py-0.5 bg-black/60 text-white rounded">
-                ▶
-              </span>
-            )}
+            {/*{isVideo && (*/}
+            {/*  <span className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-xs px-1.5 py-0.5 bg-black/60 text-white rounded">*/}
+            {/*    ▶*/}
+            {/*  </span>*/}
+            {/*)}*/}
           </div>
         </div>
       </div>

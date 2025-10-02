@@ -9,31 +9,31 @@ export function Navbar() {
   const me = useQuery(api.users.getMe) ?? null;
 
   return (
-    <nav className="flex items-center justify-between px-4 py-3 border-b">
-      <div className="font-semibold text-lg">AI Girls</div>
+    <nav className="sticky top-0 z-50 flex items-center justify-between px-4 py-3 bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 shadow-md">
+      <div className="font-semibold text-lg text-white">NOVIACHAT</div>
 
       <AuthLoading>
-        <div className="text-sm text-gray-500">Loading...</div>
+        <div className="text-sm text-gray-300">Loading...</div>
       </AuthLoading>
 
       <Authenticated>
         <div className="flex items-center gap-3">
-          <span className="text-sm text-gray-600">{me?.email ?? "Account"}</span>
+          {/*<span className="text-sm text-gray-200">{me?.email ?? "Account"}</span>*/}
           <button
-            className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 transition-colors text-sm"
+            className="btn-gradient-black text-sm"
             onClick={() => void signOut()}
           >
-            Sign out
+            Salir
           </button>
         </div>
       </Authenticated>
 
       <Unauthenticated>
         <a
-          className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors text-sm"
+          className="bg-white text-gray-900 px-6 py-2.5 text-sm font-medium hover:bg-gray-100 transition-all duration-200 active:scale-95"
           href="/signin"
         >
-          Sign in
+          mi cuenta
         </a>
       </Unauthenticated>
     </nav>

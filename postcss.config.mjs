@@ -1,5 +1,7 @@
-const config = {
-  plugins: ["@tailwindcss/postcss"],
+// use an OBJECT, not an array
+export default {
+  plugins: {
+    '@tailwindcss/postcss': {},
+  },
 };
 
-export default config;

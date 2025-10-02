@@ -250,7 +250,7 @@ export default function AccountForm() {
             />
             <button
               type="button"
-              className="btn px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="btn-gradient-blue disabled:opacity-50 disabled:cursor-not-allowed"
               onClick={() => fileRef.current?.click()}
               disabled={uploading}
             >
@@ -259,7 +259,7 @@ export default function AccountForm() {
             {avatarUrl && (
               <button
                 type="button"
-                className="btn-ghost px-4 py-2 text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
+                className="btn-gradient-black"
                 onClick={async () => {
                   await removeAvatar({});
                   setAvatarUrl(null);
@@ -273,7 +273,7 @@ export default function AccountForm() {
 
         <div className="pt-2">
           <button
-            className="btn px-6 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="btn-gradient-blue disabled:opacity-50 disabled:cursor-not-allowed"
             type="submit"
             disabled={saving}
           >
@@ -312,7 +312,7 @@ export default function AccountForm() {
                 )}
                 <a
                   href="/plans"
-                  className="inline-block bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 transition-colors text-sm"
+                  className="inline-block btn-gradient-blue text-sm"
                 >
                   {premiumStatus.active ? "Extend Premium" : "Upgrade to Premium"}
                 </a>

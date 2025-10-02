@@ -1,49 +1,16 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+/* Custom Button Gradient Utilities */
+@layer utilities {
+  .btn-gradient-black {
+    @apply bg-gradient-to-r from-gray-900 via-gray-800 to-black text-white font-medium px-6 py-2.5 transition-all duration-200 hover:brightness-110 hover:shadow-lg active:scale-95;
   }
-}
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
-}
+  .btn-gradient-blue {
+    @apply bg-gradient-to-r from-blue-600 via-blue-500 to-blue-600 text-white font-medium px-6 py-2.5 transition-all duration-200 hover:brightness-110 hover:shadow-lg active:scale-95;
+  }
 
-/* Additional utility classes for forms */
-.input {
-  @apply px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500;
-}
-
-.btn {
-  @apply px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed;
-}
-
-.btn-ghost {
-  @apply px-4 py-2 text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors;
-}
-
-/* Hide scrollbar for stories rail (Instagram-style) */
-.no-scrollbar::-webkit-scrollbar {
-  display: none;
-}
-
-.no-scrollbar {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
+  .btn-base {
+    @apply font-medium px-6 py-2.5 transition-all duration-200 active:scale-95;
+  }
 }
