@@ -9,18 +9,18 @@ export function Navbar() {
   const me = useQuery(api.users.getMe) ?? null;
 
   return (
-    <nav className="sticky top-0 z-50 flex items-center justify-between px-4 py-3 bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 shadow-md">
-      <div className="font-semibold text-lg text-white">NOVIACHAT</div>
+    <nav className="sticky top-0 z-50 flex items-center justify-between px-6 py-3 bg-gradient-to-br from-gray-50 to-gray-100 shadow-md rounded-full mx-auto mt-4 max-w-6xl w-[calc(100%-2rem)]">
+      <div className="font-semibold text-lg text-gray-900">NOVIACHAT</div>
 
       <AuthLoading>
-        <div className="text-sm text-gray-300">Loading...</div>
+        <div className="text-sm text-gray-600">Loading...</div>
       </AuthLoading>
 
       <Authenticated>
         <div className="flex items-center gap-3">
-          {/*<span className="text-sm text-gray-200">{me?.email ?? "Account"}</span>*/}
+          {/*<span className="text-sm text-gray-700">{me?.email ?? "Account"}</span>*/}
           <button
-            className="btn-gradient-black text-sm"
+            className="text-sm"
             onClick={() => void signOut()}
           >
             Salir
@@ -30,7 +30,7 @@ export function Navbar() {
 
       <Unauthenticated>
         <a
-          className="bg-white text-gray-900 px-6 py-2.5 text-sm font-medium hover:bg-gray-100 transition-all duration-200 active:scale-95"
+          className="text-gray-900 px-6 py-2.5 text-sm font-medium hover:text-gray-700 transition-all duration-200 active:scale-95"
           href="/signin"
         >
           mi cuenta

@@ -10,7 +10,7 @@ export default function RootLayout({ children }) {
   return (
       <ConvexAuthNextjsServerProvider>
     <html lang="en">
-      <body className="pb-[76px] sm:pb-0">
+      <body className="pb-[76px] sm:pb-0 bg-gradient-to-br from-gray-50 to-gray-100 min-h-screen">
         <Script
           src="https://challenges.cloudflare.com/turnstile/v0/api.js"
           strategy="lazyOnload"

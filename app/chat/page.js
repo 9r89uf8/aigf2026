@@ -88,9 +88,9 @@ export default function ChatHomePage() {
   }, [data.threads, search]);
 
   return (
-      <div className="min-h-screen bg-white">
+      <div className="min-h-screen">
         {/* Sticky header with title + search only */}
-        <header className="sticky top-0 z-20 bg-white/80 backdrop-blur border-b">
+        <header className="sticky top-0 z-20 backdrop-blur border-b">
           <div className="max-w-screen-sm mx-auto px-4 py-3 flex items-center justify-center">
             <h1 className="text-lg font-semibold">Messages</h1>
           </div>
