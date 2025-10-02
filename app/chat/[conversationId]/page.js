@@ -1,6 +1,6 @@
 "use client";
 //app/chat/[conversationId]/page.js
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useQuery, useMutation, useAction } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { useEffect, useRef, useState } from "react";
@@ -13,9 +13,11 @@ import AudioComposer from "@/components/chat/AudioComposer";
 let prefetchAttempted = false;
 
 export default function ConversationPage() {
+  const router = useRouter();
   const { conversationId } = useParams();
   const data = useQuery(api.chat.getConversation, { conversationId }) || null;
   const urlMap = useSignedMediaUrls(data?.messages);
+  const signBatch = useAction(api.cdn.signViewBatch);
 
   const mintPermit = useAction(api.turnstile.verifyAndMintPermit);
   const send = useMutation(api.chat.sendMessage);
@@ -26,6 +28,7 @@ export default function ConversationPage() {
   const [text, setText] = useState("");
   const [isSending, setIsSending] = useState(false);
   const [permit, setPermit] = useState(null); // { permitId, usesLeft, expiresAt }
+  const [avatarUrl, setAvatarUrl] = useState(null);
   const bottomRef = useRef(null);
 
   const { ready: turnstileReady, getToken } = useInvisibleTurnstile();
@@ -37,6 +40,26 @@ export default function ConversationPage() {
       markRead({ conversationId, at: Date.now() });
     }
   }, [data, conversationId, markRead]);
+
+  // Fetch girl's avatar URL
+  useEffect(() => {
+    if (!data?.girlAvatarKey) {
+      setAvatarUrl(null);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      try {
+        const r = await signBatch({ keys: [data.girlAvatarKey] });
+        if (!cancelled && r?.urls) {
+          setAvatarUrl(r.urls[data.girlAvatarKey] || null);
+        }
+      } catch (e) {
+        console.warn("Failed to fetch avatar URL", e);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [data?.girlAvatarKey, signBatch]);
 
   // Optional: prefetch a permit once the Turnstile script is ready
   useEffect(() => {
@@ -119,111 +142,197 @@ export default function ConversationPage() {
   }
 
   return (
-    <div className="max-w-screen-sm mx-auto h-[100dvh] flex flex-col">
-      <div className="p-3 border-b flex items-center justify-between">
-        <div className="text-sm font-medium">Chat</div>
+    <div className="max-w-screen-sm mx-auto h-[100dvh] md:h-screen flex flex-col overflow-hidden min-h-0 -mb-[76px] sm:mb-0">
+      {/* Instagram-style header */}
+      <div className="px-4 py-3 border-b border-gray-200 flex items-center justify-between z-10">
+        <button
+          onClick={() => router.back()}
+          className="p-1 hover:bg-gray-100 rounded-full transition-colors"
+          aria-label="Go back"
+        >
+          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+          </svg>
+        </button>
+
+        <div className="flex items-center gap-3 flex-1 ml-3">
+          {avatarUrl ? (
+            <img
+              src={avatarUrl}
+              alt={data?.girlName || "Profile"}
+              className="w-9 h-9 rounded-full object-cover"
+            />
+          ) : (
+            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-purple-400 to-pink-400" />
+          )}
+          <span className="font-semibold text-base">{data?.girlName || "Chat"}</span>
+        </div>
+
         <button
           onClick={onClearAll}
-          className="text-xs px-2 py-1 border rounded hover:bg-gray-50"
-          title="Delete all messages (does not reset quotas)"
+          className="p-1 hover:bg-gray-100 rounded-full transition-colors"
+          title="Delete all messages"
         >
-          Clear chat
+          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
         </button>
       </div>
-      <div className="flex-1 overflow-y-auto p-4 space-y-3">
+      <div className="flex-1 overflow-y-auto px-4 py-3 space-y-2 bg-white">
         {(data?.messages || []).map(m => {
           const mine = m.sender === "user";
-          const base = "max-w-[80%] p-2 rounded";
           if (m.kind === "text") {
             return (
-              <div key={m.id} className="flex flex-col items-end">
-                <div className={`${base} ${mine ? "bg-blue-600 text-white self-end ml-auto" : "bg-gray-200"}`}>
-                  <div className="text-sm whitespace-pre-wrap">{m.text}</div>
-                  <div className="flex items-center gap-2 mt-1">
-                    <div className="text-[10px] opacity-60">{new Date(m.createdAt).toLocaleTimeString()}</div>
+              <div key={m.id} className={`flex items-end gap-2 group ${mine ? "flex-row-reverse" : "flex-row"}`}>
+                {!mine && (
+                  avatarUrl ? (
+                    <img
+                      src={avatarUrl}
+                      alt={data?.girlName || ""}
+                      className="w-7 h-7 rounded-full object-cover flex-shrink-0"
+                    />
+                  ) : (
+                    <div className="w-7 h-7 rounded-full bg-gradient-to-br from-purple-400 to-pink-400 flex-shrink-0" />
+                  )
+                )}
+                <div className={`flex flex-col ${mine ? "items-end" : "items-start"} max-w-[70%]`}>
+                  <div
+                    className={`px-4 py-2.5 rounded-3xl ${
+                      mine
+                        ? "bg-gradient-to-r from-blue-500 to-purple-500 text-white"
+                        : "bg-gray-100 text-gray-900"
+                    }`}
+                  >
+                    <div className="text-[15px] leading-relaxed whitespace-pre-wrap">{m.text}</div>
+                  </div>
+                  <div className="flex items-center gap-1.5 mt-1 px-2">
+                    <span className="text-[11px] text-gray-400">
+                      {new Date(m.createdAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
+                    </span>
                     {!mine && (
                       <button
                         onClick={() => likeMsg({ messageId: m.id })}
-                        className="text-sm transition-all hover:scale-110"
+                        className="text-sm hover:scale-110 transition-transform ml-1"
                       >
-                        {m.userLiked ? (
-                          <span className="text-red-500">❤️</span>
-                        ) : (
-                          <span className="text-gray-400">🤍</span>
-                        )}
+                        {m.userLiked ? "❤️" : "🤍"}
                       </button>
                     )}
-                    {mine && m.aiLiked && <span className="text-pink-500 text-sm">❤️</span>}
+                    {mine && m.aiLiked && <span className="text-sm ml-1">❤️</span>}
                   </div>
+                  {mine && m.aiError && (
+                    <div className="text-[11px] text-red-500 mt-1 px-2">AI temporarily unavailable</div>
+                  )}
                 </div>
-                {mine && m.aiError && (
-                  <div className="text-xs text-red-600 mt-1">AI temporarily unavailable</div>
-                )}
               </div>
             );
           }
           if (m.kind === "audio") {
             const src = urlMap[m.mediaKey];
             return (
-              <div key={m.id} className="flex flex-col items-end">
-                <div className={`${base} ${mine ? "bg-blue-50 self-end ml-auto" : "bg-gray-100"}`}>
-                  {src ? (
-                    <audio controls src={src} className="w-full" />
+              <div key={m.id} className={`flex items-end gap-2 group ${mine ? "flex-row-reverse" : "flex-row"}`}>
+                {!mine && (
+                  avatarUrl ? (
+                    <img
+                      src={avatarUrl}
+                      alt={data?.girlName || ""}
+                      className="w-7 h-7 rounded-full object-cover flex-shrink-0"
+                    />
                   ) : (
-                    <div className="w-64 h-10 bg-gray-300 rounded animate-pulse" />
-                  )}
-                  {!!m.text && <div className="text-sm mt-2">{m.text}</div>}
-                  <div className="flex items-center gap-2 mt-1">
-                    <div className="text-[10px] opacity-60">
-                      {m.durationSec ? `${m.durationSec}s • ` : ""}{new Date(m.createdAt).toLocaleTimeString()}
-                    </div>
+                    <div className="w-7 h-7 rounded-full bg-gradient-to-br from-purple-400 to-pink-400 flex-shrink-0" />
+                  )
+                )}
+                <div className={`flex flex-col ${mine ? "items-end" : "items-start"} max-w-[70%]`}>
+                  <div
+                    className={`px-3 py-2 rounded-3xl ${
+                      mine ? "bg-gradient-to-r from-blue-500 to-purple-500" : "bg-gray-100"
+                    }`}
+                  >
+                    {src ? (
+                      <audio controls src={src} className="w-64 h-8" />
+                    ) : (
+                      <div className="w-64 h-8 bg-gray-300/30 rounded animate-pulse" />
+                    )}
+                    {!!m.text && <div className="text-sm mt-2 text-gray-700">{m.text}</div>}
+                  </div>
+                  <div className="flex items-center gap-1.5 mt-1 px-2">
+                    <span className="text-[11px] text-gray-400">
+                      {m.durationSec ? `${m.durationSec}s • ` : ""}
+                      {new Date(m.createdAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
+                    </span>
                     {!mine && (
                       <button
                         onClick={() => likeMsg({ messageId: m.id })}
-                        className="text-sm transition-all hover:scale-110"
+                        className="text-sm hover:scale-110 transition-transform ml-1"
                       >
-                        {m.userLiked ? (
-                          <span className="text-red-500">❤️</span>
-                        ) : (
-                          <span className="text-gray-400">🤍</span>
-                        )}
+                        {m.userLiked ? "❤️" : "🤍"}
                       </button>
                     )}
-                    {mine && m.aiLiked && <span className="text-pink-500 text-sm">❤️</span>}
+                    {mine && m.aiLiked && <span className="text-sm ml-1">❤️</span>}
                   </div>
+                  {mine && m.aiError && (
+                    <div className="text-[11px] text-red-500 mt-1 px-2">AI temporarily unavailable</div>
+                  )}
                 </div>
-                {mine && m.aiError && (
-                  <div className="text-xs text-red-600 mt-1">AI temporarily unavailable</div>
-                )}
               </div>
             );
           }
           const src = urlMap[m.mediaKey];
           return (
-            <div key={m.id} className="flex flex-col items-end">
-              <div className={`${base} ${mine ? "bg-blue-50 self-end ml-auto" : "bg-gray-100"}`}>
-                {m.kind === "image" ? (
-                  src ? <img src={src} alt="image" className="rounded max-h-80" /> : <div className="w-48 h-48 bg-gray-300 rounded" />
+            <div key={m.id} className={`flex items-end gap-2 group ${mine ? "flex-row-reverse" : "flex-row"}`}>
+              {!mine && (
+                avatarUrl ? (
+                  <img
+                    src={avatarUrl}
+                    alt={data?.girlName || ""}
+                    className="w-7 h-7 rounded-full object-cover flex-shrink-0"
+                  />
                 ) : (
-                  src ? <video src={src} controls className="rounded max-h-80" /> : <div className="w-48 h-32 bg-gray-300 rounded" />
-                )}
-                {!!m.text && <div className="text-sm mt-2">{m.text}</div>}
-                <div className="flex items-center gap-2 mt-1">
-                  <div className="text-[10px] opacity-60">{new Date(m.createdAt).toLocaleTimeString()}</div>
+                  <div className="w-7 h-7 rounded-full bg-gradient-to-br from-purple-400 to-pink-400 flex-shrink-0" />
+                )
+              )}
+              <div className={`flex flex-col ${mine ? "items-end" : "items-start"} max-w-[70%]`}>
+                <div
+                  className={`rounded-2xl overflow-hidden ${
+                    mine ? "bg-gradient-to-r from-blue-500/10 to-purple-500/10" : "bg-gray-100"
+                  }`}
+                >
+                  {m.kind === "image" ? (
+                    src ? (
+                      <img src={src} alt="image" className="max-h-80 w-full object-cover" />
+                    ) : (
+                      <div className="w-64 h-64 bg-gray-300/50 animate-pulse" />
+                    )
+                  ) : (
+                    src ? (
+                      <video src={src} controls className="max-h-80 w-full" />
+                    ) : (
+                      <div className="w-64 h-40 bg-gray-300/50 animate-pulse" />
+                    )
+                  )}
+                  {!!m.text && (
+                    <div className={`px-3 py-2 text-sm ${mine ? "text-gray-900" : "text-gray-700"}`}>
+                      {m.text}
+                    </div>
+                  )}
+                </div>
+                <div className="flex items-center gap-1.5 mt-1 px-2">
+                  <span className="text-[11px] text-gray-400">
+                    {new Date(m.createdAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
+                  </span>
                   {!mine && (
                     <button
                       onClick={() => likeMsg({ messageId: m.id })}
-                      className="text-sm transition-colors hover:scale-110"
+                      className="text-sm hover:scale-110 transition-transform ml-1"
                     >
-                      <span className={m.userLiked ? "text-red-500" : "text-gray-400"}>❤️</span>
+                      {m.userLiked ? "❤️" : "🤍"}
                     </button>
                   )}
-                  {mine && m.aiLiked && <span className="text-pink-500 text-sm">❤️</span>}
+                  {mine && m.aiLiked && <span className="text-sm ml-1">❤️</span>}
                 </div>
+                {mine && m.aiError && (
+                  <div className="text-[11px] text-red-500 mt-1 px-2">AI temporarily unavailable</div>
+                )}
               </div>
-              {mine && m.aiError && (
-                <div className="text-xs text-red-600 mt-1">AI temporarily unavailable</div>
-              )}
             </div>
           );
         })}
@@ -231,44 +340,66 @@ export default function ConversationPage() {
       </div>
 
       {!data?.premiumActive && quotaOut && (
-        <div className="p-3 bg-amber-50 border-t border-amber-200 text-sm">
+        <div className="px-4 py-2.5 bg-amber-50 border-t border-amber-200 text-sm">
           Free text messages for this girl are used up.{" "}
-          <a href="/plans" className="text-blue-600 underline">Upgrade</a> for unlimited messages.
+          <a href="/plans" className="text-blue-600 underline font-medium">Upgrade</a> for unlimited messages.
         </div>
       )}
 
-      <div className="p-3 border-t space-y-2">
-        <div className="flex gap-2">
+      {/* Instagram-style input area */}
+      <div className="px-4 py-3 border-t border-gray-200 bg-white" >
+        {!turnstileReady && (
+          <div className="text-xs text-gray-500 mb-2">Preparing security…</div>
+        )}
+
+        <div className="flex items-center gap-2">
+          {/* Media & Audio buttons */}
+          <div className="flex items-center gap-1">
+            <MediaComposer
+              conversationId={conversationId}
+              ensurePermit={ensurePermit}
+              onSent={() => bottomRef.current?.scrollIntoView({ behavior: "smooth" })}
+            />
+            <AudioComposer
+              conversationId={conversationId}
+              ensurePermit={ensurePermit}
+              onSent={() => bottomRef.current?.scrollIntoView({ behavior: "smooth" })}
+            />
+          </div>
+
+          {/* Text input */}
           <input
-            className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
-            placeholder="Type a message"
+            className="flex-1 px-4 py-2.5 border border-gray-300 rounded-full text-[15px] focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-50 disabled:cursor-not-allowed placeholder:text-gray-400"
+            placeholder="Message..."
             value={text}
             onChange={(e) => setText(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.shiftKey && text.trim() && !quotaOut && !isSending && turnstileReady) {
+                e.preventDefault();
+                onSend();
+              }
+            }}
             disabled={quotaOut || isSending || !turnstileReady}
           />
+
+          {/* Send button */}
           <button
-            className="px-4 py-2 bg-blue-600 text-white rounded-md font-medium hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
+            className="p-2 text-blue-500 hover:text-blue-600 disabled:text-gray-300 disabled:cursor-not-allowed transition-colors font-semibold text-sm"
             onClick={onSend}
             disabled={!text.trim() || quotaOut || isSending || !turnstileReady}
           >
-            {isSending ? "Sending…" : "Send"}
+            {isSending ? (
+              <svg className="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+            ) : (
+              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
+              </svg>
+            )}
           </button>
         </div>
-        {!turnstileReady && (
-          <div className="text-xs text-gray-500">Preparing security…</div>
-        )}
-
-        <MediaComposer
-          conversationId={conversationId}
-          ensurePermit={ensurePermit}
-          onSent={() => bottomRef.current?.scrollIntoView({ behavior: "smooth" })}
-        />
-
-        <AudioComposer
-          conversationId={conversationId}
-          ensurePermit={ensurePermit}
-          onSent={() => bottomRef.current?.scrollIntoView({ behavior: "smooth" })}
-        />
       </div>
     </div>
   );

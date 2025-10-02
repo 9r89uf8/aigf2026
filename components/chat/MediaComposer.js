@@ -86,44 +86,72 @@ export default function MediaComposer({
   }
 
   return (
-    <div className="space-y-2">
-      <div className="flex items-center gap-2">
-        <label className="btn-ghost cursor-pointer">
-          <input
-            type="file"
-            accept="image/jpeg,image/png,image/webp,video/mp4,video/webm"
-            className="hidden"
-            onChange={onPick}
-          />
-          Attach
-        </label>
-        {file && (
-          <button className="btn" onClick={onSend} disabled={sending}>
-            {sending ? "Sending…" : "Send media"}
-          </button>
-        )}
-      </div>
+    <>
+      {/* Icon button trigger */}
+      <label className="p-2 hover:bg-gray-100 rounded-full cursor-pointer transition-colors" title="Attach photo or video">
+        <input
+          type="file"
+          accept="image/jpeg,image/png,image/webp,video/mp4,video/webm"
+          className="hidden"
+          onChange={onPick}
+        />
+        <svg className="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+        </svg>
+      </label>
 
+      {/* Preview modal */}
       {file && (
-        <div className="p-2 border rounded-md">
-          {kind === "image" ? (
-            <img src={previewUrl} alt="preview" className="max-h-64 rounded" />
-          ) : (
-            <video src={previewUrl} controls className="max-h-64 rounded" />
-          )}
-          <input
-            className="mt-2 input w-full"
-            placeholder="Add a caption (optional)"
-            value={caption}
-            onChange={(e) => setCaption(e.target.value)}
-          />
-          <div className="mt-1 text-xs text-gray-500">
-            {file.type} • {(file.size / 1024 / 1024).toFixed(2)} MB
+        <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-4 border-b flex items-center justify-between">
+              <h3 className="font-semibold">Send {kind}</h3>
+              <button
+                onClick={() => {
+                  setFile(null);
+                  setPreviewUrl(null);
+                  setCaption("");
+                  setError("");
+                }}
+                className="p-1 hover:bg-gray-100 rounded-full transition-colors"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <div className="p-4 space-y-3">
+              {kind === "image" ? (
+                <img src={previewUrl} alt="preview" className="w-full max-h-96 object-contain rounded-lg" />
+              ) : (
+                <video src={previewUrl} controls className="w-full max-h-96 rounded-lg" />
+              )}
+
+              <input
+                className="w-full px-4 py-2 border border-gray-300 rounded-full text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+                placeholder="Add a caption (optional)"
+                value={caption}
+                onChange={(e) => setCaption(e.target.value)}
+              />
+
+              <div className="text-xs text-gray-500 px-2">
+                {file.type} • {(file.size / 1024 / 1024).toFixed(2)} MB
+              </div>
+
+              {!!error && <div className="text-sm text-red-600 px-2">{error}</div>}
+
+              <button
+                className="w-full py-2.5 bg-blue-500 hover:bg-blue-600 text-white rounded-full font-semibold transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed"
+                onClick={onSend}
+                disabled={sending}
+              >
+                {sending ? "Sending…" : "Send"}
+              </button>
+            </div>
           </div>
         </div>
       )}
-
-      {!!error && <div className="text-sm text-red-600">{error}</div>}
-    </div>
+    </>
   );
 }

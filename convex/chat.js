@@ -58,6 +58,8 @@ export const getConversation = query({
     return {
       conversationId,
       girlId: convo.girlId,
+      girlName: convo.girlName,
+      girlAvatarKey: convo.girlAvatarKey,
       freeRemaining: { text: convo.freeRemaining.text, media: convo.freeRemaining.media, audio: convo.freeRemaining.audio },
       premiumActive: convo.premiumActive,
       messages: msgs.map(m => ({

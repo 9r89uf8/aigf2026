@@ -120,52 +120,83 @@ export default function AudioComposer({
   }
 
   return (
-    <div className="space-y-2">
+    <>
+      {/* Icon button trigger */}
       {!recording ? (
         <button
-          className="px-3 py-1 bg-gray-100 hover:bg-gray-200 rounded-md text-sm font-medium transition-colors"
+          className="p-2 hover:bg-gray-100 rounded-full transition-colors"
           onClick={startRecording}
+          title="Record audio"
         >
-          🎙️ Record audio
+          <svg className="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+          </svg>
         </button>
       ) : (
         <button
-          className="px-3 py-1 bg-red-500 hover:bg-red-600 text-white rounded-md text-sm font-medium transition-colors"
+          className="p-2 bg-red-100 hover:bg-red-200 rounded-full transition-colors animate-pulse"
           onClick={stopRecording}
+          title="Stop recording"
         >
-          ⏹ Stop recording
+          <svg className="w-5 h-5 text-red-600" fill="currentColor" viewBox="0 0 24 24">
+            <rect x="6" y="6" width="12" height="12" rx="2" />
+          </svg>
         </button>
       )}
 
+      {/* Preview modal */}
       {blob && (
-        <div className="p-2 border rounded-md bg-gray-50">
-          <audio controls src={previewUrl} className="w-full" />
-          <div className="text-xs text-gray-500 mt-1">
-            {(blob.size/1024/1024).toFixed(2)} MB
-          </div>
-          <div className="mt-2 flex gap-2">
-            <button
-              className="px-3 py-1 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
-              onClick={onSend}
-              disabled={sending}
-            >
-              {sending ? "Sending…" : "Send audio"}
-            </button>
-            <button
-              className="px-3 py-1 bg-gray-100 hover:bg-gray-200 rounded-md text-sm font-medium transition-colors"
-              onClick={() => {
-                setBlob(null);
-                setPreviewUrl(null);
-                setChunks([]);
-              }}
-            >
-              Discard
-            </button>
+        <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-lg w-full">
+            <div className="p-4 border-b flex items-center justify-between">
+              <h3 className="font-semibold">Send audio</h3>
+              <button
+                onClick={() => {
+                  setBlob(null);
+                  setPreviewUrl(null);
+                  setChunks([]);
+                  setError("");
+                }}
+                className="p-1 hover:bg-gray-100 rounded-full transition-colors"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <div className="p-4 space-y-3">
+              <audio controls src={previewUrl} className="w-full" />
+
+              <div className="text-xs text-gray-500 px-2">
+                {(blob.size / 1024 / 1024).toFixed(2)} MB
+              </div>
+
+              {!!error && <div className="text-sm text-red-600 px-2">{error}</div>}
+
+              <div className="flex gap-2">
+                <button
+                  className="flex-1 py-2.5 bg-blue-500 hover:bg-blue-600 text-white rounded-full font-semibold transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed"
+                  onClick={onSend}
+                  disabled={sending}
+                >
+                  {sending ? "Sending…" : "Send"}
+                </button>
+                <button
+                  className="px-4 py-2.5 bg-gray-100 hover:bg-gray-200 rounded-full font-medium transition-colors"
+                  onClick={() => {
+                    setBlob(null);
+                    setPreviewUrl(null);
+                    setChunks([]);
+                  }}
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}
-
-      {!!error && <div className="text-sm text-red-600">{error}</div>}
-    </div>
+    </>
   );
 }

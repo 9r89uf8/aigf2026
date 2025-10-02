@@ -1,5 +1,5 @@
 @import "tailwindcss";
-
+/*app/globals.css*/
 /* Custom Button Gradient Utilities */
 @layer utilities {
   .btn-gradient-black {
