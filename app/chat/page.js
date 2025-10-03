@@ -94,38 +94,6 @@ export default function ChatHomePage() {
           <div className="max-w-screen-sm mx-auto px-4 py-3 flex items-center justify-center">
             <h1 className="text-lg font-semibold">Messages</h1>
           </div>
-
-          {/* Search */}
-          {/*<div className="max-w-screen-sm mx-auto px-4 pb-3">*/}
-          {/*  <div className="relative">*/}
-          {/*    <input*/}
-          {/*        value={search}*/}
-          {/*        onChange={(e) => setSearch(e.target.value)}*/}
-          {/*        className="w-full h-9 rounded-lg bg-gray-100 pl-9 pr-3 text-sm placeholder:text-gray-500 outline-none focus:ring-2 focus:ring-gray-300"*/}
-          {/*        placeholder="Search"*/}
-          {/*        aria-label="Search messages"*/}
-          {/*    />*/}
-          {/*    <svg*/}
-          {/*        className="absolute left-3 top-1/2 -translate-y-1/2 w-4.5 h-4.5"*/}
-          {/*        viewBox="0 0 24 24"*/}
-          {/*        fill="none"*/}
-          {/*        stroke="currentColor"*/}
-          {/*        strokeWidth="1.8"*/}
-          {/*        aria-hidden="true"*/}
-          {/*    >*/}
-          {/*      <circle cx="11" cy="11" r="7" />*/}
-          {/*      <path strokeLinecap="round" d="M20 20l-2-2" />*/}
-          {/*    </svg>*/}
-          {/*    {search && (*/}
-          {/*        <button*/}
-          {/*            onClick={() => setSearch("")}*/}
-          {/*            className="absolute right-2 top-1/2 -translate-y-1/2 text-xs px-2 py-0.5 bg-gray-200 rounded-full"*/}
-          {/*        >*/}
-          {/*          Clear*/}
-          {/*        </button>*/}
-          {/*    )}*/}
-          {/*  </div>*/}
-          {/*</div>*/}
         </header>
 
         {/* Content */}

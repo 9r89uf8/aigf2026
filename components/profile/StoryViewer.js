@@ -42,18 +42,22 @@ function preloadImage(url) {
 
 // -------- component --------
 export default function StoryViewer({
-                                      story, // { kind: 'text' | 'image' | 'video', text?, createdAt, user?, ... }
-                                      signedUrl, // current story media URL (image/video)
+                                      story,                // { kind: 'text' | 'image' | 'video', text?, createdAt, user?: {name, avatarUrl}, objectKey? }
+                                      signedUrl,            // current story media URL (image/video)
                                       onClose,
-                                      onNext,
-                                      onPrev,
-                                      // Optional extras (highly recommended for a more IG-like feel)
-                                      currentIndex = 0, // zero-based index in the current stack of stories (for progress segments)
-                                      totalCount = 1, // total stories in the current stack
-                                      nextUrl = null, // for preloading the next media (image)
-                                      prevUrl = null, // optional preload previous image
+                                      onNext,               // should ALWAYS be passed; handle closing on last item inside handler
+                                      onPrev,               // should ALWAYS be passed
+                                      // IG-like polish
+                                      currentIndex = 0,     // index within the stack
+                                      totalCount = 1,       // total in the stack
+                                      nextUrl = null,       // neighbor preload (image)
+                                      prevUrl = null,       // neighbor preload (image)
                                       autoAdvance = true,
-                                      imageDurationMs = 5000, // how long an image stays before auto-advancing
+                                      imageDurationMs = 5000,
+                                      textDurationMs = 5000,
+                                      // Control arrow visibility at bounds while keeping handlers live
+                                      canPrev = true,
+                                      canNext = true,
                                     }) {
   const isText = story?.kind === "text";
   const isVideo = story?.kind === "video";
@@ -62,7 +66,7 @@ export default function StoryViewer({
   // State
   const [paused, setPaused] = useState(false);
   const [progress, setProgress] = useState(0); // 0..1 for the *current* item
-  const [muted, setMuted] = useState(true); // videos default muted like IG
+  const [muted, setMuted] = useState(true);    // videos default muted like IG
   const [dragY, setDragY] = useState(0);
   const [dragging, setDragging] = useState(false);
 
@@ -102,20 +106,23 @@ export default function StoryViewer({
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose, onNext, onPrev]);
 
-  // Image progress via rAF
+  // Auto-advance for images & (optionally) text
   useEffect(() => {
-    if (!autoAdvance || isVideo || isText) return; // videos handled by timeupdate; text has no timer
+    if (!autoAdvance || isVideo) return;
+
+    const durationMs =
+        story?.durationMs ??
+        (isText ? textDurationMs : imageDurationMs);
 
     const tick = (now) => {
-      const pausedNow = pauseStartRef.current
-          ? now - pauseStartRef.current
-          : 0;
+      // account for held pause
+      const pausedNow = pauseStartRef.current ? now - pauseStartRef.current : 0;
       const elapsed = now - startRef.current - pausedAccumRef.current - pausedNow;
-      const pct = Math.max(0, Math.min(1, elapsed / imageDurationMs));
+      const pct = Math.max(0, Math.min(1, elapsed / durationMs));
       setProgress(pct);
       if (pct >= 1) {
         cancelAnimationFrame(rafRef.current);
-        onNext?.();
+        onNext?.(); // page decides: advance or close
         return;
       }
       rafRef.current = requestAnimationFrame(tick);
@@ -124,7 +131,7 @@ export default function StoryViewer({
     rafRef.current = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(rafRef.current);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isVideo, isText, imageDurationMs, autoAdvance, story, paused]);
+  }, [isVideo, isText, imageDurationMs, textDurationMs, autoAdvance, story]);
 
   // Pause/resume side effects for timer bookkeeping & video playback
   useEffect(() => {
@@ -151,44 +158,38 @@ export default function StoryViewer({
     const pct = Math.min(1, v.currentTime / v.duration);
     setProgress(pct);
   };
-
-  const onVideoEnded = () => {
-    onNext?.();
-  };
+  const onVideoEnded = () => onNext?.();
 
   // Drag to close (swipe down)
   const handlePointerDown = (e) => {
     setDragging(true);
     setPaused(true); // hold to pause while dragging
-    const y = e.clientY ?? e.touches?.[0]?.clientY ?? 0;
+    const y = e.clientY ?? 0;
     setDragY(0);
-    containerRef.current?.setPointerCapture?.(e.pointerId ?? 1);
-    containerRef.current.dataset.startY = String(y);
+    const el = containerRef.current;
+    if (el && typeof e.pointerId === "number" && el.setPointerCapture) {
+      try { el.setPointerCapture(e.pointerId); } catch {}
+    }
+    if (el) el.dataset.startY = String(y);
   };
-
   const handlePointerMove = (e) => {
     if (!dragging) return;
-    const y = e.clientY ?? e.touches?.[0]?.clientY ?? 0;
+    const y = e.clientY ?? 0;
     const startY = Number(containerRef.current?.dataset.startY || 0);
     const delta = y - startY;
     setDragY(Math.max(0, delta));
   };
-
-  const handlePointerUp = () => {
+  const handlePointerUpOrCancel = () => {
     setDragging(false);
     setPaused(false);
-    if (dragY > 120) {
-      onClose?.();
-    } else {
-      setDragY(0);
-    }
+    if (dragY > 120) onClose?.();
+    else setDragY(0);
   };
 
-  const bgStyles = useMemo(() => (
-      signedUrl && !isText
-          ? { backgroundImage: `url(${signedUrl})` }
-          : {}
-  ), [signedUrl, isText]);
+  const bgStyles = useMemo(
+      () => (signedUrl && !isText ? { backgroundImage: `url(${signedUrl})` } : {}),
+      [signedUrl, isText]
+  );
 
   const userName = story?.user?.name || "";
   const userAvatar = story?.user?.avatarUrl || "";
@@ -261,8 +262,8 @@ export default function StoryViewer({
           </div>
         </div>
 
-        {/* Navigation arrows (optional) */}
-        {onPrev && (
+        {/* Navigation arrows (visibility decoupled from handlers) */}
+        {onPrev && canPrev && (
             <button
                 onClick={(e) => { e.stopPropagation(); onPrev?.(); }}
                 className="absolute left-3 top-1/2 -translate-y-1/2 z-20 p-2 rounded-full bg-black/30 hover:bg-black/40 text-white"
@@ -273,7 +274,7 @@ export default function StoryViewer({
               </svg>
             </button>
         )}
-        {onNext && (
+        {onNext && canNext && (
             <button
                 onClick={(e) => { e.stopPropagation(); onNext?.(); }}
                 className="absolute right-3 top-1/2 -translate-y-1/2 z-20 p-2 rounded-full bg-black/30 hover:bg-black/40 text-white"
@@ -292,10 +293,8 @@ export default function StoryViewer({
             onClick={(e) => e.stopPropagation()}
             onPointerDown={handlePointerDown}
             onPointerMove={handlePointerMove}
-            onPointerUp={handlePointerUp}
-            onTouchStart={handlePointerDown}
-            onTouchMove={handlePointerMove}
-            onTouchEnd={handlePointerUp}
+            onPointerUp={handlePointerUpOrCancel}
+            onPointerCancel={handlePointerUpOrCancel}
             style={{
               transform: dragY ? `translateY(${dragY}px) scale(${Math.max(0.9, 1 - dragY / 1200)})` : undefined,
               transition: dragging ? "none" : "transform 180ms ease",
@@ -305,11 +304,13 @@ export default function StoryViewer({
             {/* Tap zones (left/right third) like IG */}
             <button
                 className="absolute inset-y-0 left-0 w-1/3 z-10 cursor-pointer"
+                onPointerDown={(e) => e.stopPropagation()}
                 onClick={(e) => { e.stopPropagation(); onPrev?.(); }}
                 aria-label="Tap left to go back"
             />
             <button
                 className="absolute inset-y-0 right-0 w-1/3 z-10 cursor-pointer"
+                onPointerDown={(e) => e.stopPropagation()}
                 onClick={(e) => { e.stopPropagation(); onNext?.(); }}
                 aria-label="Tap right to go next"
             />
@@ -318,6 +319,7 @@ export default function StoryViewer({
                 className="absolute inset-0 z-0"
                 onPointerDown={() => setPaused(true)}
                 onPointerUp={() => setPaused(false)}
+                onPointerCancel={() => setPaused(false)}
                 onMouseLeave={() => setPaused(false)}
             />
 
