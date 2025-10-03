@@ -4,19 +4,22 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 const SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
 
+// Ensure we load the Turnstile script at most once
 let scriptLoadPromise;
 
-/** Load the Turnstile API exactly once. */
+/** Load the Turnstile API exactly once (works even if layout already added it). */
 function loadTurnstileScriptOnce() {
   if (typeof window === "undefined") return Promise.resolve();
   if (window.turnstile) return Promise.resolve();
 
-  // If another part of the app already added the script, reuse it.
-  const existing = document.querySelector('script[src*="turnstile/v0/api.js"]');
+  // If another part of the app already added the script, just wait for it
+  const existing = document.querySelector(
+      'script[src^="https://challenges.cloudflare.com/turnstile/v0/api.js"]'
+  );
   if (existing) {
-    // When it finishes, window.turnstile will be set.
     return new Promise((resolve) => {
-      const check = () => (window.turnstile ? resolve() : setTimeout(check, 30));
+      const check = () =>
+          window.turnstile ? resolve() : setTimeout(check, 30);
       check();
     });
   }
@@ -24,8 +27,10 @@ function loadTurnstileScriptOnce() {
   if (!scriptLoadPromise) {
     scriptLoadPromise = new Promise((resolve, reject) => {
       const s = document.createElement("script");
-      s.src = "https://challenges.cloudflare.com/turnstile/v0/api.js";
+      // Explicit mode since we call turnstile.render() ourselves
+      s.src = "https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit";
       s.async = true;
+      s.defer = true;
       s.onload = () => resolve();
       s.onerror = (e) => reject(e);
       document.head.appendChild(s);
@@ -35,30 +40,31 @@ function loadTurnstileScriptOnce() {
 }
 
 /**
- * Renders a single invisible-like widget and exposes getToken().
- * - Uses appearance: "execute" so the widget stays hidden unless CF needs to challenge.
- * - Serializes execute() calls to avoid "already executing" errors.
+ * Renders a single (invisible-like) Turnstile widget and exposes getToken().
+ * Key points:
+ *  - execution: 'execute' → the widget won't auto-run; we decide when to run it
+ *  - appearance: 'execute' → stays hidden unless CF needs an interactive challenge
+ *  - getToken() is single-flight and does reset() before execute() to avoid races
  */
 export function useInvisibleTurnstile() {
   const containerRef = useRef(null);
   const widgetIdRef = useRef(null);
   const [ready, setReady] = useState(false);
 
-  // Serialize execute() calls to prevent overlapping executions
-  const executingRef = useRef(null); // holds a pending promise when executing
+  // Single-flight promise so overlapping callers share the same execution
+  const inFlightRef = useRef(null);
 
   useEffect(() => {
-    let removed = false;
+    let unmounted = false;
 
     (async () => {
       try {
         await loadTurnstileScriptOnce();
-        if (removed) return;
+        if (unmounted) return;
 
-        // Create a hidden container if needed
+        // Create an off-screen container once
         if (!containerRef.current) {
           const el = document.createElement("div");
-          // Keep in DOM but off-screen; appearance:"execute" will hide it.
           el.style.position = "absolute";
           el.style.left = "-9999px";
           el.style.width = "0";
@@ -67,14 +73,20 @@ export function useInvisibleTurnstile() {
           containerRef.current = el;
         }
 
-        // If a widget already exists (e.g., Fast Refresh), do not render twice
+        // Render exactly once
         if (!widgetIdRef.current) {
           widgetIdRef.current = window.turnstile.render(containerRef.current, {
             sitekey: SITE_KEY,
-            // keep widget hidden unless a challenge is needed:
             appearance: "execute",
             size: "flexible",
-            // We will call execute() ourselves.
+            execution: "execute", // <-- important: do not auto-run on render
+            retry: "auto",
+            "error-callback": () => {
+              try { window.turnstile.reset(widgetIdRef.current); } catch {}
+            },
+            "timeout-callback": () => {
+              try { window.turnstile.reset(widgetIdRef.current); } catch {}
+            },
           });
         }
 
@@ -85,48 +97,55 @@ export function useInvisibleTurnstile() {
     })();
 
     return () => {
-      removed = true;
-      // Do not remove the widget in dev to avoid churn during Fast Refresh.
-      // In production you may remove if desired:
-      // if (window.turnstile && widgetIdRef.current) window.turnstile.remove(widgetIdRef.current);
-      // if (containerRef.current && containerRef.current.parentElement === document.body)
+      unmounted = true;
+      // Optional cleanup (uncomment for production if you want to fully remove on unmount):
+      // if (window.turnstile && widgetIdRef.current) {
+      //   window.turnstile.remove(widgetIdRef.current);
+      //   widgetIdRef.current = null;
+      // }
+      // if (containerRef.current?.parentElement === document.body) {
       //   document.body.removeChild(containerRef.current);
+      //   containerRef.current = null;
+      // }
     };
   }, []);
 
   const getToken = useCallback(async () => {
-    if (!ready || !window.turnstile || !widgetIdRef.current) throw new Error("Turnstile not ready");
+    if (!ready || !window.turnstile || !widgetIdRef.current) {
+      throw new Error("Turnstile not ready");
+    }
 
-    // If already executing, return the existing promise
-    if (executingRef.current) return executingRef.current;
+    if (inFlightRef.current) return inFlightRef.current;
 
-    executingRef.current = new Promise((resolve, reject) => {
+    inFlightRef.current = new Promise((resolve, reject) => {
+      const ts = window.turnstile;
       try {
-        window.turnstile.execute(widgetIdRef.current, {
+        // Always reset before executing to avoid "already executing" warnings
+        ts.reset(widgetIdRef.current);
+        ts.execute(widgetIdRef.current, {
           action: "chat_send",
           callback: (token) => {
-            executingRef.current = null;
+            inFlightRef.current = null;
             resolve(token);
           },
-          "error-callback": (err) => {
-            executingRef.current = null;
-            // After errors, resetting can help next runs
-            try { window.turnstile.reset(widgetIdRef.current); } catch {}
-            reject(err || new Error("Turnstile error"));
+          "error-callback": (code) => {
+            inFlightRef.current = null;
+            try { ts.reset(widgetIdRef.current); } catch {}
+            reject(new Error(`turnstile:${code}`));
           },
           "timeout-callback": () => {
-            executingRef.current = null;
-            try { window.turnstile.reset(widgetIdRef.current); } catch {}
-            reject(new Error("Turnstile timeout"));
+            inFlightRef.current = null;
+            try { ts.reset(widgetIdRef.current); } catch {}
+            reject(new Error("turnstile:timeout"));
           },
         });
       } catch (e) {
-        executingRef.current = null;
+        inFlightRef.current = null;
         reject(e);
       }
     });
 
-    return executingRef.current;
+    return inFlightRef.current;
   }, [ready]);
 
   return { ready, getToken };

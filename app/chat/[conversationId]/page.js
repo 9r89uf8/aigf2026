@@ -9,8 +9,6 @@ import { useSignedMediaUrls } from "@/components/chat/useSignedMediaUrls";
 import MediaComposer from "@/components/chat/MediaComposer";
 import AudioComposer from "@/components/chat/AudioComposer";
 
-// Module-level flag to prevent double prefetch in React Strict Mode
-let prefetchAttempted = false;
 
 function TypingBubble({ avatarUrl, girlName }) {
   return (
@@ -81,7 +79,33 @@ export default function ConversationPage() {
   const bottomRef = useRef(null);
 
   const { ready: turnstileReady, getToken } = useInvisibleTurnstile();
-  const prefetchGuard = useRef(false);
+
+  // ---- Stable refs to avoid Strict Mode double-execute overlaps ----
+  const permitRef = useRef(permit);
+  useEffect(() => { permitRef.current = permit; }, [permit]);
+
+  const mintPermitRef = useRef(mintPermit);
+  useEffect(() => { mintPermitRef.current = mintPermit; }, [mintPermit]);
+
+  const getTokenRef = useRef(getToken);
+  useEffect(() => { getTokenRef.current = getToken; }, [getToken]);
+
+  const signBatchRef = useRef(signBatch);
+  useEffect(() => { signBatchRef.current = signBatch; }, [signBatch]);
+
+  // Serialize turnstile execute() calls
+  const tokenInFlightRef = useRef(null);
+  async function acquireToken() {
+    if (tokenInFlightRef.current) return tokenInFlightRef.current;
+    tokenInFlightRef.current = (async () => {
+      try {
+        return await getTokenRef.current();
+      } finally {
+        tokenInFlightRef.current = null;
+      }
+    })();
+    return tokenInFlightRef.current;
+  }
 
   // Compute typing state from existing messages
   const lastMsg = data?.messages?.[data.messages.length - 1] || null;
@@ -101,7 +125,7 @@ export default function ConversationPage() {
     }
   }, [isAiTyping]);
 
-  // Fetch girl's avatar URL
+  // Fetch girl's avatar URL (via signed URL)
   useEffect(() => {
     if (!data?.girlAvatarKey) {
       setAvatarUrl(null);
@@ -110,7 +134,7 @@ export default function ConversationPage() {
     let cancelled = false;
     (async () => {
       try {
-        const r = await signBatch({ keys: [data.girlAvatarKey] });
+        const r = await signBatchRef.current({ keys: [data.girlAvatarKey] });
         if (!cancelled && r?.urls) {
           setAvatarUrl(r.urls[data.girlAvatarKey] || null);
         }
@@ -119,7 +143,7 @@ export default function ConversationPage() {
       }
     })();
     return () => { cancelled = true; };
-  }, [data?.girlAvatarKey, signBatch]);
+  }, [data?.girlAvatarKey]);
 
   // Auto-hide delete button after 5 seconds
   useEffect(() => {
@@ -129,28 +153,28 @@ export default function ConversationPage() {
     }
   }, [showDeleteButton]);
 
-  // Optional: prefetch a permit once the Turnstile script is ready
+// top-level (module scope)
+  let prefetchAttempted = false;
+
+// inside the prefetch useEffect
   useEffect(() => {
+    let cancelled = false;
     (async () => {
-      if (!turnstileReady || permit || prefetchAttempted) return;
+      if (!turnstileReady || permitRef.current || prefetchAttempted) return;
       prefetchAttempted = true;
       try {
-        const token = await getToken();
-        const p = await mintPermit({ token, scope: "chat_send" });
+        const token = await acquireToken();
+        if (cancelled) return;
+        const p = await mintPermitRef.current({ token, scope: "chat_send" });
+        if (cancelled) return;
         setPermit(p);
       } catch (e) {
-        // Non-fatal — will mint on first send
         console.warn("Permit prefetch failed", e);
-        // allow one retry later if desired:
-        prefetchAttempted = false;
       }
     })();
+    return () => { cancelled = true; };
+  }, [turnstileReady /* you can omit conversationId for a global prefetch */]);
 
-    // Reset flag when conversation changes
-    return () => {
-      if (conversationId) prefetchAttempted = false;
-    };
-  }, [turnstileReady, permit, getToken, mintPermit, conversationId]);
 
   const quotaOut = data && !data.premiumActive && data.freeRemaining.text <= 0;
 
@@ -160,9 +184,10 @@ export default function ConversationPage() {
 
   // Ensure there is a valid permit; mint if needed.
   async function ensurePermit() {
-    if (permitValid(permit)) return permit;
-    const token = await getToken();
-    const p = await mintPermit({ token, scope: "chat_send" });
+    const current = permitRef.current ?? permit;
+    if (permitValid(current)) return current;
+    const token = await acquireToken();
+    const p = await mintPermitRef.current({ token, scope: "chat_send" });
     setPermit(p);
     return p;
   }
@@ -197,6 +222,7 @@ export default function ConversationPage() {
       setIsSending(false);
     }
   }
+
 
   async function onClearAll() {
     try {
