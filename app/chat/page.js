@@ -1,10 +1,9 @@
-// app/chat/page.js
 "use client";
 
 import { useQuery, useAction } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import AvatarWithStoryRing from "@/components/AvatarWithStoryRing";
 
 function formatTime(ts) {
@@ -30,48 +29,102 @@ function lastLine({ lastMessageKind, lastMessageSender, lastMessagePreview, girl
   return `${who} ${label}`;
 }
 
+// Stable empty array reference so deps don't churn
+const EMPTY = Object.freeze([]);
+
 export default function ChatHomePage() {
-  // Data
-  const data = useQuery(api.chat_home.getHome) || { threads: [], stories: [] };
+  // ---- Data ----
+  const home = useQuery(api.chat_home.getHome); // may be undefined initially
   const signViewBatch = useAction(api.cdn.signViewBatch);
 
-  // UI state
+  // ---- UI state ----
   const [signedUrls, setSignedUrls] = useState({});
   const [search, setSearch] = useState("");
 
-  // Collect keys to sign (image stories + avatars)
+  // Keep a ref to the latest signedUrls so effects can read without
+  // re-running on every change
+  const signedUrlsRef = useRef(signedUrls);
+  useEffect(() => {
+    signedUrlsRef.current = signedUrls;
+  }, [signedUrls]);
+
+  // Keep a ref to signViewBatch so we don't have to depend on it directly
+  const signViewBatchRef = useRef(signViewBatch);
+  useEffect(() => {
+    signViewBatchRef.current = signViewBatch;
+  }, [signViewBatch]);
+
+  // In-flight dedupe (avoids double calls in React 18 Strict Mode)
+  const inFlightRef = useRef(new Set());
+
+  // Normalize arrays with stable fallbacks
+  const stories = home?.stories ?? EMPTY;
+  const threadsRaw = home?.threads ?? EMPTY;
+
+  // Collect keys to sign (image stories + avatars). Sorted so the fingerprint is stable.
   const keysToSign = useMemo(() => {
     const keys = new Set();
-    for (const s of data.stories) {
+    for (const s of stories) {
       if (s.kind === "image" && s.objectKey) keys.add(s.objectKey);
       if (s.girlAvatarKey) keys.add(s.girlAvatarKey);
     }
-    for (const t of data.threads) {
+    for (const t of threadsRaw) {
       if (t.girlAvatarKey) keys.add(t.girlAvatarKey);
     }
-    return Array.from(keys);
-  }, [data.stories, data.threads]);
+    return Array.from(keys).sort(); // sort to get stable order
+  }, [stories, threadsRaw]);
 
-  // Batch sign URLs when keys change
+  // Stable fingerprint for the effect dependency
+  const keysFingerprint = useMemo(
+      () => (keysToSign.length ? keysToSign.join("|") : ""),
+      [keysToSign]
+  );
+
+  // Batch sign only when there are MISSING keys
   useEffect(() => {
-    async function fetchSignedUrls() {
-      if (!keysToSign.length) {
-        setSignedUrls({});
-        return;
-      }
+    const fingerprint = keysFingerprint;
+    const allKeys = fingerprint ? fingerprint.split("|") : [];
+
+    // Compute missing keys without depending on state in deps
+    const missing = allKeys.filter((k) => !signedUrlsRef.current[k]);
+
+    if (missing.length === 0) return; // nothing to do
+    if (inFlightRef.current.has(fingerprint)) return; // dedupe
+
+    let cancelled = false;
+    inFlightRef.current.add(fingerprint);
+
+    (async () => {
       try {
-        const { urls } = await signViewBatch({ keys: keysToSign });
-        setSignedUrls(urls || {});
+        const { urls } = await signViewBatchRef.current({ keys: missing });
+        if (cancelled) return;
+        setSignedUrls((prev) => {
+          // Merge; only update if something actually changed
+          const next = { ...prev, ...(urls || {}) };
+          if (
+              Object.keys(next).length === Object.keys(prev).length &&
+              Object.keys(next).every((k) => next[k] === prev[k])
+          ) {
+            return prev;
+          }
+          return next;
+        });
       } catch (error) {
         console.error("Failed to sign URLs:", error);
+      } finally {
+        inFlightRef.current.delete(fingerprint);
       }
-    }
-    fetchSignedUrls();
-  }, [keysToSign, signViewBatch]);
+    })();
 
-  // Derived: filtered threads (search + sort only)
+    return () => {
+      cancelled = true;
+    };
+    // IMPORTANT: Depend only on the stable fingerprint
+  }, [keysFingerprint]);
+
+  // Derived: filtered/sorted threads (search + sort only)
   const threads = useMemo(() => {
-    let list = data.threads || [];
+    let list = threadsRaw;
     if (search.trim()) {
       const q = search.trim().toLowerCase();
       list = list.filter((t) => {
@@ -85,7 +138,7 @@ export default function ChatHomePage() {
       });
     }
     return [...list].sort((a, b) => (b.lastMessageAt || 0) - (a.lastMessageAt || 0));
-  }, [data.threads, search]);
+  }, [threadsRaw, search]);
 
   return (
       <div className="min-h-screen">
@@ -99,11 +152,12 @@ export default function ChatHomePage() {
         {/* Content */}
         <main className="max-w-screen-sm mx-auto px-4 pb-24">
           {/* Stories rail */}
-          {data.stories.length > 0 && (
+          {stories.length > 0 && (
               <section className="mt-3 mb-2 overflow-x-auto no-scrollbar">
                 <div className="flex gap-4">
-                  {data.stories.map((s) => {
-                    const storyImgSrc = s.kind === "image" && s.objectKey ? signedUrls[s.objectKey] : undefined;
+                  {stories.map((s) => {
+                    const storyImgSrc =
+                        s.kind === "image" && s.objectKey ? signedUrls[s.objectKey] : undefined;
                     const avatarSrc = s.girlAvatarKey ? signedUrls[s.girlAvatarKey] : undefined;
                     const imgSrc = storyImgSrc || avatarSrc;
 
@@ -153,10 +207,7 @@ export default function ChatHomePage() {
 
                   return (
                       <li key={t.conversationId}>
-                        <Link
-                            href={`/chat/${t.conversationId}`}
-                            className="flex items-center gap-3 py-3 active:bg-gray-50"
-                        >
+                        <Link href={`/chat/${t.conversationId}`} className="flex items-center gap-3 py-3 active:bg-gray-50">
                           {/* Avatar (with unread dot in the corner) */}
                           <div className="relative shrink-0">
                             <div className="w-12 h-12 rounded-full bg-gray-200 overflow-hidden flex items-center justify-center">
@@ -172,26 +223,17 @@ export default function ChatHomePage() {
                               )}
                             </div>
                             {t.unread && (
-                                <span
-                                    className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-blue-500 ring-2 ring-white"
-                                    aria-hidden
-                                />
+                                <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-blue-500 ring-2 ring-white" aria-hidden />
                             )}
                           </div>
 
                           {/* Texts */}
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center justify-between gap-2">
-                        <span className={`truncate ${t.unread ? "font-semibold" : "font-medium"}`}>
-                          {t.girlName}
-                        </span>
+                              <span className={`truncate ${t.unread ? "font-semibold" : "font-medium"}`}>{t.girlName}</span>
                               <span className="text-xs text-gray-500 shrink-0">{formatTime(t.lastMessageAt)}</span>
                             </div>
-                            <div
-                                className={`text-sm truncate ${
-                                    t.unread ? "text-black font-medium" : "text-gray-600"
-                                }`}
-                            >
+                            <div className={`text-sm truncate ${t.unread ? "text-black font-medium" : "text-gray-600"}`}>
                               {preview}
                             </div>
                           </div>
