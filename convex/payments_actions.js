@@ -32,30 +32,50 @@ export const listPlansCached = action({
       return cache.json;
     }
 
-    const products = await stripe.products.list({ active: true, limit: 100 });
+    const products = await stripe.products.list({ active: true, limit: 100, expand: ['data.default_price', 'data.default_price.currency_options'], });
     const result = [];
 
     for (const p of products.data) {
       if (p.metadata?.duration == null) continue;
-
       let price = null;
-      if (p.default_price && typeof p.default_price === "string") {
-        price = await stripe.prices.retrieve(p.default_price);
-      } else if (p.default_price && typeof p.default_price === "object") {
-        price = p.default_price;
-      } else {
+      if (typeof p.default_price === "object" && p.default_price) {
+        // already expanded; includes currency_options if configured
+            price = p.default_price;
+        } else if (typeof p.default_price === "string") {
+        // expand currency_options if you end up retrieving by id
+            price = await stripe.prices.retrieve(p.default_price, {
+            expand: ["currency_options"],
+            });
+        } else {
         const prices = await stripe.prices.list({
-          product: p.id,
-          active: true,
-          limit: 1,
-        });
-        price = prices.data[0] || null;
-      }
+            product: p.id,
+            active: true,
+            limit: 1,
+            expand: ["data.currency_options"],
+            });
+        price = prices.data[0] ?? null;
+        }
       if (!price) continue;
 
       const durationDays = Number(p.metadata.duration || 0);
       const features = featuresFromMetadata(p.metadata);
 
+      function minorFromOpt(opt) {
+        if (!opt) return null;
+        if (typeof opt.unit_amount === 'number') return opt.unit_amount; // integer cents
+        if (typeof opt.unit_amount_decimal === 'string') return Number(opt.unit_amount_decimal); // decimal cents (e.g., "85.16")
+        return null;
+      }
+
+
+      const co = price.currency_options || {};
+      const localized = {
+        EUR: minorFromOpt(co.eur),
+        MXN: minorFromOpt(co.mxn),
+        ARS: minorFromOpt(co.ars),
+          };
+
+      console.log(result)
       result.push({
         productId: p.id,
         name: p.name,
@@ -64,6 +84,7 @@ export const listPlansCached = action({
         priceId: price.id,
         unitAmount: price.unit_amount,
         currency: price.currency,
+        localized,
         durationDays,
         features,
       });

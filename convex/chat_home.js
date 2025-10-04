@@ -19,7 +19,10 @@ export const getHome = query({
         .order("desc")
         .collect();
 
-      threads = convos.map(c => ({
+      // Filter out conversations without any messages
+      const convosWithMessages = convos.filter(c => c.lastMessageKind && c.lastMessageSender);
+
+      threads = convosWithMessages.map(c => ({
         conversationId: c._id,
         girlId: c.girlId,
         girlName: c.girlName,

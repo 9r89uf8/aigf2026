@@ -9,6 +9,42 @@ function normalizeUsername(u) {
 const USERNAME_RE = /^[a-z0-9._]{3,24}$/;
 const RESERVED = new Set(["admin", "support", "help", "about", "terms", "privacy"]);
 
+
+export const ensureCountry = mutation({
+  args: { country: v.optional(v.string()) },
+  handler: async (ctx, { country }) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw new Error("Unauthenticated");
+    const c = (country || "").trim().toUpperCase();
+    if (c && !/^[A-Z]{2}$/.test(c)) throw new Error("Invalid country code");
+    const existing = await ctx.db
+        .query("profiles")
+        .withIndex("by_userId", (q) => q.eq("userId", userId))
+        .first();
+
+    const now = Date.now();
+    if (!existing) {
+      await ctx.db.insert("profiles", {
+        userId,
+        username: "",
+        usernameLower: "",
+        name: "",
+        age: undefined,
+        country: c || undefined,
+        updatedAt: now,
+      });
+      return { ok: true };
+    }
+
+    // Only set once (avoid overwriting if user changed it later)
+    if (!existing.country && c) {
+      await ctx.db.patch(existing._id, { country: c, updatedAt: now });
+    }
+    return { ok: true };
+  },
+});
+
+
 export const getMine = query({
   args: {},
   handler: async (ctx) => {

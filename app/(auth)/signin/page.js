@@ -1,19 +1,45 @@
-//app/(auth)/signin/page.js
+// app/(auth)/signin/page.js
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useAuthActions } from "@convex-dev/auth/react";
-import { useRouter } from "next/navigation";
-import { useAction } from "convex/react";
+import { useAction, useMutation, useConvexAuth } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 
 export default function SignInPage() {
   const { signIn } = useAuthActions();
-  const router = useRouter();
+  const { isAuthenticated } = useConvexAuth();
   const [flow, setFlow] = useState("signIn");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+  const [countryGuess, setCountryGuess] = useState("");  // NEW
   const verifyTurnstile = useAction(api.turnstile.verify);
+  const ensureCountry = useMutation(api.profile.ensureCountry); // NEW
+  const justSignedUp = useRef(false);
+
+  useEffect(() => {
+    // Light-weight, server-sourced country
+    fetch("/api/geo")
+        .then((r) => r.json())
+        .then(({ country }) => setCountryGuess(country || ""))
+        .catch(() => setCountryGuess(""));
+  }, []);
+
+  // Run AFTER Convex auth is live so the mutation is authenticated
+  useEffect(() => {
+    if (!justSignedUp.current) return;
+    if (!isAuthenticated) return;
+    if (!countryGuess) { justSignedUp.current = false; return; }
+    (async () => {
+      try {
+        await ensureCountry({ country: countryGuess });
+      } catch (e) {
+        // non-fatal; ignore
+      } finally {
+        justSignedUp.current = false;
+      }
+    })();
+  }, [isAuthenticated, countryGuess, ensureCountry]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -27,13 +53,24 @@ export default function SignInPage() {
       const ts = fd.get("cf-turnstile-response");
       await verifyTurnstile({ token: String(ts || "") });
 
-      // 2) Proceed with Convex Auth
+      // 2) Add country to form only for signUp
+      if (flow === "signUp" && countryGuess) {
+        fd.set("country", countryGuess);
+      }
+
+      // 3) Proceed with Convex Auth
       await signIn("password", fd);
+
+      // 4) Flag for post-auth effect to run ensureCountry when isAuthenticated flips
+      if (flow === "signUp") {
+        justSignedUp.current = true;
+      }
       // Let auth state/middleware handle navigation
     } catch (err) {
-      const generic = flow === "signIn"
-        ? "Sign in failed. Check your email/password and try again."
-        : "Could not create account. Try a different email or try again.";
+      const generic =
+          flow === "signIn"
+              ? "Sign in failed. Check your email/password and try again."
+              : "Could not create account. Try a different email or try again.";
       setError(generic);
     } finally {
       setIsLoading(false);
@@ -117,6 +154,11 @@ export default function SignInPage() {
         </div>
 
         <input name="flow" type="hidden" value={flow} />
+
+        {/* Include country ONLY on signUp – does nothing on signIn */}
+        {flow === "signUp" && (
+            <input name="country" type="hidden" value={countryGuess} />
+        )}
 
         {/* Cloudflare Turnstile widget inside the form so it posts cf-turnstile-response */}
         <div
