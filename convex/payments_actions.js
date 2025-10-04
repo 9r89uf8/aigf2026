@@ -75,7 +75,6 @@ export const listPlansCached = action({
         ARS: minorFromOpt(co.ars),
           };
 
-      console.log(result)
       result.push({
         productId: p.id,
         name: p.name,

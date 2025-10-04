@@ -2,6 +2,7 @@
 "use client";
 
 import React, { useState, useEffect, useMemo } from "react";
+import { useRouter } from "next/navigation";
 import { useAction, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { currencyForCountry, formatMoney} from "@/app/lib/currency";
@@ -9,9 +10,21 @@ import { currencyForCountry, formatMoney} from "@/app/lib/currency";
 export default function PlansPage() {
   const listPlans = useAction(api.payments_actions.listPlansCached);
   const start = useAction(api.payments_actions.checkoutStart);
+  const router = useRouter();
 
   // Logged-in profile (has country when set at sign-up)
   const me = useQuery(api.profile.getMine); // returns { email, profile: { country, ... } } or null
+  const isLoggedIn = !!me;
+  const hasCountry = !!me?.profile?.country;
+
+  // Only display these three when not logged in
+  const PUBLIC_DISPLAY = [
+    { currency: "MXN", country: "Mexico" },
+    { currency: "EUR", country: "Spain" },
+    { currency: "ARS", country: "Argentina" },
+  ];
+  const PUBLIC_CODES = new Set(PUBLIC_DISPLAY.map(p => p.currency));
+  const COUNTRY_BY_CURRENCY = Object.fromEntries(PUBLIC_DISPLAY.map(p => [p.currency, p.country]));
 
   const [plans, setPlans] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -53,10 +66,9 @@ export default function PlansPage() {
     );
   }
 
-  const explain =
-      selectedCurrency
-          ? `Prices shown in your local currency (${selectedCurrency}).`
-          : `Not signed in—showing all available currencies per plan.`;
+  const explain = (isLoggedIn && hasCountry && selectedCurrency && PUBLIC_CODES.has(selectedCurrency))
+    ? `Prices shown for ${COUNTRY_BY_CURRENCY[selectedCurrency]}.`
+    : `Not signed in — showing prices for Mexico, Spain and Argentina.`;
 
   return (
       <main className="mx-auto max-w-screen-md p-6 space-y-6">
@@ -72,17 +84,22 @@ export default function PlansPage() {
         ) : (
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
               {plans.map((plan) => {
-                // Build a currency→amount map: base + localized overrides
-                const base = { [plan.currency.toUpperCase()]: plan.unitAmount };
+                // Build a currency→amount map, but **exclude USD** entirely
                 const localized = Object.fromEntries(
-                    Object.entries(plan.localized || {}).map(([k, v]) => [k.toUpperCase(), v])
+                  Object.entries(plan.localized || {})
+                    .map(([k, v]) => [k.toUpperCase(), v])
+                    .filter(([_, v]) => v != null)
                 );
-                const priceMap = { ...base, ...localized };
+                // Never show the base USD price
+                const priceMap = { ...localized }; // no USD
 
-                const allCurrencies = Object.keys(priceMap);
-
+                // Determine which currencies to render
                 const renderSingle =
-                    selectedCurrency && priceMap[selectedCurrency] != null;
+                  (isLoggedIn && hasCountry && selectedCurrency && PUBLIC_CODES.has(selectedCurrency) && priceMap[selectedCurrency] != null);
+
+                // When not logged in, only show MX/EU/AR (country names)
+                const visiblePublic = PUBLIC_DISPLAY
+                  .filter(p => priceMap[p.currency] != null);
 
                 return (
                     <div key={plan.productId} className="border border-gray-200 rounded-lg p-6 shadow-sm hover:shadow-md transition-shadow">
@@ -114,14 +131,14 @@ export default function PlansPage() {
                             </div>
                         ) : (
                             <div className="text-sm text-gray-700">
-                              <div className="grid grid-cols-2 gap-2">
-                                {allCurrencies.map((ccy) => (
-                                    <div key={ccy} className="flex items-center justify-between rounded-md border px-3 py-2">
-                                      <span className="font-medium">{ccy}</span>
-                                      <span className="tabular-nums">
-                              {formatMoney(ccy, priceMap[ccy])}
-                            </span>
-                                    </div>
+                              <div className="grid grid-cols-1 gap-2">
+                                {visiblePublic.map(({ currency, country }) => (
+                                  <div key={currency} className="flex items-center justify-between rounded-md border px-3 py-2">
+                                    <span className="font-medium">{country}</span>
+                                    <span className="tabular-nums">
+                                      {formatMoney(currency, priceMap[currency])}
+                                    </span>
+                                  </div>
                                 ))}
                               </div>
                               <div className="text-xs text-gray-500 mt-2">
@@ -144,11 +161,22 @@ export default function PlansPage() {
                             </div>
                         )}
 
+                        {/*
+                          Button text:
+                          - "Buy Now" if logged in AND has country (regardless of which country)
+                          - "Check Price" otherwise
+                        */}
                         <button
                             className="w-full bg-blue-600 text-white py-3 px-4 rounded-md font-medium hover:bg-blue-700 transition-colors"
-                            onClick={() => buy(plan.productId)}
+                            onClick={() => {
+                              if (isLoggedIn && hasCountry) {
+                                buy(plan.productId);
+                              } else {
+                                router.push("/signin?next=/plans");
+                              }
+                            }}
                         >
-                          Buy Now
+                          {(isLoggedIn && hasCountry) ? "Buy Now" : "Check Price"}
                         </button>
                       </div>
                     </div>
