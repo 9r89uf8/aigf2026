@@ -5,17 +5,14 @@ import Link from "next/link";
 export default function LockedMediaCard({ media }) {
   return (
     <div className="bg-white border rounded-lg overflow-hidden shadow-sm">
-      {/* Locked Content with Blur Overlay */}
-      <div className="relative aspect-[4/5] bg-gradient-to-br from-purple-200 to-pink-200 overflow-hidden">
-        {/* Blurred placeholder pattern */}
-        <div className="absolute inset-0 bg-gradient-to-br from-purple-300/50 to-pink-300/50 backdrop-blur-2xl" />
-
+      {/* Locked Content Overlay */}
+      <div className="relative aspect-[4/5] bg-gradient-to-br from-indigo-600 via-amber-500 to-cyan-400 overflow-hidden">
         {/* Lock Icon Overlay */}
-        <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/40 backdrop-blur-sm">
+        <div className="absolute inset-0 flex flex-col items-center justify-center">
           {/* Lock Icon */}
           <div className="mb-4">
             <svg
-              className="w-16 h-16 text-white"
+              className="w-16 h-16 text-white drop-shadow-lg"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -31,13 +28,13 @@ export default function LockedMediaCard({ media }) {
 
           {/* Premium CTA */}
           <Link
-            href="/premium"
-            className="px-6 py-2.5 bg-gradient-to-r from-amber-500 to-orange-500 text-white font-semibold rounded-full hover:from-amber-600 hover:to-orange-600 transition-all shadow-lg hover:shadow-xl"
+            href="/plans"
+            className="px-6 py-2.5 bg-white text-indigo-700 font-semibold rounded-full hover:bg-gray-50 transition-all shadow-lg hover:shadow-xl hover:scale-105"
           >
-            ✨ Get Premium
+            Check prices
           </Link>
 
-          <p className="mt-3 text-white text-sm font-medium">
+          <p className="mt-3 text-white text-sm font-semibold drop-shadow-lg">
             Unlock exclusive content
           </p>
         </div>
