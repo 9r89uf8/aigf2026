@@ -512,51 +512,81 @@ export default function ConversationPage() {
       </div>
 
       {!data?.premiumActive && quotaOut && (
-        <div className="px-4 py-3 border-t bg-gradient-to-br from-amber-50 to-amber-100/60 border-amber-200">
-          <div className="flex items-center justify-between gap-3">
-            <div className="min-w-0">
-              <div className="text-sm text-gray-900">
-                Free messages are used up.
-                {" "}
-                <span className="font-semibold">
-                  Premium starts at{" "}
+        <div className="relative border-t border-indigo-400/30 bg-gradient-to-br from-indigo-600 via-amber-500 to-cyan-400 overflow-hidden shadow-lg">
+          {/* Subtle shimmer effect */}
+          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -skew-x-12 animate-shimmer" />
+
+          <div className="relative px-4 py-4 sm:flex sm:items-center sm:justify-between sm:gap-4">
+            <div className="min-w-0 flex-1">
+              {/* Headline with premium icon */}
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-sm font-semibold text-white">Free messages used</span>
+              </div>
+
+              {/* Premium pricing - hero element */}
+              <div className="mb-3">
+                <div className="flex items-baseline gap-2 flex-wrap">
+                  <span className="text-lg font-bold text-white">Premium starts at</span>
                   {cheapestLabel ? (
                     <>
-                      {cheapestLabel}
-                      {!selectedCurrency && cheapestCountry ? ` in ${cheapestCountry}` : ""}
+                      <span className="text-2xl font-extrabold text-white drop-shadow-md">
+                        {cheapestLabel}
+                      </span>
+                      {!selectedCurrency && cheapestCountry && (
+                        <span className="text-sm text-white/90">in {cheapestCountry}</span>
+                      )}
                     </>
                   ) : (
-                    "our lowest regional price"
+                    <span className="text-xl font-bold text-white">our lowest regional price</span>
                   )}
-                  .
-                </span>
+                </div>
               </div>
-              {/* Trust badges */}
-              <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-gray-600">
-                <span className="inline-flex items-center gap-1">
-                  {/* Lock */}
-                  <svg viewBox="0 0 24 24" className="w-3.5 h-3.5"><path d="M6 10V8a6 6 0 1112 0v2h1a1 1 0 011 1v9a1 1 0 01-1 1H5a1 1 0 01-1-1v-9a1 1 0 011-1h1zm2 0h8V8a4 4 0 10-8 0v2z" fill="currentColor"/></svg>
-                  Secure checkout
+
+              {/* Trust badges - more subtle */}
+              <div className="flex flex-wrap items-center gap-x-5 gap-y-1.5 text-[11px] text-white/90">
+                <span className="inline-flex items-center gap-1.5">
+                  <svg viewBox="0 0 24 24" className="w-3.5 h-3.5 text-white" fill="currentColor">
+                    <path d="M6 10V8a6 6 0 1112 0v2h1a1 1 0 011 1v9a1 1 0 01-1 1H5a1 1 0 01-1-1v-9a1 1 0 011-1h1zm2 0h8V8a4 4 0 10-8 0v2z"/>
+                  </svg>
+                  <span className="font-medium">Secure checkout</span>
                 </span>
-                <span className="inline-flex items-center gap-1">
-                  {/* Shield */}
-                  <svg viewBox="0 0 24 24" className="w-3.5 h-3.5"><path d="M12 2l8 4v6c0 5-3.4 9.3-8 10-4.6-.7-8-5-8-10V6l8-4z" fill="currentColor"/></svg>
-                  One‑time payment
+                <span className="inline-flex items-center gap-1.5">
+                  <svg viewBox="0 0 24 24" className="w-3.5 h-3.5 text-white" fill="currentColor">
+                    <path d="M12 2l8 4v6c0 5-3.4 9.3-8 10-4.6-.7-8-5-8-10V6l8-4z"/>
+                  </svg>
+                  <span className="font-medium">One-time payment</span>
                 </span>
-                <span className="inline-flex items-center gap-1">
-                  {/* Card */}
-                  <svg viewBox="0 0 24 24" className="w-3.5 h-3.5"><path d="M3 5h18a2 2 0 012 2v1H1V7a2 2 0 012-2zm-2 6h22v6a2 2 0 01-2 2H3a2 2 0 01-2-2v-6zm4 4h6v2H5v-2z" fill="currentColor"/></svg>
-                  Powered by Stripe
+                <span className="inline-flex items-center gap-1.5">
+                  <svg viewBox="0 0 24 24" className="w-3.5 h-3.5 text-white" fill="currentColor">
+                    <path d="M3 5h18a2 2 0 012 2v1H1V7a2 2 0 012-2zm-2 6h22v6a2 2 0 01-2 2H3a2 2 0 01-2-2v-6zm4 4h6v2H5v-2z"/>
+                  </svg>
+                  <span className="font-medium">Powered by Stripe</span>
                 </span>
               </div>
             </div>
+
+            {/* CTA button - white background */}
             <a
               href="/plans"
-              className="flex-shrink-0 inline-flex items-center justify-center px-3 py-2 text-sm font-medium rounded-md bg-blue-600 text-white hover:bg-blue-700"
+              className="mt-3 sm:mt-0 flex-shrink-0 inline-flex items-center justify-center gap-2 px-5 py-2.5 text-sm font-semibold rounded-lg bg-white text-indigo-700 shadow-lg shadow-black/20 hover:shadow-xl hover:shadow-black/30 hover:scale-105 transition-all duration-200 active:scale-95 border border-white/50"
             >
-              See plans
+              <span>See plans</span>
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+              </svg>
             </a>
           </div>
+
+          {/* Add shimmer animation */}
+          <style jsx>{`
+            @keyframes shimmer {
+              0% { transform: translateX(-100%) skewX(-12deg); }
+              100% { transform: translateX(200%) skewX(-12deg); }
+            }
+            .animate-shimmer {
+              animation: shimmer 3s infinite;
+            }
+          `}</style>
         </div>
       )}
 
