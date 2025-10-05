@@ -1,7 +1,10 @@
+//app/page.js
 import Link from "next/link";
 import Image from "next/image";
+import StoryAvatarButton from "../components/home/StoryAvatarButton";
 
 export default function Home() {
+
   return (
     <div className="font-sans min-h-screen">
       {/* Hero Section */}
@@ -69,8 +72,44 @@ export default function Home() {
 
                     {/* Name Overlay */}
                     <div className="absolute bottom-0 left-0 right-0 p-6">
-                      <h3 className="text-3xl font-bold text-white mb-1">Sofia</h3>
-                      <p className="text-white/90 text-lg">24 years old</p>
+                      {/* Profile Picture with Instagram-style ring */}
+                      <StoryAvatarButton
+                        avatarSrc="/first.jpg"
+                        size={80}
+                        stories={[
+                          {
+                            url: "/first.jpg",
+                            text: "Sofia says hi 👋",
+                            createdAt: Date.now() - 3 * 24 * 60 * 60 * 1000,
+                            user: { name: "Sofia", avatarUrl: "/first.jpg" },
+                          },
+                          {
+                            url: "/third.png",
+                            text: "Behind the scenes 📸",
+                            createdAt: Date.now() - 2 * 24 * 60 * 60 * 1000,
+                            user: { name: "Sofia", avatarUrl: "/first.jpg" },
+                          },
+                        ]}
+                      />
+
+                      <h3 className="text-3xl font-bold text-white mb-2">Sofia</h3>
+                      <p className="text-white/90 text-lg mb-4">24 years old</p>
+
+                      {/* CTA Buttons */}
+                      <div className="flex items-center justify-center gap-3">
+                        <Link
+                          href="/girls/k97f3bpzd0tzap6jf36wr46psd7rdef3"
+                          className="px-6 py-3 bg-blue-500 text-white font-bold rounded-full hover:bg-blue-600 transition-all duration-300 transform hover:scale-105 shadow-lg"
+                        >
+                          Chat
+                        </Link>
+                        <Link
+                          href="/girls"
+                          className="px-6 py-3 bg-white text-gray-900 font-bold rounded-full hover:bg-gray-100 transition-all duration-300 transform hover:scale-105 shadow-lg"
+                        >
+                          Browse All Girls
+                        </Link>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -135,76 +174,6 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Meet Your Companions Section */}
-      <section className="py-20">
-        <div className="container mx-auto px-4">
-          <h2 className="text-4xl md:text-5xl font-bold text-gray-900 text-center mb-6">
-            Meet Your
-            <span className="block text-gray-900">
-              Dream Companions
-            </span>
-          </h2>
-          <p className="text-xl text-gray-700 text-center mb-16 max-w-2xl mx-auto">
-            Choose from our stunning AI companions, each with their own unique personality and style.
-          </p>
-
-          <div className="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto">
-            {/* Girl 1 - Emma */}
-            <div className="group relative bg-white rounded-3xl overflow-hidden hover:scale-105 transition-all duration-500 shadow-xl">
-              <div className="relative h-[500px] overflow-hidden">
-                <Image
-                  src="/first.jpg"
-                  alt="Emma"
-                  fill
-                  className="object-cover group-hover:scale-110 transition-transform duration-500"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
-              </div>
-
-              <div className="absolute bottom-0 left-0 right-0 p-8">
-                <h3 className="text-3xl font-bold text-white mb-2">Emma</h3>
-                <p className="text-gray-200 mb-2 text-lg">22 years old</p>
-                <p className="text-gray-300 mb-6">
-                  Sweet and playful. I love deep conversations and making you smile. Always here to brighten your day.
-                </p>
-                <Link
-                  href="/signin"
-                  className="block w-full px-6 py-4 bg-blue-500 text-white text-lg font-bold rounded-full hover:bg-blue-600 transition-all duration-300 transform hover:scale-105 shadow-xl text-center"
-                >
-                  Start Chatting with Emma
-                </Link>
-              </div>
-            </div>
-
-            {/* Girl 2 - Sofia */}
-            <div className="group relative bg-white rounded-3xl overflow-hidden hover:scale-105 transition-all duration-500 shadow-xl">
-              <div className="relative h-[500px] overflow-hidden">
-                <Image
-                  src="/second.jpg"
-                  alt="Sofia"
-                  fill
-                  className="object-cover group-hover:scale-110 transition-transform duration-500"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
-              </div>
-
-              <div className="absolute bottom-0 left-0 right-0 p-8">
-                <h3 className="text-3xl font-bold text-white mb-2">Sofia</h3>
-                <p className="text-gray-200 mb-2 text-lg">24 years old</p>
-                <p className="text-gray-300 mb-6">
-                  Confident and adventurous. I know what I want and I'm not afraid to show it. Let's have some fun together.
-                </p>
-                <Link
-                  href="/signin"
-                  className="block w-full px-6 py-4 bg-blue-500 text-white text-lg font-bold rounded-full hover:bg-blue-600 transition-all duration-300 transform hover:scale-105 shadow-xl text-center"
-                >
-                  Start Chatting with Sofia
-                </Link>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
 
       {/* How It Works Section */}
       <section className="py-20">
