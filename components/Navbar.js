@@ -109,7 +109,7 @@ export function Navbar() {
 
         <div className="flex items-center">
           <AuthLoading>
-            <div className="text-sm text-gray-700">Loading...</div>
+            <div className="text-sm text-gray-700">Cargando...</div>
           </AuthLoading>
 
           <Authenticated>

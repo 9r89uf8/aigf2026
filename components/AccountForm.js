@@ -5,10 +5,10 @@ import { useAction, useMutation, useQuery } from "convex/react";
 import { api } from "../convex/_generated/api";
 
 const COUNTRY_OPTIONS = [
-  { code: "", label: "Select country" },
-  { code: "US", label: "United States" },
-  { code: "ES", label: "Spain" },
-  { code: "MX", label: "Mexico" },
+  { code: "", label: "Seleccionar país" },
+  { code: "US", label: "Estados Unidos" },
+  { code: "ES", label: "España" },
+  { code: "MX", label: "México" },
   { code: "AR", label: "Argentina" },
 ];
 
@@ -67,7 +67,7 @@ export default function AccountForm() {
   async function onSave(e) {
     e.preventDefault();
     if (!USERNAME_RE.test(username)) {
-      alert("Username must be 3–24 chars, a–z, 0–9, dot or underscore.");
+      alert("El nombre de usuario debe tener 3-24 caracteres, a-z, 0-9, punto o guion bajo.");
       return;
     }
     const payload = {
@@ -79,9 +79,9 @@ export default function AccountForm() {
     setSaving(true);
     try {
       await upsert(payload);
-      alert("Profile saved");
+      alert("Perfil guardado");
     } catch (err) {
-      alert(err?.message ?? "Failed to save");
+      alert(err?.message ?? "Error al guardar");
     } finally {
       setSaving(false);
     }
@@ -90,11 +90,11 @@ export default function AccountForm() {
   async function onPickAvatar(file) {
     if (!file) return;
     if (!["image/png", "image/jpeg", "image/webp"].includes(file.type)) {
-      alert("Please upload PNG, JPG, or WEBP");
+      alert("Por favor sube PNG, JPG o WEBP");
       return;
     }
     if (file.size > 5 * 1024 * 1024) {
-      alert("Max 5MB");
+      alert("Máximo 5MB");
       return;
     }
 
@@ -113,7 +113,7 @@ export default function AccountForm() {
         body: file,
       });
       if (!res.ok) {
-        alert("Upload failed");
+        alert("Error al subir");
         return;
       }
 
@@ -125,14 +125,14 @@ export default function AccountForm() {
       setAvatarUrl(url);
     } catch (error) {
       console.error("Avatar upload failed:", error);
-      alert("Avatar upload failed");
+      alert("Error al subir avatar");
     } finally {
       setUploading(false);
     }
   }
 
   if (!data) return <div className="min-h-screen flex items-center justify-center">
-    <div className="text-lg text-gray-400">Loading...</div>
+    <div className="text-lg text-gray-400">Cargando...</div>
   </div>;
 
   return (
@@ -149,7 +149,7 @@ export default function AccountForm() {
                 {avatarUrl ? (
                   <img src={avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
                 ) : (
-                  <span className="text-sm text-gray-400">No photo</span>
+                  <span className="text-sm text-gray-400">Sin foto</span>
                 )}
               </div>
               <input
@@ -176,7 +176,7 @@ export default function AccountForm() {
             </div>
 
             <div className="mt-4 text-center">
-              <h1 className="text-3xl font-bold text-gray-900">{name || username || "User"}</h1>
+              <h1 className="text-3xl font-bold text-gray-900">{name || username || "Usuario"}</h1>
               <p className="text-gray-600 mt-1">@{username || "username"}</p>
               {avatarUrl && (
                 <button
@@ -187,7 +187,7 @@ export default function AccountForm() {
                   }}
                   className="mt-2 text-sm text-red-600 hover:text-red-700 transition-colors"
                 >
-                  Remove photo
+                  Eliminar foto
                 </button>
               )}
             </div>
@@ -203,37 +203,37 @@ export default function AccountForm() {
               <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
               </svg>
-              Profile Information
+              Información del Perfil
             </h2>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Email */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Email Address</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Correo Electrónico</label>
                 <input
                   value={email}
                   disabled
                   className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg text-gray-600 cursor-not-allowed"
                 />
-                <p className="text-xs text-gray-500 mt-1.5">Email cannot be changed</p>
+                <p className="text-xs text-gray-500 mt-1.5">El correo no se puede cambiar</p>
               </div>
 
               {/* Username */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Username</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Nombre de Usuario</label>
                 <input
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-shadow"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
                   required
                   pattern="[a-z0-9._]{3,24}"
-                  title="3–24 chars; a–z, 0–9, dot, underscore"
+                  title="3-24 caracteres; a-z, 0-9, punto, guion bajo"
                 />
               </div>
 
               {/* Name */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Full Name</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Nombre Completo</label>
                 <input
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-shadow"
                   value={name}
@@ -244,7 +244,7 @@ export default function AccountForm() {
 
               {/* Age */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Age</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Edad</label>
                 <input
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-shadow"
                   type="number"
@@ -260,7 +260,7 @@ export default function AccountForm() {
 
               {/* Country */}
               <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-2">Country</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">País</label>
                 <select
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-shadow"
                   value={country}
@@ -279,7 +279,7 @@ export default function AccountForm() {
                 type="submit"
                 disabled={saving || uploading}
               >
-                {saving ? "Saving..." : "Save Changes"}
+                {saving ? "Guardando..." : "Guardar Cambios"}
               </button>
             </div>
           </div>
@@ -291,7 +291,7 @@ export default function AccountForm() {
             <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
             </svg>
-            Membership Status
+            Estado de Membresía
           </h2>
 
           {premiumStatus ? (
@@ -300,18 +300,18 @@ export default function AccountForm() {
                 {premiumStatus.active ? (
                   <>
                     <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                    <span className="text-lg font-semibold text-green-700">Premium Account</span>
+                    <span className="text-lg font-semibold text-green-700">Cuenta Premium</span>
                   </>
                 ) : (
                   <>
                     <div className="w-3 h-3 bg-gray-400 rounded-full"></div>
-                    <span className="text-lg font-semibold text-gray-700">Free Plan</span>
+                    <span className="text-lg font-semibold text-gray-700">Plan Gratuito</span>
                   </>
                 )}
               </div>
               {premiumStatus.active && premiumStatus.premiumUntil > 0 && (
                 <div className="text-sm text-gray-600">
-                  Valid until{" "}
+                  Válido hasta{" "}
                   <span className="font-semibold text-gray-900">
                     {new Date(premiumStatus.premiumUntil).toLocaleDateString("en-US", {
                       year: "numeric",
@@ -324,7 +324,7 @@ export default function AccountForm() {
             </div>
           ) : (
             <div className="p-6 bg-gray-50 rounded-lg text-center text-gray-500">
-              Loading status...
+              Cargando estado...
             </div>
           )}
         </div>
@@ -335,7 +335,7 @@ export default function AccountForm() {
             <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
             </svg>
-            Transaction History
+            Historial de Transacciones
           </h2>
 
           {paymentHistory ? (
@@ -344,9 +344,9 @@ export default function AccountForm() {
                 <svg className="w-16 h-16 mx-auto text-gray-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
                 </svg>
-                <p className="text-gray-500 mb-2">No transactions yet</p>
+                <p className="text-gray-500 mb-2">Aún no hay transacciones</p>
                 <a href="/plans" className="text-blue-500 hover:text-blue-600 font-medium text-sm">
-                  Browse premium plans →
+                  Ver planes premium →
                 </a>
               </div>
             ) : (
@@ -362,7 +362,7 @@ export default function AccountForm() {
                         </div>
                         <div>
                           <div className="font-semibold text-gray-900">
-                            Premium Subscription
+                            Suscripción Premium
                           </div>
                           <div className="text-sm text-gray-500">
                             {new Date(payment.paidAt).toLocaleDateString("en-US", {
@@ -374,7 +374,7 @@ export default function AccountForm() {
                             })}
                           </div>
                           <div className="text-xs text-gray-400 mt-0.5">
-                            {payment.durationDays} day{payment.durationDays !== 1 ? 's' : ''} • Expires {new Date(payment.expiresAt).toLocaleDateString()}
+                            {payment.durationDays} día{payment.durationDays !== 1 ? 's' : ''} • Expira {new Date(payment.expiresAt).toLocaleDateString()}
                           </div>
                         </div>
                       </div>
@@ -390,7 +390,7 @@ export default function AccountForm() {
                           <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
                             <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                           </svg>
-                          {payment.status === "paid" ? "Paid" : payment.status}
+                          {payment.status === "paid" ? "Pagado" : payment.status}
                         </div>
                       </div>
                     </div>
@@ -400,7 +400,7 @@ export default function AccountForm() {
             )
           ) : (
             <div className="p-6 bg-gray-50 rounded-lg text-center text-gray-500">
-              Loading transactions...
+              Cargando transacciones...
             </div>
           )}
         </div>

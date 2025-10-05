@@ -31,9 +31,9 @@ export default function ResetPasswordPage() {
       // 2) Proceed with reset request
       await signIn("password", fd);
       setEmail(fd.get("email"));
-      setSuccess("Check your email for the reset code");
+      setSuccess("Revisa tu correo para el código de recuperación");
     } catch (err) {
-      setError("Failed to send reset code. Please check your email and try again.");
+      setError("Error al enviar código de recuperación. Verifica tu correo e intenta de nuevo.");
     } finally {
       setIsLoading(false);
     }
@@ -47,10 +47,10 @@ export default function ResetPasswordPage() {
     try {
       const fd = new FormData(e.currentTarget);
       await signIn("password", fd);
-      setSuccess("Password reset successfully! Redirecting to sign in...");
+      setSuccess("¡Contraseña restablecida exitosamente! Redirigiendo a iniciar sesión...");
       setTimeout(() => router.push("/signin"), 2000);
     } catch (err) {
-      setError("Invalid or expired code. Please try again.");
+      setError("Código inválido o expirado. Por favor intenta de nuevo.");
     } finally {
       setIsLoading(false);
     }
@@ -58,7 +58,7 @@ export default function ResetPasswordPage() {
 
   return (
     <main className="mx-auto max-w-sm p-6 mt-20">
-      <h1 className="text-2xl font-semibold mb-6 text-center">Reset your password</h1>
+      <h1 className="text-2xl font-semibold mb-6 text-center">Restablecer tu contraseña</h1>
 
       {error && (
         <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded mb-4 text-sm">
@@ -77,13 +77,13 @@ export default function ResetPasswordPage() {
         <form onSubmit={handleRequestCode} className="space-y-4">
           <div>
             <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
-              Email address
+              Correo electrónico
             </label>
             <input
               id="email"
               name="email"
               type="email"
-              placeholder="you@example.com"
+              placeholder="tu@ejemplo.com"
               required
               autoComplete="email"
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -105,7 +105,7 @@ export default function ResetPasswordPage() {
             type="submit"
             disabled={isLoading}
           >
-            {isLoading ? "Sending..." : "Send reset code"}
+            {isLoading ? "Enviando..." : "Enviar código de recuperación"}
           </button>
         </form>
       ) : (
@@ -113,13 +113,13 @@ export default function ResetPasswordPage() {
         <form onSubmit={handleResetPassword} className="space-y-4">
           <div>
             <label htmlFor="code" className="block text-sm font-medium text-gray-700 mb-1">
-              Reset code
+              Código de recuperación
             </label>
             <input
               id="code"
               name="code"
               type="text"
-              placeholder="Enter the 8-digit code"
+              placeholder="Ingresa el código de 8 dígitos"
               required
               autoComplete="one-time-code"
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -128,13 +128,13 @@ export default function ResetPasswordPage() {
 
           <div>
             <label htmlFor="newPassword" className="block text-sm font-medium text-gray-700 mb-1">
-              New password
+              Nueva contraseña
             </label>
             <input
               id="newPassword"
               name="newPassword"
               type="password"
-              placeholder="Choose a new password (8+ chars)"
+              placeholder="Elige una nueva contraseña (8+ caracteres)"
               required
               minLength={8}
               autoComplete="new-password"
@@ -150,7 +150,7 @@ export default function ResetPasswordPage() {
             type="submit"
             disabled={isLoading}
           >
-            {isLoading ? "Resetting..." : "Reset password"}
+            {isLoading ? "Restableciendo..." : "Restablecer contraseña"}
           </button>
 
           <button
@@ -162,14 +162,14 @@ export default function ResetPasswordPage() {
             }}
             className="w-full text-sm text-gray-500 hover:text-gray-700"
           >
-            Use a different email
+            Usar otro correo
           </button>
         </form>
       )}
 
       <div className="mt-6 text-center">
         <a className="text-blue-500 hover:text-blue-600 text-sm" href="/signin">
-          Back to sign in
+          Volver a iniciar sesión
         </a>
       </div>
     </main>

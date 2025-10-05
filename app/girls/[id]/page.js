@@ -48,8 +48,8 @@ export default function GirlProfilePage() {
     return (
         <div className="min-h-screen flex items-center justify-center">
           <div className="text-center">
-            <h1 className="text-2xl font-bold text-gray-900 mb-2">Profile Not Found</h1>
-            <p className="text-gray-600">This profile doesn't exist or is not available.</p>
+            <h1 className="text-2xl font-bold text-gray-900 mb-2">Perfil No Encontrado</h1>
+            <p className="text-gray-600">Este perfil no existe o no está disponible.</p>
           </div>
         </div>
     );
@@ -137,7 +137,7 @@ export default function GirlProfilePage() {
           {/* Stories Strip */}
           {stories.length > 0 && (
               <div className="mb-8">
-                <h2 className="text-lg font-semibold text-gray-900 mb-3">Stories</h2>
+                <h2 className="text-lg font-semibold text-gray-900 mb-3">Historias</h2>
                 <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
                   {stories.map((story) => (
                       <StoryChip
@@ -163,7 +163,7 @@ export default function GirlProfilePage() {
                             : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
                     }`}
                 >
-                  Gallery ({gallery.length})
+                  Galería ({gallery.length})
                 </button>
                 <button
                     onClick={() => setActiveTab("posts")}
@@ -173,7 +173,7 @@ export default function GirlProfilePage() {
                             : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
                     }`}
                 >
-                  Posts ({posts.length})
+                  Publicaciones ({posts.length})
                 </button>
               </nav>
             </div>
@@ -184,7 +184,7 @@ export default function GirlProfilePage() {
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {gallery.length === 0 ? (
                     <div className="col-span-full text-center py-12">
-                      <p className="text-gray-500">No gallery items yet.</p>
+                      <p className="text-gray-500">Aún no hay elementos en la galería.</p>
                     </div>
                 ) : (
                     gallery.map((item) => {
@@ -212,7 +212,7 @@ export default function GirlProfilePage() {
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {posts.length === 0 ? (
                     <div className="col-span-full text-center py-12">
-                      <p className="text-gray-500">No posts yet.</p>
+                      <p className="text-gray-500">Aún no hay publicaciones.</p>
                     </div>
                 ) : (
                     posts.map((item) => {

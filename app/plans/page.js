@@ -19,8 +19,8 @@ export default function PlansPage() {
 
   // Only display these three when not logged in
   const PUBLIC_DISPLAY = [
-    { currency: "MXN", country: "Mexico" },
-    { currency: "EUR", country: "Spain" },
+    { currency: "MXN", country: "México" },
+    { currency: "EUR", country: "España" },
     { currency: "ARS", country: "Argentina" },
   ];
   const PUBLIC_CODES = new Set(PUBLIC_DISPLAY.map(p => p.currency));
@@ -33,7 +33,7 @@ export default function PlansPage() {
   useEffect(() => {
     listPlans()
         .then(setPlans)
-        .catch(() => setError("Failed to load plans. Please try again later."))
+        .catch(() => setError("Error al cargar planes. Por favor intenta más tarde."))
         .finally(() => setLoading(false));
   }, [listPlans]);
 
@@ -42,7 +42,7 @@ export default function PlansPage() {
       const { url } = await start({ productId });
       window.location.href = url;
     } catch {
-      alert("Failed to start checkout. Please try again.");
+      alert("Error al iniciar pago. Por favor intenta de nuevo.");
     }
   }
 
@@ -54,7 +54,7 @@ export default function PlansPage() {
   if (loading) {
     return (
         <main className="mx-auto max-w-screen-md p-6">
-          <div className="text-center">Loading plans...</div>
+          <div className="text-center">Cargando planes...</div>
         </main>
     );
   }
@@ -67,19 +67,19 @@ export default function PlansPage() {
   }
 
   const explain = (isLoggedIn && hasCountry && selectedCurrency && PUBLIC_CODES.has(selectedCurrency))
-    ? `Prices shown for ${COUNTRY_BY_CURRENCY[selectedCurrency]}.`
-    : `Not signed in — showing prices for Mexico, Spain and Argentina.`;
+    ? `Precios mostrados para ${COUNTRY_BY_CURRENCY[selectedCurrency]}.`
+    : `No has iniciado sesión — mostrando precios para México, España y Argentina.`;
 
   return (
       <main className="mx-auto max-w-screen-md p-6 space-y-6">
         <div className="text-center">
-          <h1 className="text-3xl font-bold mb-2">Premium Plans</h1>
+          <h1 className="text-3xl font-bold mb-2">Planes Premium</h1>
           <p className="text-gray-600 mb-6">{explain}</p>
         </div>
 
         {plans.length === 0 ? (
             <div className="text-center text-gray-600">
-              No plans available at the moment. Please check back later.
+              No hay planes disponibles en este momento. Por favor vuelve más tarde.
             </div>
         ) : (
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
@@ -126,7 +126,7 @@ export default function PlansPage() {
                                 {formatMoney(selectedCurrency, priceMap[selectedCurrency])}
                               </div>
                               <div className="text-sm text-gray-500">
-                                {plan.durationDays} day{plan.durationDays !== 1 ? "s" : ""} access
+                                {plan.durationDays} día{plan.durationDays !== 1 ? "s" : ""} de acceso
                               </div>
                             </div>
                         ) : (
@@ -142,14 +142,14 @@ export default function PlansPage() {
                                 ))}
                               </div>
                               <div className="text-xs text-gray-500 mt-2">
-                                {plan.durationDays} day{plan.durationDays !== 1 ? "s" : ""} access
+                                {plan.durationDays} día{plan.durationDays !== 1 ? "s" : ""} de acceso
                               </div>
                             </div>
                         )}
 
                         {plan.features?.length > 0 && (
                             <div>
-                              <h3 className="font-medium text-sm mb-2">Features included:</h3>
+                              <h3 className="font-medium text-sm mb-2">Características incluidas:</h3>
                               <ul className="text-sm text-gray-600 space-y-1">
                                 {plan.features.map((feature, i) => (
                                     <li key={i} className="flex items-start">
@@ -176,7 +176,7 @@ export default function PlansPage() {
                               }
                             }}
                         >
-                          {(isLoggedIn && hasCountry) ? "Buy Now" : "Check Price"}
+                          {(isLoggedIn && hasCountry) ? "Comprar Ahora" : "Ver Precio"}
                         </button>
                       </div>
                     </div>
@@ -187,7 +187,7 @@ export default function PlansPage() {
 
         <div className="text-center mt-8">
           <a href="/account" className="text-blue-600 hover:text-blue-800 underline">
-            ← Back to Account
+            ← Volver a Cuenta
           </a>
         </div>
       </main>

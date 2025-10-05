@@ -67,8 +67,8 @@ export default function GirlsListingPage() {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <h1 className="text-3xl font-bold text-gray-900 mb-4">No AI Companions Yet</h1>
-          <p className="text-gray-600">Check back soon for new companions!</p>
+          <h1 className="text-3xl font-bold text-gray-900 mb-4">Aún No Hay Compañeras de IA</h1>
+          <p className="text-gray-600">¡Vuelve pronto para nuevas compañeras!</p>
         </div>
       </div>
     );
@@ -80,7 +80,7 @@ export default function GirlsListingPage() {
         {/* Hero Section */}
         <div className="text-center mb-12">
           <h5 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
-            AI Companions
+            Compañeras de IA
           </h5>
         </div>
 
@@ -151,7 +151,7 @@ function GirlCard({ girl, avatarUrl }) {
             href={`/girls/${girl._id}`}
             className="flex-1 px-4 py-2 bg-white/20 backdrop-blur-sm text-white font-semibold text-center rounded-lg hover:bg-white/30 transition-all shadow-md hover:shadow-lg border border-white/30"
           >
-            View Profile
+            Ver Perfil
           </Link>
         </div>
       </div>

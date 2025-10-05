@@ -12,17 +12,14 @@ export default function Home() {
         <div className="container mx-auto px-4">
           {/* Social Proof Badges */}
           <div className="flex flex-wrap justify-center gap-4 mb-6">
-            <div className="flex items-center gap-2 px-4 py-2 bg-gradient-to-br from-indigo-600 via-amber-500 to-cyan-400 rounded-full shadow-md">
+            <div className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-400 rounded-full shadow-md">
               <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
               </svg>
-              <span className="text-sm font-semibold text-white">5M+ Active Members</span>
+              <span className="text-sm font-semibold text-white">5M+ Miembros Activos</span>
             </div>
-            <div className="flex items-center gap-2 px-4 py-2 bg-gradient-to-br from-indigo-600 via-amber-500 to-cyan-400 rounded-full shadow-md">
-              <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
-              </svg>
-              <span className="text-sm font-semibold text-white">#1 New Chat App in Latin America</span>
+            <div className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-400 rounded-full shadow-md">
+              <span className="text-sm font-semibold text-white">#1 Nueva App de Chat en Latinoamérica</span>
             </div>
           </div>
 
@@ -31,27 +28,27 @@ export default function Home() {
             {/* Left Column - Text Content */}
             <div className="order-2 md:order-1">
               <h1 className="text-4xl md:text-6xl font-bold text-gray-900 mb-6 leading-tight">
-                Your Perfect AI Companion
+                Tu Compañera de IA Perfecta
                 <span className="block text-gray-900">
-                  Awaits
+                  Te Espera
                 </span>
               </h1>
               <p className="text-lg md:text-xl text-gray-700 mb-8 leading-relaxed">
-                Experience intimate, personalized conversations with stunning AI companions.
-                Available 24/7, completely private, and always ready to chat.
+                Experimenta conversaciones íntimas y personalizadas con impresionantes compañeras de IA.
+                Disponibles 24/7, completamente privadas y siempre listas para chatear.
               </p>
               <div className="flex flex-col sm:flex-row gap-4">
                 <Link
                   href="/signin"
                   className="px-8 py-4 bg-blue-500 text-white text-lg font-bold rounded-full hover:bg-blue-600 transition-all duration-300 transform hover:scale-105 shadow-lg text-center"
                 >
-                  Get Started Free
+                  Comenzar Gratis
                 </Link>
                 <Link
                   href="/girls"
                   className="px-8 py-4 bg-white border-2 border-gray-300 text-gray-900 text-lg font-bold rounded-full hover:bg-gray-50 transition-all duration-300 text-center"
                 >
-                  Meet Our Girls
+                  Conoce Nuestras Chicas
                 </Link>
               </div>
             </div>
@@ -63,7 +60,7 @@ export default function Home() {
                   <div className="relative h-[500px] md:h-[600px]">
                     <Image
                       src="/second.jpg"
-                      alt="Sofia - AI Companion"
+                      alt="Sofia - Compañera de IA"
                       fill
                       className="object-cover"
                       priority
@@ -79,13 +76,13 @@ export default function Home() {
                         stories={[
                           {
                             url: "/first.jpg",
-                            text: "Sofia says hi 👋",
+                            text: "Sofia te saluda 👋",
                             createdAt: Date.now() - 3 * 24 * 60 * 60 * 1000,
                             user: { name: "Sofia", avatarUrl: "/first.jpg" },
                           },
                           {
                             url: "/third.png",
-                            text: "Behind the scenes 📸",
+                            text: "Detrás de cámaras 📸",
                             createdAt: Date.now() - 2 * 24 * 60 * 60 * 1000,
                             user: { name: "Sofia", avatarUrl: "/first.jpg" },
                           },
@@ -93,7 +90,7 @@ export default function Home() {
                       />
 
                       <h3 className="text-3xl font-bold text-white mb-2">Sofia</h3>
-                      <p className="text-white/90 text-lg mb-4">24 years old</p>
+                      <p className="text-white/90 text-lg mb-4">24 años</p>
 
                       {/* CTA Buttons */}
                       <div className="flex items-center justify-center gap-3">
@@ -101,13 +98,13 @@ export default function Home() {
                           href="/girls/k97f3bpzd0tzap6jf36wr46psd7rdef3"
                           className="px-6 py-3 bg-blue-500 text-white font-bold rounded-full hover:bg-blue-600 transition-all duration-300 transform hover:scale-105 shadow-lg"
                         >
-                          Chat
+                          Chatear
                         </Link>
                         <Link
                           href="/girls"
                           className="px-6 py-3 bg-white text-gray-900 font-bold rounded-full hover:bg-gray-100 transition-all duration-300 transform hover:scale-105 shadow-lg"
                         >
-                          Browse All Girls
+                          Ver Más Chicas
                         </Link>
                       </div>
                     </div>
@@ -243,7 +240,7 @@ export default function Home() {
       {/* Footer */}
       <footer className="border-t border-gray-200 py-8">
         <div className="container mx-auto px-4 text-center text-gray-600">
-          <p>&copy; 2024 NoviaChat. All rights reserved.</p>
+          <p>&copy; 2025 NoviaChat. All rights reserved.</p>
         </div>
       </footer>
     </div>

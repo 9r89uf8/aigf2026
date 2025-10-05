@@ -15,7 +15,7 @@ export default function StartChatButton({ girlId }) {
         router.push(`/chat/${conversationId}`);
       }}
     >
-      Message
+        Mensaje
     </button>
   );
 }

@@ -145,7 +145,7 @@ export default function ChatHomePage() {
         {/* Sticky header with title + search only */}
         <header className="sticky top-0 z-20 backdrop-blur border-b">
           <div className="max-w-screen-sm mx-auto px-4 py-3 flex items-center justify-center">
-            <h1 className="text-lg font-semibold">Messages</h1>
+            <h1 className="text-lg font-semibold">Mensajes</h1>
           </div>
         </header>
 
@@ -182,13 +182,13 @@ export default function ChatHomePage() {
           {/* Threads */}
           {threads.length === 0 ? (
               <div className="text-center py-16 text-gray-500">
-                <p className="text-sm">No conversations yet</p>
-                <p className="text-xs mt-1">Start chatting with your favorite AI companions</p>
+                <p className="text-sm">Aún no hay conversaciones</p>
+                <p className="text-xs mt-1">Comienza a chatear con tus compañeras de IA favoritas</p>
                 <Link
                     href="/girls"
                     className="inline-flex items-center gap-2 mt-4 px-4 py-2 rounded-full bg-black text-white text-sm"
                 >
-                  Find companions
+                  Buscar compañeras
                   <svg viewBox="0 0 24 24" className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="1.8">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
                   </svg>

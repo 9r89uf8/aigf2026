@@ -14,11 +14,11 @@ function formatTimeAgo(timestamp) {
   const hours = Math.floor(minutes / 60);
   const days = Math.floor(hours / 24);
   const weeks = Math.floor(days / 7);
-  if (seconds < 60) return "Just now";
-  if (minutes < 60) return `${minutes}m ago`;
-  if (hours < 24) return `${hours}h ago`;
-  if (days < 7) return `${days}d ago`;
-  if (weeks < 4) return `${weeks}w ago`;
+  if (seconds < 60) return "Justo ahora";
+  if (minutes < 60) return `Hace ${minutes}m`;
+  if (hours < 24) return `Hace ${hours}h`;
+  if (days < 7) return `Hace ${days}d`;
+  if (weeks < 4) return `Hace ${weeks}sem`;
   const date = new Date(Number(timestamp));
   return date.toLocaleDateString();
 }
@@ -235,7 +235,7 @@ export default function StoryViewer({
                   <div className="h-8 w-8 rounded-full bg-white/20" />
               )}
               <div className="leading-tight">
-                <div className="text-sm font-semibold">{userName || "Story"}</div>
+                <div className="text-sm font-semibold">{userName || "Historia"}</div>
                 {timeAgo && <div className="text-xs text-white/70">{timeAgo}</div>}
               </div>
             </div>
@@ -246,12 +246,12 @@ export default function StoryViewer({
                       onClick={(e) => { e.stopPropagation(); setMuted((m) => !m); }}
                       className="px-2 py-1 rounded bg-white/10 hover:bg-white/20 text-xs"
                   >
-                    {muted ? "Sound Off" : "Sound On"}
+                    {muted ? "Sin Sonido" : "Con Sonido"}
                   </button>
               )}
               <button
                   onClick={(e) => { e.stopPropagation(); onClose?.(); }}
-                  aria-label="Close"
+                  aria-label="Cerrar"
                   className="p-1 rounded hover:bg-white/10"
               >
                 <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -267,7 +267,7 @@ export default function StoryViewer({
             <button
                 onClick={(e) => { e.stopPropagation(); onPrev?.(); }}
                 className="absolute left-3 top-1/2 -translate-y-1/2 z-20 p-2 rounded-full bg-black/30 hover:bg-black/40 text-white"
-                aria-label="Previous"
+                aria-label="Anterior"
             >
               <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -278,7 +278,7 @@ export default function StoryViewer({
             <button
                 onClick={(e) => { e.stopPropagation(); onNext?.(); }}
                 className="absolute right-3 top-1/2 -translate-y-1/2 z-20 p-2 rounded-full bg-black/30 hover:bg-black/40 text-white"
-                aria-label="Next"
+                aria-label="Siguiente"
             >
               <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -306,13 +306,13 @@ export default function StoryViewer({
                 className="absolute inset-y-0 left-0 w-1/3 z-10 cursor-pointer"
                 onPointerDown={(e) => e.stopPropagation()}
                 onClick={(e) => { e.stopPropagation(); onPrev?.(); }}
-                aria-label="Tap left to go back"
+                aria-label="Toca a la izquierda para retroceder"
             />
             <button
                 className="absolute inset-y-0 right-0 w-1/3 z-10 cursor-pointer"
                 onPointerDown={(e) => e.stopPropagation()}
                 onClick={(e) => { e.stopPropagation(); onNext?.(); }}
-                aria-label="Tap right to go next"
+                aria-label="Toca a la derecha para avanzar"
             />
             {/* Middle zone: hold to pause */}
             <div
@@ -346,7 +346,7 @@ export default function StoryViewer({
                   ) : (
                       <img
                           src={signedUrl}
-                          alt="Story"
+                          alt="Historia"
                           className="w-full h-full object-contain bg-black select-none"
                           draggable={false}
                       />

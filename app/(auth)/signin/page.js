@@ -69,8 +69,8 @@ export default function SignInPage() {
     } catch (err) {
       const generic =
           flow === "signIn"
-              ? "Sign in failed. Check your email/password and try again."
-              : "Could not create account. Try a different email or try again.";
+              ? "Error al iniciar sesión. Verifica tu correo/contraseña e intenta de nuevo."
+              : "No se pudo crear la cuenta. Prueba con otro correo o intenta de nuevo.";
       setError(generic);
     } finally {
       setIsLoading(false);
@@ -93,7 +93,7 @@ export default function SignInPage() {
               : "text-gray-600 hover:text-gray-900"
           }`}
         >
-          Create Account
+          Crear Cuenta
         </button>
         <button
           type="button"
@@ -107,12 +107,12 @@ export default function SignInPage() {
               : "text-gray-600 hover:text-gray-900"
           }`}
         >
-          Sign In
+          Iniciar Sesión
         </button>
       </div>
 
       <h1 className="text-2xl font-semibold mb-6 text-center">
-        {flow === "signIn" ? "Welcome back" : "Join AI Girls"}
+        {flow === "signIn" ? "Bienvenido de nuevo" : "Crear una cuenta"}
       </h1>
 
       {error && (
@@ -124,13 +124,13 @@ export default function SignInPage() {
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
           <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
-            Email
+            Correo Electrónico
           </label>
           <input
             id="email"
             name="email"
             type="email"
-            placeholder="you@example.com"
+            placeholder="tu@ejemplo.com"
             required
             autoComplete="email"
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -139,13 +139,13 @@ export default function SignInPage() {
 
         <div>
           <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
-            Password
+            Contraseña
           </label>
           <input
             id="password"
             name="password"
             type="password"
-            placeholder={flow === "signIn" ? "Enter your password" : "Choose a password (8+ chars)"}
+            placeholder={flow === "signIn" ? "Ingresa tu contraseña" : "Elige una contraseña (8+ caracteres)"}
             required
             minLength={8}
             autoComplete={flow === "signIn" ? "current-password" : "new-password"}
@@ -173,14 +173,14 @@ export default function SignInPage() {
           disabled={isLoading}
           className="w-full px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {isLoading ? "Loading..." : (flow === "signIn" ? "Sign in" : "Create account")}
+          {isLoading ? "Cargando..." : (flow === "signIn" ? "Iniciar sesión" : "Crear cuenta")}
         </button>
       </form>
 
       {flow === "signIn" && (
         <div className="mt-6 text-center">
           <a className="text-blue-500 hover:text-blue-600 text-sm" href="/reset-password">
-            Forgot your password?
+            ¿Olvidaste tu contraseña?
           </a>
         </div>
       )}

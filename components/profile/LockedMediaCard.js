@@ -31,11 +31,11 @@ export default function LockedMediaCard({ media }) {
             href="/plans"
             className="px-6 py-2.5 bg-white text-indigo-700 font-semibold rounded-full hover:bg-gray-50 transition-all shadow-lg hover:shadow-xl hover:scale-105"
           >
-            Check prices
+            Ver precios
           </Link>
 
           <p className="mt-3 text-white text-sm font-semibold drop-shadow-lg">
-            Unlock exclusive content
+            Desbloquea contenido exclusivo
           </p>
         </div>
       </div>
