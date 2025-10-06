@@ -26,22 +26,32 @@ const schema = defineSchema({
   girls: defineTable({
     name: v.string(),
     nameLower: v.string(),
-    bio: v.optional(v.string()),
-    avatarKey: v.optional(v.string()),       // profile image
-    backgroundKey: v.optional(v.string()),   // background image
-    voiceId: v.optional(v.string()),         // ElevenLabs id
+
+    // NEW
+    displayBio: v.optional(v.string()),   // public-facing bio (shown on profile)
+    bio: v.optional(v.string()),          // internal-only notes (admin)
+    premiumOnly: v.boolean(),             // if true => only premium users can chat
+    age: v.optional(v.number()),
+    priority: v.number(),                 // sorting in public list (higher first)
+    username: v.optional(v.string()),     // handle/slug
+    usernameLower: v.optional(v.string()),
+
+    avatarKey: v.optional(v.string()),
+    backgroundKey: v.optional(v.string()),
+    voiceId: v.optional(v.string()),
     personaPrompt: v.optional(v.string()),
-    createdBy: v.string(),                   // admin userId
+    createdBy: v.string(),
     createdAt: v.number(),
     updatedAt: v.number(),
     isActive: v.boolean(),
-    counts: v.object({
-      gallery: v.number(), posts: v.number(), assets: v.number()
-    }),
+    counts: v.object({ gallery: v.number(), posts: v.number(), assets: v.number() }),
   })
-    .index("by_nameLower", ["nameLower"])
-    .index("by_active", ["isActive"])
-    .index("by_createdAt", ["createdAt"]),
+      .index("by_nameLower", ["nameLower"])
+      .index("by_active", ["isActive"])
+      .index("by_createdAt", ["createdAt"])
+      // NEW
+      .index("by_usernameLower", ["usernameLower"])
+      .index("by_priority", ["priority"]),
 
   girl_media: defineTable({
     girlId: v.id("girls"),

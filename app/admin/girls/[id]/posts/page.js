@@ -10,7 +10,7 @@ import Link from "next/link";
 export default function PostsManagerPage() {
   const { id } = useParams();
   const girl = useQuery(api.girls.getGirl, { girlId: id });
-  const media = useQuery(api.girls.listGirlMedia, { girlId: id, surface: "posts" });
+  const media = useQuery(api.girls.listGirlPosts, { girlId: id });
   const updateMedia = useMutation(api.girls.updateGirlMedia);
   const cfSignView = useAction(api.cdn.cfSignView);
 

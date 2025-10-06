@@ -10,7 +10,7 @@ import Link from "next/link";
 export default function AssetsManagerPage() {
   const { id } = useParams();
   const girl = useQuery(api.girls.getGirl, { girlId: id });
-  const media = useQuery(api.girls.listGirlMedia, { girlId: id, surface: "assets" });
+  const media = useQuery(api.girls.listGirlAssets, { girlId: id });
   const updateMedia = useMutation(api.girls.updateGirlMedia);
   const cfSignView = useAction(api.cdn.cfSignView);
 

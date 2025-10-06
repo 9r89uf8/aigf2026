@@ -44,24 +44,25 @@ export const listGirls = query({
   },
 });
 
+// CHANGE: listGirlsPublic now uses displayBio and priority ordering
 export const listGirlsPublic = query({
   args: {},
   handler: async (ctx) => {
-    // Public query - no auth required
-    // Returns only active girls with basic info for the listing page
     const girls = await ctx.db
-      .query("girls")
-      .withIndex("by_active", (q) => q.eq("isActive", true))
-      .collect();
+        .query("girls")
+        .withIndex("by_active", (q) => q.eq("isActive", true))
+        .collect();
 
-    // Recent published stories across all girls (descending)
+    // Sort: higher priority first, then name
+    girls.sort((a, b) => (b.priority ?? 0) - (a.priority ?? 0) || a.name.localeCompare(b.name));
+
+    // Recent published stories across all girls (desc)
     const recentStories = await ctx.db
-      .query("girl_stories")
-      .withIndex("by_published_createdAt", (q) => q.eq("published", true))
-      .order("desc")
-      .take(400);
+        .query("girl_stories")
+        .withIndex("by_published_createdAt", (q) => q.eq("published", true))
+        .order("desc")
+        .take(400);
 
-    // Pick newest story per girl
     const latestByGirl = new Map();
     for (const s of recentStories) {
       const gid = s.girlId.toString();
@@ -69,24 +70,26 @@ export const listGirlsPublic = query({
       if (latestByGirl.size === girls.length) break;
     }
 
-    // Sort alphabetically by name for better discovery
-    const sorted = girls.sort((a, b) => a.name.localeCompare(b.name));
-
-    // Return only the fields needed for the listing page (+ hasStory & latestStoryKind for ring)
-    return sorted.map((g) => {
+    return girls.map((g) => {
       const s = latestByGirl.get(g._id.toString());
       return {
         _id: g._id,
         name: g.name,
-        bio: g.bio,
+        // show public-facing bio here
+        bio: g.displayBio ?? "",
         avatarKey: g.avatarKey,
         counts: g.counts,
         hasStory: !!s,
         latestStoryKind: s?.kind ?? null,
+        // optional extras if you want in UI:
+        username: g.username ?? null,
+        premiumOnly: g.premiumOnly,
+        priority: g.priority,
       };
     });
   },
 });
+
 
 export const getGirl = query({
   args: { girlId: v.id("girls") },
@@ -103,15 +106,65 @@ export const getGirlPublic = query({
   },
 });
 
+// convex/girls.js (top helpers)
+function validateUsername(u) {
+  if (!u) return;
+  const trimmed = u.trim();
+  if (trimmed.length < 3 || trimmed.length > 32) {
+    throw new Error("Username must be 3-32 characters.");
+  }
+  if (!/^[a-zA-Z0-9_]+$/.test(trimmed)) {
+    throw new Error("Username can contain only letters, numbers, and underscores.");
+  }
+}
+
+
+// REPLACE your existing createGirl with this one:
 export const createGirl = mutation({
-  args: { name: v.string(), bio: v.optional(v.string()), voiceId: v.optional(v.string()), personaPrompt: v.optional(v.string()) },
-  handler: async (ctx, { name, bio, voiceId, personaPrompt }) => {
+  args: {
+    name: v.string(),
+    // NEW
+    displayBio: v.optional(v.string()),
+    bio: v.optional(v.string()),
+    voiceId: v.optional(v.string()),
+    personaPrompt: v.optional(v.string()),
+    premiumOnly: v.optional(v.boolean()),
+    age: v.optional(v.number()),
+    priority: v.optional(v.number()),
+    username: v.optional(v.string()),
+  },
+  handler: async (ctx, {
+    name, displayBio, bio, voiceId, personaPrompt,
+    premiumOnly, age, priority, username,
+  }) => {
     const { userId } = await assertAdmin(ctx);
     const ts = now();
+
+    // Username uniqueness (if provided)
+    let usernameLower;
+    if (username) {
+      validateUsername(username);
+      usernameLower = username.trim().toLowerCase();
+      const existing = await ctx.db
+          .query("girls")
+          .withIndex("by_usernameLower", q => q.eq("usernameLower", usernameLower))
+          .first();
+      if (existing) throw new Error("Username is already taken.");
+    }
+
     const girlId = await ctx.db.insert("girls", {
       name,
       nameLower: toLowerSafe(name),
-      bio,
+
+      // NEW fields
+      displayBio: displayBio ?? undefined,
+      bio: bio ?? undefined,
+      premiumOnly: premiumOnly ?? false,
+      age: age ?? undefined,
+      priority: priority ?? 0,
+      username: username ?? undefined,
+      usernameLower: usernameLower ?? undefined,
+
       voiceId,
       personaPrompt,
       avatarKey: undefined,
@@ -122,9 +175,88 @@ export const createGirl = mutation({
       isActive: true,
       counts: { gallery: 0, posts: 0, assets: 0 },
     });
+
     return girlId;
   },
 });
+
+// NEW: Admin can edit any main field of the girl
+export const updateGirlAdmin = mutation({
+  args: {
+    girlId: v.id("girls"),
+    name: v.optional(v.string()),
+    displayBio: v.optional(v.string()),
+    bio: v.optional(v.string()),
+    voiceId: v.optional(v.string()),
+    personaPrompt: v.optional(v.string()),
+    premiumOnly: v.optional(v.boolean()),
+    age: v.optional(v.number()),
+    priority: v.optional(v.number()),
+    username: v.optional(v.string()), // can set or clear
+    isActive: v.optional(v.boolean()),
+  },
+  handler: async (ctx, args) => {
+    await assertAdmin(ctx);
+    const girl = await ctx.db.get(args.girlId);
+    if (!girl) throw new Error("Girl not found");
+
+    const updates = { updatedAt: now() };
+
+    if (args.name !== undefined) {
+      updates.name = args.name;
+      updates.nameLower = toLowerSafe(args.name);
+    }
+    if (args.displayBio !== undefined) updates.displayBio = args.displayBio;
+    if (args.bio !== undefined) updates.bio = args.bio;
+    if (args.voiceId !== undefined) updates.voiceId = args.voiceId;
+    if (args.personaPrompt !== undefined) updates.personaPrompt = args.personaPrompt;
+    if (args.premiumOnly !== undefined) updates.premiumOnly = args.premiumOnly;
+    if (args.age !== undefined) updates.age = args.age;
+    if (args.priority !== undefined) updates.priority = args.priority;
+    if (args.isActive !== undefined) updates.isActive = args.isActive;
+
+    // Username set/clear with uniqueness check
+    if (args.username !== undefined) {
+      const u = args.username?.trim();
+      if (u) {
+        validateUsername(u);
+        const nextLower = u.toLowerCase();
+        if (nextLower !== girl.usernameLower) {
+          const exists = await ctx.db
+              .query("girls")
+              .withIndex("by_usernameLower", q => q.eq("usernameLower", nextLower))
+              .first();
+          if (exists) throw new Error("Username is already taken.");
+        }
+        updates.username = u;
+        updates.usernameLower = nextLower;
+      } else {
+        updates.username = undefined;
+        updates.usernameLower = undefined;
+      }
+    }
+
+    await ctx.db.patch(args.girlId, updates);
+
+    // Keep conversation denorm in sync when relevant fields change
+    if (args.name !== undefined || args.voiceId !== undefined || args.personaPrompt !== undefined) {
+      const convos = await ctx.db
+          .query("conversations")
+          .filter(q => q.eq(q.field("girlId"), args.girlId))
+          .collect();
+      for (const c of convos) {
+        const cUpdates = { updatedAt: now() };
+        if (args.name !== undefined) cUpdates.girlName = args.name;
+        if (args.voiceId !== undefined) cUpdates.voiceId = args.voiceId;
+        if (args.personaPrompt !== undefined) cUpdates.personaPrompt = args.personaPrompt;
+        await ctx.db.patch(c._id, cUpdates);
+      }
+    }
+
+    return true;
+  },
+});
+
 
 export const updateGirlBasicInfo = mutation({
   args: {
@@ -298,6 +430,47 @@ export const updateGirlMedia = mutation({
   },
 });
 
+
+// NEW
+export const listGirlGallery = query({
+  args: { girlId: v.id("girls") },
+  handler: async (ctx, { girlId }) => {
+    await assertAdmin(ctx);
+    return await ctx.db
+        .query("girl_media")
+        .withIndex("by_girl_gallery", (q) => q.eq("girlId", girlId).eq("isGallery", true))
+        .order("desc")
+        .collect();
+  },
+});
+
+// NEW
+export const listGirlPosts = query({
+  args: { girlId: v.id("girls") },
+  handler: async (ctx, { girlId }) => {
+    await assertAdmin(ctx);
+    return await ctx.db
+        .query("girl_media")
+        .withIndex("by_girl_posts", (q) => q.eq("girlId", girlId).eq("isPost", true))
+        .order("desc")
+        .collect();
+  },
+});
+
+// NEW
+export const listGirlAssets = query({
+  args: { girlId: v.id("girls") },
+  handler: async (ctx, { girlId }) => {
+    await assertAdmin(ctx);
+    return await ctx.db
+        .query("girl_media")
+        .withIndex("by_girl_assets", (q) => q.eq("girlId", girlId).eq("isReplyAsset", true))
+        .order("desc")
+        .collect();
+  },
+});
+
+
 export const listGirlMedia = query({
   args: { girlId: v.id("girls"), surface: v.union(v.literal("gallery"), v.literal("posts"), v.literal("assets")) },
   handler: async (ctx, { girlId, surface }) => {
@@ -438,9 +611,13 @@ export const profilePage = query({
       girl: {
         id: girl._id,
         name: girl.name,
-        bio: girl.bio,
+        // USE displayBio for public profile:
+        bio: girl.displayBio ?? "",
         avatarKey: girl.avatarKey,
         backgroundKey: girl.backgroundKey,
+        username: girl.username ?? null,
+        premiumOnly: girl.premiumOnly,
+        age: girl.age ?? null,
       },
       viewer: {
         premiumActive: viewerPremium,

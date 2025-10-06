@@ -1,6 +1,6 @@
 "use client";
 // app/stories/[girlId]/page.js
-import { useQuery, useAction, useMutation } from "convex/react";
+import { useQuery, useAction, useMutation, useConvexAuth } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useState, useEffect } from "react"; // ⬅️ removed useMemo import
@@ -13,6 +13,7 @@ export default function StoryViewerPage() {
   const returnToParam = searchParams.get("returnTo");
   const returnTo = returnToParam && returnToParam.startsWith("/") ? returnToParam : "/chat";
 
+  const { isAuthenticated } = useConvexAuth();
   const profileData = useQuery(api.girls.profilePage, { girlId });
   const signViewBatch = useAction(api.cdn.signViewBatch);
   const ensureConvo = useMutation(api.chat_home.ensureConversationAndMarkStoriesSeen);
@@ -36,10 +37,10 @@ export default function StoryViewerPage() {
     fetchSignedUrls();
   }, [profileData?.keysToSign, signViewBatch]);
 
-  // Mark stories as seen when viewer opens
+  // Mark stories as seen when viewer opens (only for authenticated users)
   useEffect(() => {
     async function markSeen() {
-      if (!girlId || hasMarkedSeen) return;
+      if (!girlId || hasMarkedSeen || !isAuthenticated) return;
       try {
         await ensureConvo({ girlId, at: Date.now() });
         setHasMarkedSeen(true);
@@ -48,7 +49,7 @@ export default function StoryViewerPage() {
       }
     }
     markSeen();
-  }, [girlId, ensureConvo, hasMarkedSeen]);
+  }, [girlId, ensureConvo, hasMarkedSeen, isAuthenticated]);
 
   // Loading state
   if (profileData === undefined) {

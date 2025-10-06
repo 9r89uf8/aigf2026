@@ -10,7 +10,7 @@ import Link from "next/link";
 export default function GalleryManagerPage() {
   const { id } = useParams();
   const girl = useQuery(api.girls.getGirl, { girlId: id });
-  const media = useQuery(api.girls.listGirlMedia, { girlId: id, surface: "gallery" });
+  const media = useQuery(api.girls.listGirlGallery, { girlId: id });
   const updateMedia = useMutation(api.girls.updateGirlMedia);
   const cfSignView = useAction(api.cdn.cfSignView);
 
