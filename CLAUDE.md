@@ -13,24 +13,6 @@ This is a Next.js application for an AI girlfriend chat platform with:
 - Admin panel for managing AI girlfriend profiles and content
 - Built on Convex backend with real-time features
 
-## Documentation References
-
-### Authentication & User Management
-**[auth.md](auth.md)** - Use when working with authentication, user sessions, or role-based access control
-
-**[account_auth_implementation.md](account_auth_implementation.md)** - Use when adding features to user profiles or account management
-
-### Media & File Handling
-**[s3-cloudfront-implementation.md](s3-cloudfront-implementation.md)** - Use when implementing file uploads, image viewing, or any S3/CloudFront operations
-
-### Admin Features
-**[admin-implementation.md](admin-implementation.md)** - Use when working on admin panel features, managing girls/profiles, or media content management
-
-### Payments
-**[PAYMENTS_SYSTEM.md](PAYMENTS_SYSTEM.md)** - Complete payment system documentation: architecture, API reference, developer guide, and troubleshooting
-
-### Project Structure
-**[PROJECT_STRUCTURE.md](PROJECT_STRUCTURE.md)
 
 ## Environment Variables
 

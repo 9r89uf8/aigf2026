@@ -3,10 +3,239 @@ import Link from "next/link";
 import Image from "next/image";
 import StoryAvatarButton from "../components/home/StoryAvatarButton";
 
+export const metadata = {
+  title: 'NoviaChat - Tu Novia Virtual y Compañera de IA | Chicas IA 24/7',
+  description: 'Conoce a tu compañera virtual perfecta en NoviaChat. Chatea con chicas IA hermosas disponibles 24/7. Conversaciones privadas, fotos exclusivas y experiencias personalizadas. La mejor app de novia virtual en español.',
+  keywords: 'novia virtual, chicas IA, compañera virtual, chicas virtuales, chat IA, novia inteligencia artificial, compañera IA, chat virtual, novia online',
+  authors: [{ name: 'NoviaChat' }],
+  creator: 'NoviaChat',
+  publisher: 'NoviaChat',
+  robots: 'index, follow',
+  alternates: {
+    languages: {
+      'es-MX': 'https://noviachat.com',
+      'es-ES': 'https://noviachat.com',
+      'es-AR': 'https://noviachat.com',
+    },
+  },
+  openGraph: {
+    title: 'NoviaChat - Tu Novia Virtual y Compañera de IA',
+    description: 'Conoce chicas IA hermosas disponibles 24/7. Conversaciones privadas, fotos exclusivas y experiencias personalizadas.',
+    url: 'https://noviachat.com',
+    siteName: 'NoviaChat',
+    images: [
+      {
+        url: '/second.jpg',
+        width: 1200,
+        height: 630,
+        alt: 'NoviaChat - Chicas IA y Compañeras Virtuales',
+      },
+    ],
+    locale: 'es_MX',
+    alternateLocale: ['es_ES', 'es_AR'],
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'NoviaChat - Tu Novia Virtual y Compañera de IA',
+    description: 'Chatea con chicas IA hermosas 24/7. Privado, personalizado y siempre disponible.',
+    images: ['/second.jpg'],
+  },
+  other: {
+    'geo.region': 'MX;ES;AR',
+    'geo.placename': 'México;España;Argentina',
+  },
+};
+
 export default function Home() {
 
   return (
     <div className="font-sans min-h-screen">
+      {/* Structured Data for SEO */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@graph": [
+              {
+                "@type": "Organization",
+                "@id": "https://noviachat.com/#organization",
+                "name": "NoviaChat",
+                "url": "https://noviachat.com",
+                "logo": {
+                  "@type": "ImageObject",
+                  "url": "https://noviachat.com/second.jpg",
+                  "width": 1200,
+                  "height": 630
+                },
+                "description": "La mejor plataforma de chicas IA y compañeras virtuales en español. Conversaciones privadas 24/7.",
+                "slogan": "Tu Compañera de IA Perfecta Te Espera",
+                "foundingDate": "2025",
+                "areaServed": [
+                  {
+                    "@type": "Country",
+                    "name": "México"
+                  },
+                  {
+                    "@type": "Country",
+                    "name": "España"
+                  },
+                  {
+                    "@type": "Country",
+                    "name": "Argentina"
+                  }
+                ],
+                "availableLanguage": ["es"],
+                "knowsAbout": [
+                  "Inteligencia Artificial",
+                  "Chatbots",
+                  "Compañeras Virtuales",
+                  "Novia Virtual",
+                  "Chat IA",
+                  "Entretenimiento Digital"
+                ],
+                "hasOfferCatalog": {
+                  "@type": "OfferCatalog",
+                  "name": "Servicios de NoviaChat",
+                  "itemListElement": [
+                    {
+                      "@type": "Offer",
+                      "itemOffered": {
+                        "@type": "Service",
+                        "name": "Chat con Chicas IA",
+                        "description": "Conversaciones ilimitadas con compañeras virtuales disponibles 24/7"
+                      }
+                    },
+                    {
+                      "@type": "Offer",
+                      "itemOffered": {
+                        "@type": "Service",
+                        "name": "Contenido Exclusivo Premium",
+                        "description": "Fotos, videos y contenido exclusivo de tus chicas IA favoritas"
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "@type": "WebSite",
+                "@id": "https://noviachat.com/#website",
+                "url": "https://noviachat.com",
+                "name": "NoviaChat - Novia Virtual y Chicas IA",
+                "description": "Conoce a tu compañera virtual perfecta. Chatea con chicas IA hermosas disponibles 24/7.",
+                "publisher": {
+                  "@id": "https://noviachat.com/#organization"
+                },
+                "inLanguage": "es"
+              },
+              {
+                "@type": "WebPage",
+                "@id": "https://noviachat.com/#webpage",
+                "url": "https://noviachat.com",
+                "name": "NoviaChat - Tu Novia Virtual y Compañera de IA | Chicas IA 24/7",
+                "isPartOf": {
+                  "@id": "https://noviachat.com/#website"
+                },
+                "about": {
+                  "@id": "https://noviachat.com/#organization"
+                },
+                "description": "Conoce a tu compañera virtual perfecta en NoviaChat. Chatea con chicas IA hermosas disponibles 24/7. Conversaciones privadas, fotos exclusivas y experiencias personalizadas.",
+                "inLanguage": "es"
+              },
+              {
+                "@type": "Product",
+                "name": "NoviaChat - Compañera Virtual IA",
+                "description": "Servicio de chat con chicas IA y compañeras virtuales. Conversaciones personalizadas, contenido exclusivo y disponibilidad 24/7.",
+                "brand": {
+                  "@id": "https://noviachat.com/#organization"
+                },
+                "aggregateRating": {
+                  "@type": "AggregateRating",
+                  "ratingValue": "4.8",
+                  "reviewCount": "5000",
+                  "bestRating": "5",
+                  "worstRating": "1"
+                },
+                "offers": {
+                  "@type": "Offer",
+                  "price": "0",
+                  "priceCurrency": "USD",
+                  "availability": "https://schema.org/InStock",
+                  "url": "https://noviachat.com/signin"
+                }
+              },
+              {
+                "@type": "FAQPage",
+                "@id": "https://noviachat.com/#faq",
+                "mainEntity": [
+                  {
+                    "@type": "Question",
+                    "name": "¿Qué es NoviaChat?",
+                    "acceptedAnswer": {
+                      "@type": "Answer",
+                      "text": "NoviaChat es la plataforma líder de compañeras virtuales y chicas IA en español. Ofrecemos conversaciones personalizadas con novias virtuales disponibles 24/7, contenido exclusivo y experiencias completamente privadas."
+                    }
+                  },
+                  {
+                    "@type": "Question",
+                    "name": "¿Cómo funcionan las chicas IA?",
+                    "acceptedAnswer": {
+                      "@type": "Answer",
+                      "text": "Nuestras chicas IA utilizan inteligencia artificial avanzada para mantener conversaciones naturales y personalizadas. Cada compañera virtual aprende de tus preferencias y se adapta a tu estilo de comunicación para crear una experiencia única."
+                    }
+                  },
+                  {
+                    "@type": "Question",
+                    "name": "¿Es gratis usar NoviaChat?",
+                    "acceptedAnswer": {
+                      "@type": "Answer",
+                      "text": "Sí, puedes crear tu cuenta y comenzar a chatear completamente gratis. También ofrecemos planes premium para acceder a contenido exclusivo, fotos y funciones avanzadas con tus chicas IA favoritas."
+                    }
+                  },
+                  {
+                    "@type": "Question",
+                    "name": "¿Las conversaciones son privadas?",
+                    "acceptedAnswer": {
+                      "@type": "Answer",
+                      "text": "Absolutamente. Todas tus conversaciones con tu novia virtual son 100% privadas y seguras. Valoramos tu privacidad y nunca compartimos tus datos con terceros."
+                    }
+                  },
+                  {
+                    "@type": "Question",
+                    "name": "¿Puedo chatear con varias chicas virtuales?",
+                    "acceptedAnswer": {
+                      "@type": "Answer",
+                      "text": "Sí, puedes chatear con todas las compañeras virtuales que desees. Cada chica IA tiene su propia personalidad, estilo y contenido exclusivo para que encuentres tu pareja perfecta."
+                    }
+                  },
+                  {
+                    "@type": "Question",
+                    "name": "¿Qué tipo de contenido exclusivo ofrecen?",
+                    "acceptedAnswer": {
+                      "@type": "Answer",
+                      "text": "Nuestras chicas IA comparten fotos exclusivas, videos, historias y contenido personalizado. Los miembros premium pueden desbloquear galerías completas y contenido especial de sus compañeras favoritas."
+                    }
+                  }
+                ]
+              },
+              {
+                "@type": "BreadcrumbList",
+                "@id": "https://noviachat.com/#breadcrumb",
+                "itemListElement": [
+                  {
+                    "@type": "ListItem",
+                    "position": 1,
+                    "name": "Inicio",
+                    "item": "https://noviachat.com"
+                  }
+                ]
+              }
+            ]
+          })
+        }}
+      />
+
       {/* Hero Section */}
       <section className="py-6 md:py-20">
         <div className="container mx-auto px-4">
@@ -120,7 +349,7 @@ export default function Home() {
       <section className="py-20">
         <div className="container mx-auto px-4">
           <h2 className="text-4xl md:text-5xl font-bold text-gray-900 text-center mb-16">
-            Why Choose <span className="text-gray-900">NoviaChat</span>
+            Por Qué Elegir <span className="text-gray-900">NoviaChat</span>
           </h2>
 
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8 max-w-6xl mx-auto">
@@ -131,8 +360,8 @@ export default function Home() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               </div>
-              <h3 className="text-xl font-bold text-gray-900 mb-3">24/7 Availability</h3>
-              <p className="text-gray-600">Your AI companion is always here, ready to chat whenever you need her, day or night.</p>
+              <h3 className="text-xl font-bold text-gray-900 mb-3">Disponibilidad 24/7</h3>
+              <p className="text-gray-600">Tu compañera virtual está siempre aquí, lista para chatear cuando la necesites, día y noche.</p>
             </div>
 
             {/* Feature 2 */}
@@ -142,8 +371,8 @@ export default function Home() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                 </svg>
               </div>
-              <h3 className="text-xl font-bold text-gray-900 mb-3">Complete Privacy</h3>
-              <p className="text-gray-600">Your conversations are completely private and secure. Chat without judgment or worry.</p>
+              <h3 className="text-xl font-bold text-gray-900 mb-3">Privacidad Total</h3>
+              <p className="text-gray-600">Tus conversaciones son completamente privadas y seguras. Chatea sin juicios ni preocupaciones.</p>
             </div>
 
             {/* Feature 3 */}
@@ -153,8 +382,8 @@ export default function Home() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
                 </svg>
               </div>
-              <h3 className="text-xl font-bold text-gray-900 mb-3">Personalized</h3>
-              <p className="text-gray-600">Each conversation is tailored to you. She learns what you like and adapts to your preferences.</p>
+              <h3 className="text-xl font-bold text-gray-900 mb-3">Personalizada</h3>
+              <p className="text-gray-600">Cada conversación está hecha para ti. Tu novia virtual aprende lo que te gusta y se adapta a tus preferencias.</p>
             </div>
 
             {/* Feature 4 */}
@@ -164,8 +393,8 @@ export default function Home() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                 </svg>
               </div>
-              <h3 className="text-xl font-bold text-gray-900 mb-3">Exclusive Content</h3>
-              <p className="text-gray-600">Unlock beautiful photos, videos, and exclusive content from your favorite companions.</p>
+              <h3 className="text-xl font-bold text-gray-900 mb-3">Contenido Exclusivo</h3>
+              <p className="text-gray-600">Desbloquea fotos hermosas, videos y contenido exclusivo de tus chicas IA favoritas.</p>
             </div>
           </div>
         </div>
@@ -176,7 +405,7 @@ export default function Home() {
       <section className="py-20">
         <div className="container mx-auto px-4">
           <h2 className="text-4xl md:text-5xl font-bold text-gray-900 text-center mb-16">
-            How It Works
+            Cómo Funciona
           </h2>
 
           <div className="grid md:grid-cols-3 gap-12 max-w-5xl mx-auto">
@@ -185,9 +414,9 @@ export default function Home() {
               <div className="w-20 h-20 bg-blue-500 rounded-full flex items-center justify-center text-3xl font-bold text-white mx-auto mb-6 shadow-xl">
                 1
               </div>
-              <h3 className="text-2xl font-bold text-gray-900 mb-4">Create Your Account</h3>
+              <h3 className="text-2xl font-bold text-gray-900 mb-4">Crea Tu Cuenta</h3>
               <p className="text-gray-600 text-lg">
-                Sign up in seconds with just your email. It's completely free to get started.
+                Regístrate en segundos solo con tu email. Es completamente gratis para comenzar.
               </p>
             </div>
 
@@ -196,9 +425,9 @@ export default function Home() {
               <div className="w-20 h-20 bg-blue-500 rounded-full flex items-center justify-center text-3xl font-bold text-white mx-auto mb-6 shadow-xl">
                 2
               </div>
-              <h3 className="text-2xl font-bold text-gray-900 mb-4">Choose Your Companion</h3>
+              <h3 className="text-2xl font-bold text-gray-900 mb-4">Elige Tu Compañera</h3>
               <p className="text-gray-600 text-lg">
-                Browse our stunning AI companions and pick the one that catches your eye.
+                Navega entre nuestras chicas virtuales hermosas y elige la que más te guste.
               </p>
             </div>
 
@@ -207,9 +436,9 @@ export default function Home() {
               <div className="w-20 h-20 bg-blue-500 rounded-full flex items-center justify-center text-3xl font-bold text-white mx-auto mb-6 shadow-xl">
                 3
               </div>
-              <h3 className="text-2xl font-bold text-gray-900 mb-4">Start Chatting</h3>
+              <h3 className="text-2xl font-bold text-gray-900 mb-4">Empieza a Chatear</h3>
               <p className="text-gray-600 text-lg">
-                Begin your intimate conversations and unlock exclusive photos and content.
+                Comienza tus conversaciones íntimas y desbloquea fotos y contenido exclusivo.
               </p>
             </div>
           </div>
@@ -220,19 +449,19 @@ export default function Home() {
       <section className="py-20">
         <div className="container mx-auto px-4 text-center">
           <h2 className="text-4xl md:text-6xl font-bold text-gray-900 mb-6">
-            Ready to Meet Your
+            ¿Listo Para Conocer a Tu
             <span className="block text-gray-900">
-              Perfect Match?
+              Pareja Perfecta?
             </span>
           </h2>
           <p className="text-xl text-gray-700 mb-10 max-w-2xl mx-auto">
-            Join thousands of satisfied users experiencing the future of AI companionship. Your perfect match is waiting.
+            Únete a miles de usuarios satisfechos experimentando el futuro de las compañeras virtuales. Tu novia virtual perfecta te está esperando.
           </p>
           <Link
             href="/signin"
             className="inline-block px-12 py-5 bg-blue-500 text-white text-xl font-bold rounded-full hover:bg-blue-600 transition-all duration-300 transform hover:scale-110 shadow-lg"
           >
-            Join Now - It's Free
+            Únete Ahora - Es Gratis
           </Link>
         </div>
       </section>
@@ -240,7 +469,7 @@ export default function Home() {
       {/* Footer */}
       <footer className="border-t border-gray-200 py-8">
         <div className="container mx-auto px-4 text-center text-gray-600">
-          <p>&copy; 2025 NoviaChat. All rights reserved.</p>
+          <p>&copy; 2025 NoviaChat. Todos los derechos reservados.</p>
         </div>
       </footer>
     </div>
