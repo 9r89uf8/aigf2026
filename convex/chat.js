@@ -7,6 +7,40 @@ import {
   FREE_TEXT_PER_GIRL, FREE_MEDIA_PER_GIRL, FREE_AUDIO_PER_GIRL,
 } from "./chat.config.js";
 
+
+// convex/chat.js (add near imports)
+async function requirePremiumIfGirlIsPremiumOnly(ctx, userId, girlId) {
+  const girl = await ctx.db.get(girlId);
+  if (!girl) throw new Error("Girl not found");
+  if (!girl.premiumOnly) return { premiumNeeded: false, girl };
+
+  // time-limited premium check
+  const profile = await ctx.db
+      .query("profiles")
+      .withIndex("by_userId", (q) => q.eq("userId", userId))
+      .first();
+
+  const active = (profile?.premiumUntil ?? 0) > Date.now();
+  if (!active) throw new Error("PREMIUM_REQUIRED");
+
+  // keep boolean flag + snapshots consistent (optional but nice)
+  if (profile && (profile.premiumActive ?? false) !== active) {
+    await ctx.db.patch(profile._id, { premiumActive: active, updatedAt: Date.now() });
+
+    // reflect in all user conversations
+    const convos = await ctx.db
+        .query("conversations")
+        .withIndex("by_user_updated", (q) => q.eq("userId", userId))
+        .collect();
+    for (const c of convos) {
+      await ctx.db.patch(c._id, { premiumActive: active, updatedAt: Date.now() });
+    }
+  }
+
+  return { premiumNeeded: true, girl };
+}
+
+
 /** THREAD LIST (per-user) */
 export const getThreads = query({
   args: {},
@@ -40,36 +74,66 @@ export const getConversation = query({
     const userId = await getAuthUserId(ctx);
     if (!userId) throw new Error("Unauthenticated");
 
-
     const convo = await ctx.db.get(conversationId);
     if (!convo || convo.userId !== userId) throw new Error("Not found");
 
-    const cutoff = convo.clearedAt ?? 0;
+    // Live premium state
+    const girl = await ctx.db.get(convo.girlId);
+    const profile = await ctx.db
+        .query("profiles")
+        .withIndex("by_userId", (q) => q.eq("userId", userId))
+        .first();
 
+    const premiumNow = (profile?.premiumUntil ?? 0) > Date.now();
+    const locked = !!girl?.premiumOnly && !premiumNow;
+
+    // Always return history (even if locked)
+    const cutoff = convo.clearedAt ?? 0;
     const msgs = await ctx.db
-      .query("messages")
-      .withIndex("by_conversation_ts", q =>
-        q.eq("conversationId", conversationId).gt("createdAt", cutoff)
-      )
-      .order("desc")
-      .take(limit);
-    msgs.reverse(); // ascending for UI
+        .query("messages")
+        .withIndex("by_conversation_ts", (q) =>
+            q.eq("conversationId", conversationId).gt("createdAt", cutoff)
+        )
+        .order("desc")
+        .take(limit);
+    msgs.reverse();
 
     return {
       conversationId,
       girlId: convo.girlId,
       girlName: convo.girlName,
       girlAvatarKey: convo.girlAvatarKey,
-      freeRemaining: { text: convo.freeRemaining.text, media: convo.freeRemaining.media, audio: convo.freeRemaining.audio },
-      premiumActive: convo.premiumActive,
-      messages: msgs.map(m => ({
-        id: m._id, sender: m.sender, kind: m.kind, text: m.text,
-        mediaKey: m.mediaKey, durationSec: m.durationSec, createdAt: m.createdAt,
-        userLiked: m.userLiked, aiLiked: m.aiLiked, aiError: m.aiError,
+
+      // Reflect *current* premium state (not the snapshot)
+      premiumActive: premiumNow,
+
+      // Let the client block sending / show banner
+      locked,
+
+      // Only needed by the free‑quota banner; harmless to include when locked
+      freeRemaining: {
+        text: convo.freeRemaining.text,
+        media: convo.freeRemaining.media,
+        audio: convo.freeRemaining.audio,
+      },
+
+      messages: msgs.map((m) => ({
+        id: m._id,
+        sender: m.sender,
+        kind: m.kind,
+        text: m.text,
+        mediaKey: m.mediaKey,
+        durationSec: m.durationSec,
+        createdAt: m.createdAt,
+        userLiked: m.userLiked,
+        aiLiked: m.aiLiked,
+        aiError: m.aiError,
       })),
     };
   },
 });
+
+
 
 /** Create or return existing conversation (sets initial free counters) */
 export const startConversation = mutation({
@@ -78,27 +142,31 @@ export const startConversation = mutation({
     const userId = await getAuthUserId(ctx);
     if (!userId) throw new Error("Unauthenticated");
 
-    // If convo exists, return it
+    // If conversation exists, still enforce premium if the girl is premium-only
     const existing = await ctx.db
-      .query("conversations")
-      .withIndex("by_user_girl", q => q.eq("userId", userId).eq("girlId", girlId))
-      .first();
-    if (existing) return { conversationId: existing._id };
+        .query("conversations")
+        .withIndex("by_user_girl", (q) => q.eq("userId", userId).eq("girlId", girlId))
+        .first();
 
-    // Fetch user's premium status
+    if (existing) {
+      await requirePremiumIfGirlIsPremiumOnly(ctx, userId, existing.girlId);
+      return { conversationId: existing._id };
+    }
+
+    // New conversation: enforce guard, then create
+    const { girl } = await requirePremiumIfGirlIsPremiumOnly(ctx, userId, girlId);
+
+    // Compute up-to-date premium snapshot
     const profile = await ctx.db
-      .query("profiles")
-      .withIndex("by_userId", q => q.eq("userId", userId))
-      .first();
-    const premiumActive = profile?.premiumActive ?? false;
-
-    // Fetch girl's persona and voice for denormalization
-    const girl = await ctx.db.get(girlId);
-    if (!girl) throw new Error("Girl not found");
+        .query("profiles")
+        .withIndex("by_userId", (q) => q.eq("userId", userId))
+        .first();
+    const premiumActive = (profile?.premiumUntil ?? 0) > Date.now();
 
     const now = Date.now();
     const conversationId = await ctx.db.insert("conversations", {
-      userId, girlId,
+      userId,
+      girlId,
       girlName: girl.name,
       girlAvatarKey: girl.avatarKey,
       freeRemaining: {
@@ -118,6 +186,7 @@ export const startConversation = mutation({
     return { conversationId };
   },
 });
+
 
 /** Mark read (for unread dot) */
 export const markRead = mutation({

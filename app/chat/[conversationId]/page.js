@@ -62,7 +62,9 @@ function TypingBubble({ avatarUrl, girlName }) {
 export default function ConversationPage() {
   const router = useRouter();
   const { conversationId } = useParams();
-  const data = useQuery(api.chat.getConversation, { conversationId }) || null;
+  // const data = useQuery(api.chat.getConversation, { conversationId }) || null;
+  const data = useQuery(api.chat.getConversation, { conversationId });
+  const isLoading = data === undefined;
   const urlMap = useSignedMediaUrls(data?.messages);
   const signBatch = useAction(api.cdn.signViewBatch);
 
@@ -118,6 +120,8 @@ export default function ConversationPage() {
   // Compute typing state from existing messages
   const lastMsg = data?.messages?.[data.messages.length - 1] || null;
   const isAiTyping = !!lastMsg && lastMsg.sender === "user" && !lastMsg.aiError;
+
+
 
   useEffect(() => {
     if (data) {
@@ -211,14 +215,14 @@ export default function ConversationPage() {
   }, [showDeleteButton]);
 
 // top-level (module scope)
-  let prefetchAttempted = false;
+  const prefetchAttemptedRef = useRef(false);
 
 // inside the prefetch useEffect
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      if (!turnstileReady || permitRef.current || prefetchAttempted) return;
-      prefetchAttempted = true;
+      if (!turnstileReady || permitRef.current || prefetchAttemptedRef.current) return;
+      prefetchAttemptedRef.current = true;
       try {
         const token = await acquireToken();
         if (cancelled) return;
@@ -232,8 +236,22 @@ export default function ConversationPage() {
     return () => { cancelled = true; };
   }, [turnstileReady /* you can omit conversationId for a global prefetch */]);
 
+  const premiumLocked = !!data?.locked; // from server
+  const outOfFree =
+      !isLoading &&
+      !premiumLocked &&
+      !data?.premiumActive &&
+      ((data?.freeRemaining?.text ?? Infinity) <= 0);
+      // Disable the composer while loading or blocked
+  const disableComposer = isLoading || premiumLocked || outOfFree;
+  // Only show the banner once we actually know the state
+  const showUpsellBanner = !isLoading && (premiumLocked || outOfFree);
 
-  const quotaOut = data && !data.premiumActive && data.freeRemaining.text <= 0;
+// Helpful for CTA:
+  const plansHref =
+      `/plans?returnTo=${encodeURIComponent(`/chat/${conversationId}`)}` +
+      (data?.girlId ? `&girl=${data.girlId}` : "");
+
 
   function permitValid(p) {
     return p && p.usesLeft > 0 && p.expiresAt > Date.now();
@@ -250,7 +268,7 @@ export default function ConversationPage() {
   }
 
   async function onSend() {
-    if (!text.trim() || quotaOut || isSending) return;
+    if (!text.trim() || disableComposer || isSending) return;
 
     setIsSending(true);
     try {
@@ -511,84 +529,78 @@ export default function ConversationPage() {
         <div ref={bottomRef} />
       </div>
 
-      {!data?.premiumActive && quotaOut && (
-        <div className="relative border-t border-indigo-400/30 bg-gradient-to-br from-indigo-600 via-amber-500 to-cyan-400 overflow-hidden shadow-lg">
-          {/* Subtle shimmer effect */}
-          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -skew-x-12 animate-shimmer" />
+      {showUpsellBanner && (
+          <div className="relative border-t border-indigo-400/30 bg-gradient-to-br from-indigo-600 via-amber-500 to-cyan-400 overflow-hidden shadow-lg">
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -skew-x-12 animate-shimmer" />
+            <div className="relative px-4 py-4 sm:flex sm:items-center sm:justify-between sm:gap-4">
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2 mb-2">
+          <span className="text-sm font-semibold text-white">
+            {premiumLocked ? "Premium required to message this companion" : "Free messages used"}
+          </span>
+                </div>
 
-          <div className="relative px-4 py-4 sm:flex sm:items-center sm:justify-between sm:gap-4">
-            <div className="min-w-0 flex-1">
-              {/* Headline with premium icon */}
-              <div className="flex items-center gap-2 mb-2">
-                <span className="text-sm font-semibold text-white">Free messages used</span>
-              </div>
+                <div className="mb-3">
+                  <div className="flex items-baseline gap-2 flex-wrap">
+                    <span className="text-lg font-bold text-white">Premium starts at</span>
+                    {cheapestLabel ? (
+                        <>
+                <span className="text-2xl font-extrabold text-white drop-shadow-md">
+                  {cheapestLabel}
+                </span>
+                          {!selectedCurrency && cheapestCountry && (
+                              <span className="text-sm text-white/90">in {cheapestCountry}</span>
+                          )}
+                        </>
+                    ) : (
+                        <span className="text-xl font-bold text-white">our lowest regional price</span>
+                    )}
+                  </div>
+                </div>
 
-              {/* Premium pricing - hero element */}
-              <div className="mb-3">
-                <div className="flex items-baseline gap-2 flex-wrap">
-                  <span className="text-lg font-bold text-white">Premium starts at</span>
-                  {cheapestLabel ? (
-                    <>
-                      <span className="text-2xl font-extrabold text-white drop-shadow-md">
-                        {cheapestLabel}
-                      </span>
-                      {!selectedCurrency && cheapestCountry && (
-                        <span className="text-sm text-white/90">in {cheapestCountry}</span>
-                      )}
-                    </>
-                  ) : (
-                    <span className="text-xl font-bold text-white">our lowest regional price</span>
-                  )}
+                <div className="flex flex-wrap items-center gap-x-5 gap-y-1.5 text-[11px] text-white/90">
+          <span className="inline-flex items-center gap-1.5">
+            <svg viewBox="0 0 24 24" className="w-3.5 h-3.5 text-white" fill="currentColor">
+              <path d="M6 10V8a6 6 0 1112 0v2h1a1 1 0 011 1v9a1 1 0 01-1 1H5a1 1 0 01-1-1v-9a1 1 0 011-1h1zm2 0h8V8a4 4 0 10-8 0v2z"/>
+            </svg>
+            <span className="font-medium">Secure checkout</span>
+          </span>
+                  <span className="inline-flex items-center gap-1.5">
+            <svg viewBox="0 0 24 24" className="w-3.5 h-3.5 text-white" fill="currentColor">
+              <path d="M12 2l8 4v6c0 5-3.4 9.3-8 10-4.6-.7-8-5-8-10V6l8-4z"/>
+            </svg>
+            <span className="font-medium">One-time payment</span>
+          </span>
+                  <span className="inline-flex items-center gap-1.5">
+            <svg viewBox="0 0 24 24" className="w-3.5 h-3.5 text-white" fill="currentColor">
+              <path d="M3 5h18a2 2 0 012 2v1H1V7a2 2 0 012-2zm-2 6h22v6a2 2 0 01-2 2H3a2 2 0 01-2-2v-6zm4 4h6v2H5v-2z"/>
+            </svg>
+            <span className="font-medium">Powered by Stripe</span>
+          </span>
                 </div>
               </div>
 
-              {/* Trust badges - more subtle */}
-              <div className="flex flex-wrap items-center gap-x-5 gap-y-1.5 text-[11px] text-white/90">
-                <span className="inline-flex items-center gap-1.5">
-                  <svg viewBox="0 0 24 24" className="w-3.5 h-3.5 text-white" fill="currentColor">
-                    <path d="M6 10V8a6 6 0 1112 0v2h1a1 1 0 011 1v9a1 1 0 01-1 1H5a1 1 0 01-1-1v-9a1 1 0 011-1h1zm2 0h8V8a4 4 0 10-8 0v2z"/>
-                  </svg>
-                  <span className="font-medium">Secure checkout</span>
-                </span>
-                <span className="inline-flex items-center gap-1.5">
-                  <svg viewBox="0 0 24 24" className="w-3.5 h-3.5 text-white" fill="currentColor">
-                    <path d="M12 2l8 4v6c0 5-3.4 9.3-8 10-4.6-.7-8-5-8-10V6l8-4z"/>
-                  </svg>
-                  <span className="font-medium">One-time payment</span>
-                </span>
-                <span className="inline-flex items-center gap-1.5">
-                  <svg viewBox="0 0 24 24" className="w-3.5 h-3.5 text-white" fill="currentColor">
-                    <path d="M3 5h18a2 2 0 012 2v1H1V7a2 2 0 012-2zm-2 6h22v6a2 2 0 01-2 2H3a2 2 0 01-2-2v-6zm4 4h6v2H5v-2z"/>
-                  </svg>
-                  <span className="font-medium">Powered by Stripe</span>
-                </span>
-              </div>
+              <a
+                  href={plansHref}
+                  className="mt-3 sm:mt-0 flex-shrink-0 inline-flex items-center justify-center gap-2 px-5 py-2.5 text-sm font-semibold rounded-lg bg-white text-indigo-700 shadow-lg shadow-black/20 hover:shadow-xl hover:shadow-black/30 hover:scale-105 transition-all duration-200 active:scale-95 border border-white/50"
+              >
+                <span>See plans</span>
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                </svg>
+              </a>
             </div>
 
-            {/* CTA button - white background */}
-            <a
-              href="/plans"
-              className="mt-3 sm:mt-0 flex-shrink-0 inline-flex items-center justify-center gap-2 px-5 py-2.5 text-sm font-semibold rounded-lg bg-white text-indigo-700 shadow-lg shadow-black/20 hover:shadow-xl hover:shadow-black/30 hover:scale-105 transition-all duration-200 active:scale-95 border border-white/50"
-            >
-              <span>See plans</span>
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-              </svg>
-            </a>
+            <style jsx>{`
+              @keyframes shimmer {
+                0% { transform: translateX(-100%) skewX(-12deg); }
+                100% { transform: translateX(200%) skewX(-12deg); }
+              }
+              .animate-shimmer { animation: shimmer 3s infinite; }
+            `}</style>
           </div>
-
-          {/* Add shimmer animation */}
-          <style jsx>{`
-            @keyframes shimmer {
-              0% { transform: translateX(-100%) skewX(-12deg); }
-              100% { transform: translateX(200%) skewX(-12deg); }
-            }
-            .animate-shimmer {
-              animation: shimmer 3s infinite;
-            }
-          `}</style>
-        </div>
       )}
+
 
       {/* Instagram-style input area */}
       <div className="px-4 py-3 border-t border-gray-200 bg-white" >
@@ -598,18 +610,19 @@ export default function ConversationPage() {
 
         <div className="flex items-center gap-2">
           {/* Media & Audio buttons */}
-          <div className="flex items-center gap-1">
+          <div className={`flex items-center gap-1 ${disableComposer ? "pointer-events-none opacity-40" : ""}`}>
             <MediaComposer
-              conversationId={conversationId}
-              ensurePermit={ensurePermit}
-              onSent={() => bottomRef.current?.scrollIntoView({ behavior: "smooth" })}
+                conversationId={conversationId}
+                ensurePermit={ensurePermit}
+                onSent={() => bottomRef.current?.scrollIntoView({ behavior: "smooth" })}
             />
             <AudioComposer
-              conversationId={conversationId}
-              ensurePermit={ensurePermit}
-              onSent={() => bottomRef.current?.scrollIntoView({ behavior: "smooth" })}
+                conversationId={conversationId}
+                ensurePermit={ensurePermit}
+                onSent={() => bottomRef.current?.scrollIntoView({ behavior: "smooth" })}
             />
           </div>
+
 
           {/* Text input */}
           <input
@@ -618,19 +631,19 @@ export default function ConversationPage() {
             value={text}
             onChange={(e) => setText(e.target.value)}
             onKeyDown={(e) => {
-              if (e.key === "Enter" && !e.shiftKey && text.trim() && !quotaOut && !isSending && turnstileReady) {
+              if (e.key === "Enter" && !e.shiftKey && text.trim() && !disableComposer && !isSending && turnstileReady) {
                 e.preventDefault();
                 onSend();
               }
             }}
-            disabled={quotaOut || isSending || !turnstileReady}
+            disabled={disableComposer || isSending || !turnstileReady}
           />
 
           {/* Send button */}
           <button
             className="p-2 text-blue-500 hover:text-blue-600 disabled:text-gray-300 disabled:cursor-not-allowed transition-colors font-semibold text-sm"
             onClick={onSend}
-            disabled={!text.trim() || quotaOut || isSending || !turnstileReady}
+            disabled={!text.trim() || disableComposer || isSending || !turnstileReady}
           >
             {isSending ? (
               <svg className="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">

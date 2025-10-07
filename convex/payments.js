@@ -1,7 +1,8 @@
 // convex/payments.js
-import { query, internalQuery, internalMutation } from "./_generated/server";
+import { query, internalQuery, internalMutation, mutation } from "./_generated/server";
 import { v } from "convex/values";
 import { getAuthUserId } from "@convex-dev/auth/server";
+import { internal } from "./_generated/api";
 
 /** ---------- Public queries for the Account UI ---------- */
 
@@ -30,19 +31,24 @@ export const getMyPayments = query({
   },
 });
 
+
 export const getPremiumStatus = query({
   args: {},
   handler: async (ctx) => {
     const userId = await getAuthUserId(ctx);
     if (!userId) return { active: false, premiumUntil: 0 };
+
     const profile = await ctx.db
-      .query("profiles")
-      .withIndex("by_userId", (q) => q.eq("userId", userId))
-      .first();
+        .query("profiles")
+        .withIndex("by_userId", (q) => q.eq("userId", userId))
+        .first();
+
     const now = Date.now();
     const premiumUntil = profile?.premiumUntil || 0;
-    const premiumActive = profile?.premiumActive ?? false;
-    return { active: premiumActive, premiumUntil }; // Use premiumActive boolean
+    const active = premiumUntil > now; // ← time-limited check
+
+    // Note: we don't patch here (queries can't write). We'll lazily fix flags in mutations.
+    return { active, premiumUntil };
   },
 });
 
@@ -174,5 +180,40 @@ export const insertPayment = internalMutation({
   },
   handler: async (ctx, args) => {
     await ctx.db.insert("payments", { ...args, createdAt: Date.now() });
+  },
+});
+
+// ADD this at the bottom of convex/payments.js (or near getPremiumStatus)
+
+/**
+ * Fresh, server-side premium check.
+ * - Returns { active, premiumUntil }
+ * - If premium expired, flips profiles.premiumActive=false and denorm on conversations
+ */
+export const refreshAndGetPremiumStatus = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) return { active: false, premiumUntil: 0, authenticated: false };
+
+    const profile = await ctx.db
+        .query("profiles")
+        .withIndex("by_userId", (q) => q.eq("userId", userId))
+        .first();
+
+    const now = Date.now();
+    const premiumUntil = profile?.premiumUntil ?? 0;
+    const active = premiumUntil > now;
+
+    // Keep boolean flag and conversation snapshots in sync if they drift
+    if (profile && (profile.premiumActive ?? false) !== active) {
+      await ctx.db.patch(profile._id, { premiumActive: active, updatedAt: now });
+      await ctx.runMutation(internal.payments.updateUserConversationsPremium, {
+        userId,
+        premiumActive: active,
+      });
+    }
+
+    return { active, premiumUntil, authenticated: true };
   },
 });

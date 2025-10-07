@@ -11,6 +11,8 @@ export default function GirlsListingPage() {
   const girls = useQuery(api.girls.listGirlsPublic);
   const signViewBatch = useAction(api.cdn.signViewBatch);
   const [avatarUrls, setAvatarUrls] = useState({});
+  const premiumStatus = useQuery(api.payments.getPremiumStatus);
+  const viewerPremium = !!premiumStatus?.active;
 
   // Batch sign all avatar URLs when girls data loads
   useEffect(() => {
@@ -91,6 +93,7 @@ export default function GirlsListingPage() {
               key={girl._id}
               girl={girl}
               avatarUrl={girl.avatarKey ? avatarUrls[girl.avatarKey] : null}
+              viewerPremium={viewerPremium}
             />
           ))}
         </div>
@@ -99,10 +102,16 @@ export default function GirlsListingPage() {
   );
 }
 
-function GirlCard({ girl, avatarUrl }) {
+function GirlCard({ girl, avatarUrl, viewerPremium }) {
 
   return (
-    <div className="bg-gradient-to-br from-indigo-600 via-amber-500 to-cyan-400 rounded-lg shadow-lg hover:shadow-xl transition-all overflow-hidden group hover:scale-[1.02] duration-300">
+      <div className="relative bg-gradient-to-br from-indigo-600 via-amber-500 to-cyan-400 rounded-lg shadow-lg hover:shadow-xl transition-all overflow-hidden group hover:scale-[1.02] duration-300">
+        {/* Premium chip (only for non-premium viewers) */}
+        {girl.premiumOnly && !viewerPremium && (
+          <div className="absolute top-3 right-3 inline-flex items-center gap-1 px-2 py-1 rounded-full bg-yellow-300/90 text-gray-900 text-xs font-semibold shadow">
+            <span aria-hidden>👑</span> Premium
+            </div>
+          )}
       <div className="p-6">
         {/* Avatar with gradient ring that opens the story viewer */}
         <div className="relative mx-auto mb-4 flex justify-center">
@@ -146,7 +155,11 @@ function GirlCard({ girl, avatarUrl }) {
 
         {/* Action Buttons */}
         <div className="flex gap-2">
-          <StartChatButton girlId={girl._id} />
+          <StartChatButton
+          girlId={girl._id}
+          premiumOnly={!!girl.premiumOnly}
+          viewerPremium={viewerPremium}
+          />
           <Link
             href={`/girls/${girl._id}`}
             className="flex-1 px-4 py-2 bg-white/20 backdrop-blur-sm text-white font-semibold text-center rounded-lg hover:bg-white/30 transition-all shadow-md hover:shadow-lg border border-white/30"

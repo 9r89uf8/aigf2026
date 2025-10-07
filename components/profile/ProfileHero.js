@@ -53,6 +53,7 @@ export default function ProfileHero({ girl, backgroundUrl, avatarUrl }) {
               )}
             </div>
 
+
             {/* Talk Button */}
             <div className="mt-4">
               <StartChatButton girlId={girl.id} />
