@@ -118,6 +118,10 @@ export default function ConversationPage() {
   const [showDeleteButton, setShowDeleteButton] = useState(false);
   const [enlargedImage, setEnlargedImage] = useState(null); // URL of image to show enlarged
   const bottomRef = useRef(null);
+  const scrollerRef = useRef(null);          // the scrollable container
+  const [isAtBottom, setIsAtBottom] = useState(true); // track whether user is pinned at bottom
+  const lastMsgIdRef = useRef(null);         // detect real new messages
+  const didInitialScrollRef = useRef(false); // avoid re-scrolling on every reactive update
 
   const { ready: turnstileReady, getToken } = useInvisibleTurnstile();
 
@@ -154,38 +158,65 @@ export default function ConversationPage() {
   const isAiTyping = !!intentFresh; // drive from hint freshness
   const typingMode = intentFresh ? intent : "text"; // text | audio | image | video
 
+  // Reset guards when conversation changes
   useEffect(() => {
-    if (data) {
-      bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-    }
-  }, [data]);
+    didInitialScrollRef.current = false;
+    lastMsgIdRef.current = null;
+  }, [conversationId]);
 
-  // Auto-scroll when typing indicator appears
+  // Initial scroll to bottom ONCE per conversation
   useEffect(() => {
-    if (isAiTyping) {
-      bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-    }
-  }, [isAiTyping]);
+    if (!data || didInitialScrollRef.current) return;
+    bottomRef.current?.scrollIntoView({ block: "end" });
+    didInitialScrollRef.current = true;
+  }, [data, conversationId]);
 
-  // Mark conversation as read when user scrolls to bottom (debounced)
+  // Only scroll to typing indicator if user is already at the bottom
   useEffect(() => {
-    if (!bottomRef.current || !conversationId) return;
+    if (isAiTyping && isAtBottom) {
+      bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "end", inline: "nearest" });
+    }
+  }, [isAiTyping, isAtBottom]);
+
+  // Observe bottom sentinel INSIDE the scroll container:
+  // 1) keep isAtBottom in sync
+  // 2) mark as read when truly at bottom (debounced)
+  useEffect(() => {
+    const sentinel = bottomRef.current;
+    const root = scrollerRef.current;
+    if (!sentinel || !root || !conversationId) return;
     let debounceTimer;
     const observer = new IntersectionObserver(
       (entries) => {
-        if (entries[0]?.isIntersecting) {
+        const isIntersecting = !!entries[0]?.isIntersecting;
+        setIsAtBottom(isIntersecting);
+        if (isIntersecting) {
           clearTimeout(debounceTimer);
-          debounceTimer = setTimeout(() => markRead({ conversationId }), 1000);
+          debounceTimer = setTimeout(() => markRead({ conversationId }), 800);
         }
       },
-      { root: null, threshold: 0.6 }
+      { root, threshold: 0.99 } // almost fully visible
     );
-    observer.observe(bottomRef.current);
+    observer.observe(sentinel);
     return () => {
       clearTimeout(debounceTimer);
       observer.disconnect();
     };
-  }, [bottomRef.current, conversationId, markRead]);
+  }, [conversationId, markRead]);
+
+  // Scroll when a BRAND‑NEW message is appended (not for metadata updates).
+  // If sent by me -> always keep pinned; if sent by AI -> only if already at bottom.
+  useEffect(() => {
+    const msgs = data?.messages || [];
+    if (!msgs.length) return;
+    const last = msgs[msgs.length - 1];
+    if (lastMsgIdRef.current === last.id) return; // no new message; likely a metadata update
+    const sentByMe = last.sender === "user";
+    if (isAtBottom || sentByMe) {
+      bottomRef.current?.scrollIntoView({ behavior: sentByMe ? "smooth" : "auto", block: "end" });
+    }
+    lastMsgIdRef.current = last.id;
+  }, [data?.messages?.length, isAtBottom]);
 
   // Fetch girl's avatar URL (via signed URL)
   useEffect(() => {
@@ -374,9 +405,9 @@ export default function ConversationPage() {
   }
 
   return (
-    <div className="max-w-screen-sm mx-auto h-[100dvh] md:h-screen flex flex-col overflow-hidden min-h-0 -mb-[76px] sm:mb-0">
+    <div className="max-w-screen-sm mx-auto h-[calc(100dvh-3.5rem)] md:h-[calc(100vh-3.5rem)] flex flex-col overflow-hidden min-h-0 -mb-[76px] sm:mb-0">
       {/* Instagram-style header */}
-      <div className="px-4 py-3 border-b border-gray-200 flex items-center justify-between z-10">
+      <div className="px-4 py-3 border-b border-gray-200 flex items-center justify-between z-10 flex-none">
         <button
           onClick={() => router.back()}
           className="p-1 hover:bg-gray-100 rounded-full transition-colors"
@@ -422,7 +453,15 @@ export default function ConversationPage() {
           </button>
         )}
       </div>
-      <div className="flex-1 overflow-y-auto px-4 py-3 space-y-2 bg-white">
+      <div
+          ref={scrollerRef}
+          className="flex-1 min-h-0 overflow-y-auto px-4 py-3 space-y-2 bg-white"
+          style={{
+            overscrollBehaviorY: "contain",
+              // keep last messages visible when you scroll to bottom
+             scrollPaddingBottom: "88px", // ≈ input height + a little extra
+             }}
+      >
         {(data?.messages || []).map(m => {
           const mine = m.sender === "user";
           if (m.kind === "text") {
@@ -621,7 +660,7 @@ export default function ConversationPage() {
             status="preparando un video…"
           />
         )}
-        <div ref={bottomRef} />
+        <div ref={bottomRef} aria-hidden style={{ height: 1 }} />
       </div>
 
       {showUpsellBanner && (
@@ -698,7 +737,10 @@ export default function ConversationPage() {
 
 
       {/* Instagram-style input area */}
-      <div className="px-4 py-3 border-t border-gray-200 bg-white" >
+      <div
+          className="px-4 py-3 border-t border-gray-200 bg-white flex-none z-10"
+          style={{ paddingBottom: "max(env(safe-area-inset-bottom), 0px)" }}
+      >
         {!turnstileReady && (
           <div className="text-xs text-gray-500 mb-2">Preparando seguridad…</div>
         )}
