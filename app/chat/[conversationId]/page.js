@@ -70,6 +70,25 @@ function ReplyToBadge({ rt }) {
   );
 }
 
+function MediaStatusIndicator({ avatarUrl, girlName, status }) {
+  return (
+    <div className="flex items-end gap-2">
+      {avatarUrl ? (
+        <img
+          src={avatarUrl}
+          alt={girlName || "Profile"}
+          className="w-7 h-7 rounded-full object-cover flex-shrink-0"
+        />
+      ) : (
+        <div className="w-7 h-7 rounded-full bg-gradient-to-br from-purple-400 to-pink-400 flex-shrink-0" />
+      )}
+      <div className="flex items-center gap-1.5">
+        <span className="text-[11px] text-gray-500 italic">{status}</span>
+      </div>
+    </div>
+  );
+}
+
 export default function ConversationPage() {
   const router = useRouter();
   const { conversationId } = useParams();
@@ -554,19 +573,36 @@ export default function ConversationPage() {
             </div>
           );
         })}
-        {isAiTyping && (
+        {isAiTyping && typingMode === "text" && (
           <div className="flex items-end gap-2">
             <div className="flex flex-col items-start max-w-[70%]">
               <TypingBubble avatarUrl={avatarUrl} girlName={data?.girlName} />
               <div className="flex items-center gap-1.5 mt-1 px-2">
-                <span className="text-[11px] text-gray-400">
-                  {typingMode === "audio" ? "recording…" :
-                   typingMode === "image" ? "choosing a photo…" :
-                   typingMode === "video" ? "preparing a clip…" : "typing…"}
-                </span>
+                <span className="text-[11px] text-gray-400">typing…</span>
               </div>
             </div>
           </div>
+        )}
+        {isAiTyping && typingMode === "audio" && (
+          <MediaStatusIndicator
+            avatarUrl={avatarUrl}
+            girlName={data?.girlName}
+            status="recording a voice note…"
+          />
+        )}
+        {isAiTyping && typingMode === "image" && (
+          <MediaStatusIndicator
+            avatarUrl={avatarUrl}
+            girlName={data?.girlName}
+            status="choosing a photo…"
+          />
+        )}
+        {isAiTyping && typingMode === "video" && (
+          <MediaStatusIndicator
+            avatarUrl={avatarUrl}
+            girlName={data?.girlName}
+            status="preparing a video…"
+          />
         )}
         <div ref={bottomRef} />
       </div>
