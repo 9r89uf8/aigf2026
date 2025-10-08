@@ -16,13 +16,13 @@ function TypingBubble({ avatarUrl, girlName }) {
     <div
       role="status"
       aria-live="polite"
-      aria-label={`${girlName || "Assistant"} is typing`}
+      aria-label={`${girlName || "Asistente"} está escribiendo`}
       className="flex items-end gap-2"
     >
       {avatarUrl ? (
         <img
           src={avatarUrl}
-          alt={girlName || "Profile"}
+          alt={girlName || "Perfil"}
           className="w-7 h-7 rounded-full object-cover flex-shrink-0"
         />
       ) : (
@@ -61,11 +61,11 @@ function TypingBubble({ avatarUrl, girlName }) {
 
 function ReplyToBadge({ rt }) {
   if (!rt) return null;
-  const label = rt.text || (rt.kind === "image" ? "[Image]" : rt.kind === "video" ? "[Video]" : rt.kind === "audio" ? "[Voice note]" : "");
+  const label = rt.text || (rt.kind === "image" ? "[Imagen]" : rt.kind === "video" ? "[Video]" : rt.kind === "audio" ? "[Nota de voz]" : "");
   return (
     <div className="mb-1 ml-1 px-2 py-1 rounded-md bg-gray-100 text-gray-600 text-[11px] flex items-center gap-1">
       <span className="text-xs">↩︎</span>
-      <span className="truncate max-w-[220px]">replying to: {label}</span>
+      <span className="truncate max-w-[220px]">respondiendo a: {label}</span>
     </div>
   );
 }
@@ -76,7 +76,7 @@ function MediaStatusIndicator({ avatarUrl, girlName, status }) {
       {avatarUrl ? (
         <img
           src={avatarUrl}
-          alt={girlName || "Profile"}
+          alt={girlName || "Perfil"}
           className="w-7 h-7 rounded-full object-cover flex-shrink-0"
         />
       ) : (
@@ -368,7 +368,7 @@ export default function ConversationPage() {
         <button
           onClick={() => router.back()}
           className="p-1 hover:bg-gray-100 rounded-full transition-colors"
-          aria-label="Go back"
+          aria-label="Volver"
         >
           <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -379,7 +379,7 @@ export default function ConversationPage() {
           {avatarUrl ? (
             <img
               src={avatarUrl}
-              alt={data?.girlName || "Profile"}
+              alt={data?.girlName || "Perfil"}
               className="w-9 h-9 rounded-full object-cover"
             />
           ) : (
@@ -392,7 +392,7 @@ export default function ConversationPage() {
           <button
             onClick={() => setShowDeleteButton(true)}
             className="p-1 hover:bg-gray-100 rounded-full transition-colors"
-            title="Delete conversation"
+            title="Eliminar conversación"
           >
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -402,7 +402,7 @@ export default function ConversationPage() {
           <button
             onClick={onClearAll}
             className="p-1 hover:bg-red-100 rounded-full transition-colors"
-            title="Confirm delete"
+            title="Confirmar eliminación"
           >
             <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -454,7 +454,7 @@ export default function ConversationPage() {
                     {mine && m.aiLiked && <span className="text-sm ml-1">❤️</span>}
                   </div>
                   {mine && m.aiError && (
-                    <div className="text-[11px] text-red-500 mt-1 px-2">AI temporarily unavailable</div>
+                    <div className="text-[11px] text-red-500 mt-1 px-2">IA temporalmente no disponible</div>
                   )}
                 </div>
               </div>
@@ -505,7 +505,7 @@ export default function ConversationPage() {
                     {mine && m.aiLiked && <span className="text-sm ml-1">❤️</span>}
                   </div>
                   {mine && m.aiError && (
-                    <div className="text-[11px] text-red-500 mt-1 px-2">AI temporarily unavailable</div>
+                    <div className="text-[11px] text-red-500 mt-1 px-2">IA temporalmente no disponible</div>
                   )}
                 </div>
               </div>
@@ -578,7 +578,7 @@ export default function ConversationPage() {
             <div className="flex flex-col items-start max-w-[70%]">
               <TypingBubble avatarUrl={avatarUrl} girlName={data?.girlName} />
               <div className="flex items-center gap-1.5 mt-1 px-2">
-                <span className="text-[11px] text-gray-400">typing…</span>
+                <span className="text-[11px] text-gray-400">escribiendo…</span>
               </div>
             </div>
           </div>
@@ -587,21 +587,21 @@ export default function ConversationPage() {
           <MediaStatusIndicator
             avatarUrl={avatarUrl}
             girlName={data?.girlName}
-            status="recording a voice note…"
+            status="grabando una nota de voz…"
           />
         )}
         {isAiTyping && typingMode === "image" && (
           <MediaStatusIndicator
             avatarUrl={avatarUrl}
             girlName={data?.girlName}
-            status="choosing a photo…"
+            status="eligiendo una foto…"
           />
         )}
         {isAiTyping && typingMode === "video" && (
           <MediaStatusIndicator
             avatarUrl={avatarUrl}
             girlName={data?.girlName}
-            status="preparing a video…"
+            status="preparando un video…"
           />
         )}
         <div ref={bottomRef} />
@@ -614,24 +614,24 @@ export default function ConversationPage() {
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2 mb-2">
           <span className="text-sm font-semibold text-white">
-            {premiumLocked ? "Premium required to message this companion" : "Free messages used"}
+            {premiumLocked ? "Se requiere Premium para mensajear con esta compañera" : "Mensajes gratuitos agotados"}
           </span>
                 </div>
 
                 <div className="mb-3">
                   <div className="flex items-baseline gap-2 flex-wrap">
-                    <span className="text-lg font-bold text-white">Premium starts at</span>
+                    <span className="text-lg font-bold text-white">Premium comienza en</span>
                     {cheapestLabel ? (
                         <>
                 <span className="text-2xl font-extrabold text-white drop-shadow-md">
                   {cheapestLabel}
                 </span>
                           {!selectedCurrency && cheapestCountry && (
-                              <span className="text-sm text-white/90">in {cheapestCountry}</span>
+                              <span className="text-sm text-white/90">en {cheapestCountry}</span>
                           )}
                         </>
                     ) : (
-                        <span className="text-xl font-bold text-white">our lowest regional price</span>
+                        <span className="text-xl font-bold text-white">nuestro precio regional más bajo</span>
                     )}
                   </div>
                 </div>
@@ -641,13 +641,13 @@ export default function ConversationPage() {
             <svg viewBox="0 0 24 24" className="w-3.5 h-3.5 text-white" fill="currentColor">
               <path d="M6 10V8a6 6 0 1112 0v2h1a1 1 0 011 1v9a1 1 0 01-1 1H5a1 1 0 01-1-1v-9a1 1 0 011-1h1zm2 0h8V8a4 4 0 10-8 0v2z"/>
             </svg>
-            <span className="font-medium">Secure checkout</span>
+            <span className="font-medium">Pago seguro</span>
           </span>
                   <span className="inline-flex items-center gap-1.5">
             <svg viewBox="0 0 24 24" className="w-3.5 h-3.5 text-white" fill="currentColor">
               <path d="M12 2l8 4v6c0 5-3.4 9.3-8 10-4.6-.7-8-5-8-10V6l8-4z"/>
             </svg>
-            <span className="font-medium">One-time payment</span>
+            <span className="font-medium">Pago único</span>
           </span>
                   <span className="inline-flex items-center gap-1.5">
             <svg viewBox="0 0 24 24" className="w-3.5 h-3.5 text-white" fill="currentColor">
@@ -662,7 +662,7 @@ export default function ConversationPage() {
                   href={plansHref}
                   className="mt-3 sm:mt-0 flex-shrink-0 inline-flex items-center justify-center gap-2 px-5 py-2.5 text-sm font-semibold rounded-lg bg-white text-indigo-700 shadow-lg shadow-black/20 hover:shadow-xl hover:shadow-black/30 hover:scale-105 transition-all duration-200 active:scale-95 border border-white/50"
               >
-                <span>See plans</span>
+                <span>Ver planes</span>
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 7l5 5m0 0l-5 5m5-5H6" />
                 </svg>
@@ -683,7 +683,7 @@ export default function ConversationPage() {
       {/* Instagram-style input area */}
       <div className="px-4 py-3 border-t border-gray-200 bg-white" >
         {!turnstileReady && (
-          <div className="text-xs text-gray-500 mb-2">Preparing security…</div>
+          <div className="text-xs text-gray-500 mb-2">Preparando seguridad…</div>
         )}
 
         <div className="flex items-center gap-2">
@@ -705,7 +705,7 @@ export default function ConversationPage() {
           {/* Text input */}
           <input
             className="flex-1 px-4 py-2.5 border border-gray-300 rounded-full text-[15px] focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-50 disabled:cursor-not-allowed placeholder:text-gray-400"
-            placeholder="Message..."
+            placeholder="Mensaje..."
             value={text}
             onChange={(e) => setText(e.target.value)}
             onKeyDown={(e) => {

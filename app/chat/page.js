@@ -22,10 +22,10 @@ function lastLine({ lastMessageKind, lastMessageSender, lastMessagePreview, girl
     return `${who}: ${quoted}`;
   }
   const label =
-      lastMessageKind === "image" ? "sent a photo" :
-          lastMessageKind === "video" ? "sent a video" :
-              lastMessageKind === "audio" ? "sent a voice note" :
-                  "sent a message";
+      lastMessageKind === "image" ? "envió una foto" :
+          lastMessageKind === "video" ? "envió un vídeo" :
+              lastMessageKind === "audio" ? "envió un audio" :
+                  "envió un mensaje";
   return `${who} ${label}`;
 }
 
