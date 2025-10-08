@@ -156,11 +156,12 @@ export default function ConversationPage() {
   }, [data?.girlAvatarKey]);
 
   // Compute locked state on client: girl is premium-only and user doesn't have premium
-  const premiumLocked = !isLoading && !!data?.girlPremiumOnly && !me?.profile?.premiumActive;
+  const isPremiumNow = !!me?.profile?.premiumActive;
+  const premiumLocked = !isLoading && !!data?.girlPremiumOnly && !isPremiumNow;
   const outOfFree =
       !isLoading &&
       !premiumLocked &&
-      !data?.premiumActive &&
+      !isPremiumNow &&
       ((data?.freeRemaining?.text ?? Infinity) <= 0);
       // Disable the composer while loading or blocked
   const disableComposer = isLoading || premiumLocked || outOfFree;

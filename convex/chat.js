@@ -138,7 +138,7 @@ export const startConversation = mutation({
         .query("profiles")
         .withIndex("by_userId", (q) => q.eq("userId", userId))
         .first();
-    const premiumActive = (profile?.premiumUntil ?? 0) > Date.now();
+    const premiumActive = !!profile?.premiumActive || (profile?.premiumUntil ?? 0) > Date.now();
 
     const now = Date.now();
     const conversationId = await ctx.db.insert("conversations", {
@@ -181,7 +181,7 @@ export const clearConversation = mutation({
       clearedAt: now,             // soft clear pivot
       lastReadAt: now,            // no unread after a clear
       lastMessagePreview: "",     // thread list shows empty preview
-      updatedAt: now,
+      // Don't update updatedAt - keep thread order unchanged
     });
     return { ok: true, clearedAt: now };
   },
@@ -207,6 +207,18 @@ export const _getMessageInternal = internalQuery({
   args: { messageId: v.id("messages") },
   handler: async (ctx, { messageId }) => {
     return await ctx.db.get(messageId);
+  },
+});
+
+/** Internal: Verify conversation ownership (lightweight for S3 actions) */
+export const _verifyConversationOwnership = internalQuery({
+  args: { conversationId: v.id("conversations"), userId: v.id("users") },
+  handler: async (ctx, { conversationId, userId }) => {
+    const convo = await ctx.db.get(conversationId);
+    if (!convo || convo.userId !== userId) {
+      throw new Error("Unauthorized");
+    }
+    return { ok: true };
   },
 });
 
@@ -248,6 +260,9 @@ export const sendMessage = mutation({
     const permit = await ctx.db.get(permitId);
     if (!permit || permit.userId !== userId || permit.expiresAt < Date.now() || permit.usesLeft <= 0) {
       throw new Error("Security check failed (permit)");
+    }
+    if (permit.scope !== "chat_send") {
+      throw new Error("Security check failed (scope)");
     }
     // Decrement atomically within the same transaction
     await ctx.db.patch(permitId, { usesLeft: permit.usesLeft - 1 });
@@ -311,6 +326,9 @@ export const sendMediaMessage = mutation({
     const permit = await ctx.db.get(permitId);
     if (!permit || permit.userId !== userId || permit.expiresAt < Date.now() || permit.usesLeft <= 0) {
       throw new Error("Security check failed");
+    }
+    if (permit.scope !== "chat_send") {
+      throw new Error("Security check failed (scope)");
     }
     await ctx.db.patch(permitId, { usesLeft: permit.usesLeft - 1 });
 
@@ -378,6 +396,9 @@ export const sendAudioMessage = mutation({
     const permit = await ctx.db.get(permitId);
     if (!permit || permit.userId !== userId || permit.expiresAt < Date.now() || permit.usesLeft <= 0) {
       throw new Error("Security check failed");
+    }
+    if (permit.scope !== "chat_send") {
+      throw new Error("Security check failed (scope)");
     }
     await ctx.db.patch(permitId, { usesLeft: permit.usesLeft - 1 });
 
