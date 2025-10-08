@@ -8,34 +8,20 @@ import {
 } from "./chat.config.js";
 
 
-// convex/chat.js (add near imports)
+// Read-only premium check for girl access (enforcement now happens in send mutations via permit)
 async function requirePremiumIfGirlIsPremiumOnly(ctx, userId, girlId) {
   const girl = await ctx.db.get(girlId);
   if (!girl) throw new Error("Girl not found");
   if (!girl.premiumOnly) return { premiumNeeded: false, girl };
 
-  // time-limited premium check
+  // Check if user has premium access
   const profile = await ctx.db
       .query("profiles")
       .withIndex("by_userId", (q) => q.eq("userId", userId))
       .first();
 
-  const active = (profile?.premiumUntil ?? 0) > Date.now();
+  const active = !!profile?.premiumActive || (profile?.premiumUntil ?? 0) > Date.now();
   if (!active) throw new Error("PREMIUM_REQUIRED");
-
-  // keep boolean flag + snapshots consistent (optional but nice)
-  if (profile && (profile.premiumActive ?? false) !== active) {
-    await ctx.db.patch(profile._id, { premiumActive: active, updatedAt: Date.now() });
-
-    // reflect in all user conversations
-    const convos = await ctx.db
-        .query("conversations")
-        .withIndex("by_user_updated", (q) => q.eq("userId", userId))
-        .collect();
-    for (const c of convos) {
-      await ctx.db.patch(c._id, { premiumActive: active, updatedAt: Date.now() });
-    }
-  }
 
   return { premiumNeeded: true, girl };
 }
@@ -77,17 +63,7 @@ export const getConversation = query({
     const convo = await ctx.db.get(conversationId);
     if (!convo || convo.userId !== userId) throw new Error("Not found");
 
-    // Live premium state
-    const girl = await ctx.db.get(convo.girlId);
-    const profile = await ctx.db
-        .query("profiles")
-        .withIndex("by_userId", (q) => q.eq("userId", userId))
-        .first();
-
-    const premiumNow = (profile?.premiumUntil ?? 0) > Date.now();
-    const locked = !!girl?.premiumOnly && !premiumNow;
-
-    // Always return history (even if locked)
+    // Always return history
     const cutoff = convo.clearedAt ?? 0;
     const msgs = await ctx.db
         .query("messages")
@@ -104,13 +80,14 @@ export const getConversation = query({
       girlName: convo.girlName,
       girlAvatarKey: convo.girlAvatarKey,
 
-      // Reflect *current* premium state (not the snapshot)
-      premiumActive: premiumNow,
+      // Premium snapshot from conversation (client computes locked state)
+      premiumActive: convo.premiumActive,
+      girlPremiumOnly: convo.girlPremiumOnly,
 
-      // Let the client block sending / show banner
-      locked,
+      // Client computes: locked = girlPremiumOnly && !me.premiumActive
+      locked: false,
 
-      // Only needed by the free‑quota banner; harmless to include when locked
+      // Only needed by the free‑quota banner
       freeRemaining: {
         text: convo.freeRemaining.text,
         media: convo.freeRemaining.media,
@@ -175,6 +152,7 @@ export const startConversation = mutation({
         audio: FREE_AUDIO_PER_GIRL,
       },
       premiumActive,
+      girlPremiumOnly: girl.premiumOnly,
       personaPrompt: girl.personaPrompt,
       voiceId: girl.voiceId,
       lastMessageAt: now,
@@ -187,19 +165,6 @@ export const startConversation = mutation({
   },
 });
 
-
-/** Mark read (for unread dot) */
-export const markRead = mutation({
-  args: { conversationId: v.id("conversations"), at: v.number() },
-  handler: async (ctx, { conversationId, at }) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error("Unauthenticated");
-    const c = await ctx.db.get(conversationId);
-    if (!c || c.userId !== userId) throw new Error("Not found");
-    await ctx.db.patch(conversationId, { lastReadAt: at, updatedAt: Date.now() });
-    return { ok: true };
-  },
-});
 
 /** Clear all messages in a conversation (soft-clear) */
 export const clearConversation = mutation({
@@ -290,8 +255,13 @@ export const sendMessage = mutation({
     const convo = await ctx.db.get(conversationId);
     if (!convo || convo.userId !== userId) throw new Error("Not found");
 
+    // Enforce premium-only girls
+    if (convo.girlPremiumOnly && !permit.premiumAtMint) {
+      throw new Error("PREMIUM_REQUIRED");
+    }
+
     // Quota enforcement for free users (text only)
-    if (!convo.premiumActive) {
+    if (!permit.premiumAtMint) {
       if (convo.freeRemaining.text <= 0) {
         throw new Error("Free text quota exhausted");
       }
@@ -305,7 +275,7 @@ export const sendMessage = mutation({
     // Single patch: update quota + metadata together
     const preview = trimmed.length > 140 ? trimmed.slice(0, 140) + "…" : trimmed;
     await ctx.db.patch(conversationId, {
-      freeRemaining: convo.premiumActive
+      freeRemaining: permit.premiumAtMint
         ? convo.freeRemaining
         : { ...convo.freeRemaining, text: convo.freeRemaining.text - 1 },
       lastMessagePreview: preview,
@@ -346,6 +316,11 @@ export const sendMediaMessage = mutation({
 
     const convo = await ctx.db.get(conversationId);
     if (!convo || convo.userId !== userId) throw new Error("Not found");
+
+    // Enforce premium-only girls
+    if (convo.girlPremiumOnly && !permit.premiumAtMint) {
+      throw new Error("PREMIUM_REQUIRED");
+    }
 
     const now = Date.now();
     const messageId = await ctx.db.insert("messages", {
@@ -409,6 +384,11 @@ export const sendAudioMessage = mutation({
     const convo = await ctx.db.get(conversationId);
     if (!convo || convo.userId !== userId) throw new Error("Not found");
 
+    // Enforce premium-only girls
+    if (convo.girlPremiumOnly && !permit.premiumAtMint) {
+      throw new Error("PREMIUM_REQUIRED");
+    }
+
     const now = Date.now();
 
     // Insert user audio message (transcript will be added by action)
@@ -451,6 +431,14 @@ export const _applyTranscript = internalMutation({
       lastMessageSender: "user",
       updatedAt: Date.now(),
     });
+  },
+});
+
+/** Apply media summary to message (denormalized from insights for fast context building) */
+export const _applyMediaSummary = internalMutation({
+  args: { messageId: v.id("messages"), mediaSummary: v.string() },
+  handler: async (ctx, { messageId, mediaSummary }) => {
+    await ctx.db.patch(messageId, { mediaSummary });
   },
 });
 

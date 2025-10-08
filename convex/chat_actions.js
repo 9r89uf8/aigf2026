@@ -6,15 +6,6 @@ import { api } from "./_generated/api";
 import { CONTEXT_TURNS } from "./chat.config.js";
 
 
-const nowInMexico = DateTime.now()
-    .setZone('America/Mexico_City')
-    .setLocale('es');
-
-const temporalHuman = nowInMexico.toFormat("cccc d 'de' LLLL 'de' yyyy, hh:mm a");
-
-
-
-
 // --- FAST INTENT TOGGLE ---
 // const FAST_INTENT_ENABLED = process.env.FAST_INTENT_ENABLED !== "0"; // default enabled
 const FAST_INTENT_ENABLED = 1
@@ -157,44 +148,10 @@ export const _getContextV2 = internalQuery({
       }
     }
 
-    // Fetch media insights using indexed lookups (no table scan)
-    const mediaMessageIds = usable
-      .filter(m => (m.kind === "image" || m.kind === "video") && m.sender === "user")
-      .map(m => m._id);
-
-    const insightsMap = new Map();
-    for (const messageId of mediaMessageIds) {
-      const insight = await ctx.db
-        .query("mediaInsights")
-        .withIndex("by_message", q => q.eq("messageId", messageId))
-        .first();
-      if (insight) {
-        insightsMap.set(messageId.toString(), insight);
-      }
-    }
-
-    // Helper to build a compact label summary
-    function summarizeInsights(insights) {
-      if (!insights) return "";
-      const mods = (insights.moderationLabels || [])
-        .filter(l => (l.confidence ?? 0) > 80)
-        .slice(0, 3)
-        .map(l => String(l.name || "").toLowerCase());
-      const scenes = (insights.sceneLabels || [])
-        .filter(l => (l.confidence ?? 0) > 80)
-        .slice(0, 3)
-        .map(l => String(l.name || "").toLowerCase());
-      const parts = [];
-      if (scenes.length) parts.push(`escena: ${scenes.join(", ")}`);
-      if (mods.length) parts.push(`mod: ${mods.join(", ")}`);
-      return parts.join(" | ");
-    }
-
-    // Build a tiny summary for the *latest* user media (if any)
+    // Get the latest user media summary (denormalized - no N+1!)
     let lastUserMediaSummary = "";
     if (lastUser && lastUser.sender === "user" && (lastUser.kind === "image" || lastUser.kind === "video")) {
-      const insights = insightsMap.get(lastUser._id.toString());
-      lastUserMediaSummary = summarizeInsights(insights);
+      lastUserMediaSummary = lastUser.mediaSummary || "";
     }
 
     const history = usable.reverse().map((m) => {
@@ -211,31 +168,9 @@ export const _getContextV2 = internalQuery({
       const cap = m.text ? ` pie: "${m.text}"` : "";
       let content = `${m.sender === "user" ? "usuario" : "asistente"} envió ${tag}.${cap}`;
 
-      // Add media insights for user messages (AI content understanding)
-      if (m.sender === "user" && (m.kind === "image" || m.kind === "video")) {
-        const insights = insightsMap.get(m._id.toString());
-        if (insights) {
-          const topModLabels = (insights.moderationLabels || [])
-            .filter(l => l.confidence > 80)
-            .slice(0, 5)
-            .map(l => `${l.name} (${l.confidence.toFixed(0)}%)`)
-            .join(", ");
-
-
-          const topSceneLabels = (insights.sceneLabels || [])
-            .filter(l => l.confidence > 80)
-            .slice(0, 3)
-            .map(l => l.name)
-            .join(", ");
-
-          if (topModLabels || topSceneLabels) {
-            content += `\n[análisis: `;
-            if (topModLabels) content += `${topModLabels}`;
-            if (topModLabels && topSceneLabels) content += `; `;
-            if (topSceneLabels) content += `escena: ${topSceneLabels}`;
-            content += `]`;
-          }
-        }
+      // Add media summary for user messages (denormalized - no N+1!)
+      if (m.sender === "user" && (m.kind === "image" || m.kind === "video") && m.mediaSummary) {
+        content += `\n[análisis: ${m.mediaSummary}]`;
       }
 
       return { role: m.sender === "user" ? "user" : "assistant", content };
@@ -246,6 +181,11 @@ export const _getContextV2 = internalQuery({
       // console.log('-----------------------------');
       // console.log(convo);
 
+    // Compute fresh temporal context (avoid staleness in long-running processes)
+    const temporalHuman = DateTime.now()
+      .setZone('America/Mexico_City')
+      .setLocale('es')
+      .toFormat("cccc d 'de' LLLL 'de' yyyy, hh:mm a");
 
     const basePersona = `
 eres ${convo.girlName} ${convo.personaPrompt || ""}

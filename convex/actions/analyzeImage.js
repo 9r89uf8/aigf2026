@@ -72,6 +72,27 @@ export const analyzeImageContent = action({
         analysisMethod: "rekognition-image",
       });
 
+      // Denormalize summary onto message for fast context building (avoids N+1)
+      const mods = moderationLabels
+        .filter(l => l.confidence > 80)
+        .slice(0, 3)
+        .map(l => l.name.toLowerCase());
+      const scenes = sceneLabels
+        .filter(l => l.confidence > 80)
+        .slice(0, 3)
+        .map(l => l.name.toLowerCase());
+      const parts = [];
+      if (scenes.length) parts.push(`escena: ${scenes.join(", ")}`);
+      if (mods.length) parts.push(`mod: ${mods.join(", ")}`);
+      const mediaSummary = parts.join(" | ");
+
+      if (mediaSummary) {
+        await ctx.runMutation(internal.chat._applyMediaSummary, {
+          messageId,
+          mediaSummary,
+        });
+      }
+
       // console.log(`✅ Image analysis complete for message ${messageId}:`, {
       //   moderationLabels: moderationLabels.slice(0, 3),
       //   sceneLabels: sceneLabels.slice(0, 3),

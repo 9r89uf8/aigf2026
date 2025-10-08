@@ -70,7 +70,6 @@ export default function ConversationPage() {
 
   const mintPermit = useAction(api.turnstile.verifyAndMintPermit);
   const send = useMutation(api.chat.sendMessage);
-  const markRead = useMutation(api.chat.markRead);
   const likeMsg = useMutation(api.chat.likeMessage);
   const clearConversation = useMutation(api.chat.clearConversation);
 
@@ -126,9 +125,8 @@ export default function ConversationPage() {
   useEffect(() => {
     if (data) {
       bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-      markRead({ conversationId, at: Date.now() });
     }
-  }, [data, conversationId, markRead]);
+  }, [data]);
 
   // Auto-scroll when typing indicator appears
   useEffect(() => {
@@ -157,8 +155,26 @@ export default function ConversationPage() {
     return () => { cancelled = true; };
   }, [data?.girlAvatarKey]);
 
-  // Load plans (once) for the upsell computation
+  // Compute locked state on client: girl is premium-only and user doesn't have premium
+  const premiumLocked = !isLoading && !!data?.girlPremiumOnly && !me?.profile?.premiumActive;
+  const outOfFree =
+      !isLoading &&
+      !premiumLocked &&
+      !data?.premiumActive &&
+      ((data?.freeRemaining?.text ?? Infinity) <= 0);
+      // Disable the composer while loading or blocked
+  const disableComposer = isLoading || premiumLocked || outOfFree;
+  // Only show the banner once we actually know the state
+  const showUpsellBanner = !isLoading && (premiumLocked || outOfFree);
+
+// Helpful for CTA:
+  const plansHref =
+      `/plans?returnTo=${encodeURIComponent(`/chat/${conversationId}`)}` +
+      (data?.girlId ? `&girl=${data.girlId}` : "");
+
+  // Load plans (only when upsell banner needs to be shown)
   useEffect(() => {
+    if (!showUpsellBanner) return;
     let cancelled = false;
     (async () => {
       try {
@@ -169,7 +185,7 @@ export default function ConversationPage() {
       }
     })();
     return () => { cancelled = true; };
-  }, [listPlans]);
+  }, [showUpsellBanner, listPlans]);
 
   // Determine the user's selected currency (only the ones we show)
   const selectedCurrency = (() => {
@@ -235,23 +251,6 @@ export default function ConversationPage() {
     })();
     return () => { cancelled = true; };
   }, [turnstileReady /* you can omit conversationId for a global prefetch */]);
-
-  const premiumLocked = !!data?.locked; // from server
-  const outOfFree =
-      !isLoading &&
-      !premiumLocked &&
-      !data?.premiumActive &&
-      ((data?.freeRemaining?.text ?? Infinity) <= 0);
-      // Disable the composer while loading or blocked
-  const disableComposer = isLoading || premiumLocked || outOfFree;
-  // Only show the banner once we actually know the state
-  const showUpsellBanner = !isLoading && (premiumLocked || outOfFree);
-
-// Helpful for CTA:
-  const plansHref =
-      `/plans?returnTo=${encodeURIComponent(`/chat/${conversationId}`)}` +
-      (data?.girlId ? `&girl=${data.girlId}` : "");
-
 
   function permitValid(p) {
     return p && p.usesLeft > 0 && p.expiresAt > Date.now();

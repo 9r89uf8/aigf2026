@@ -141,6 +141,7 @@ const schema = defineSchema({
       audio: v.number(),
     }),
     premiumActive: v.boolean(),       // denormalized from profiles (snapshot)
+    girlPremiumOnly: v.boolean(),     // denormalized from girls (for enforcement)
     personaPrompt: v.optional(v.string()), // denormalized from girls
     voiceId: v.optional(v.string()),       // denormalized from girls
     lastMessageAt: v.number(),        // ms epoch
@@ -166,6 +167,7 @@ const schema = defineSchema({
     userLiked: v.optional(v.boolean()),    // user liked this AI message
     aiLiked: v.optional(v.boolean()),      // AI liked this user message
     aiError: v.optional(v.boolean()),      // mark if AI failed to respond to THIS user message
+    mediaSummary: v.optional(v.string()),  // denormalized media insights summary
     ownerUserId: v.id("users"),            // denormalized for fast auth
     createdAt: v.number(),            // ms epoch
   })
@@ -210,6 +212,8 @@ const schema = defineSchema({
     expiresAt: v.number(), // ms epoch
     createdAt: v.number(),
     scope: v.optional(v.string()), // "chat_send" for future scoping
+    premiumAtMint: v.boolean(),
+    premiumUntilAtMint: v.optional(v.number()),
   }).index("by_user", ["userId"]),
 });
 

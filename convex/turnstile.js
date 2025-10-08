@@ -25,6 +25,8 @@ export const _insertPermit = internalMutation({
     usesLeft: v.number(),
     expiresAt: v.number(),
     createdAt: v.number(),
+    premiumAtMint: v.boolean(),
+    premiumUntilAtMint: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
     return await ctx.db.insert("turnstile_permits", args);
@@ -110,9 +112,9 @@ export const verifyAndMintPermit = action({
     const data = await resp.json();
     if (!data.success) throw new Error("Turnstile verification failed");
 
-    // Premium-aware permit size/TTL (optional; tweak or keep same)
+    // Premium-aware permit size/TTL + stamp premium status at mint time
     const profile = await ctx.runQuery(api.turnstile._profileByUserId, { userId });
-    const premium = profile?.premiumActive ?? false;
+    const premium = !!profile?.premiumActive || (profile?.premiumUntil ?? 0) > Date.now();
     const uses = premium ? PERMIT_USES_PREMIUM : PERMIT_USES_FREE;
     const ttl  = premium ? PERMIT_TTL_MS_PREMIUM : PERMIT_TTL_MS_FREE;
 
@@ -121,6 +123,8 @@ export const verifyAndMintPermit = action({
 
     const permitId = await ctx.runMutation(api.turnstile._insertPermit, {
       userId, scope, usesLeft: uses, expiresAt, createdAt: now,
+      premiumAtMint: premium,
+      premiumUntilAtMint: profile?.premiumUntil ?? undefined,
     });
 
     return { permitId, usesLeft: uses, expiresAt };

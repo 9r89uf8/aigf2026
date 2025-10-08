@@ -67,7 +67,7 @@ export default function MediaComposer({
 
       await fetch(uploadUrl, { method: "PUT", headers: { "Content-Type": file.type }, body: file });
 
-      await finalize({ objectKey, kind }); // HEAD check + server validation
+      await finalize({ objectKey, kind, conversationId }); // HEAD check + server validation
 
       await sendMedia({
         conversationId,

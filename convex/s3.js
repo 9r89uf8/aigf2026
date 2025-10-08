@@ -139,6 +139,12 @@ export const signChatUpload = action({
   handler: async (ctx, { conversationId, kind, contentType, size }) => {
     const userId = await getAuthUserId(ctx);
     if (!userId) throw new Error("Unauthenticated");
+
+    // Security: validate conversation ownership
+    const convo = await ctx.runQuery(api.chat.getConversation, { conversationId });
+    if (!convo) throw new Error("Conversation not found");
+    // getConversation already validates userId internally, but double-check
+
     validateKindAndType(kind, contentType);
     if (kind === "image" && size > MAX_IMAGE_BYTES) throw new Error("Image too large");
     if (kind === "video" && size > MAX_VIDEO_BYTES) throw new Error("Video too large");
@@ -167,8 +173,21 @@ export const finalizeChatUpload = action({
   args: {
     objectKey: v.string(),
     kind: v.union(v.literal("image"), v.literal("video"), v.literal("audio")),
+    conversationId: v.id("conversations"),
   },
-  handler: async (_ctx, { objectKey, kind }) => {
+  handler: async (ctx, { objectKey, kind, conversationId }) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw new Error("Unauthenticated");
+
+    // Security: validate key belongs to this conversation and user owns it
+    if (!objectKey.startsWith(`chat/${conversationId}/user/`)) {
+      throw new Error("Key mismatch");
+    }
+
+    // Validate conversation ownership
+    const convo = await ctx.runQuery(api.chat.getConversation, { conversationId });
+    if (!convo) throw new Error("Conversation not found");
+
     // HEAD to confirm it exists & validate size/content-type
     const head = await s3.send(new HeadObjectCommand({ Bucket: BUCKET, Key: objectKey }));
     const size = head.ContentLength ?? 0;

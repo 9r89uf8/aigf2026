@@ -152,6 +152,19 @@ export const analyzeVideoContent = action({
         analysisMethod: "single-frame-moderation",
       });
 
+      // Denormalize summary onto message for fast context building (avoids N+1)
+      const mods = moderationLabels
+        .filter(l => l.confidence > 80)
+        .slice(0, 3)
+        .map(l => l.name.toLowerCase());
+      if (mods.length > 0) {
+        const mediaSummary = `mod: ${mods.join(", ")}`;
+        await ctx.runMutation(internal.chat._applyMediaSummary, {
+          messageId,
+          mediaSummary,
+        });
+      }
+
       // console.log(`✅ Video analysis complete for message ${messageId}:`, {
       //   framesAnalyzed: 1,
       //   moderationLabels: moderationLabels.slice(0, 3),

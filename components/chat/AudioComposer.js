@@ -86,7 +86,7 @@ export default function AudioComposer({
         body: blob
       });
 
-      await finalize({ objectKey, kind: "audio" });
+      await finalize({ objectKey, kind: "audio", conversationId });
 
       // Try to extract duration
       let durationSec;
