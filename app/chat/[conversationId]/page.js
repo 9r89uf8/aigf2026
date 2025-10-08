@@ -116,6 +116,7 @@ export default function ConversationPage() {
   const [permit, setPermit] = useState(null); // { permitId, usesLeft, expiresAt }
   const [avatarUrl, setAvatarUrl] = useState(null);
   const [showDeleteButton, setShowDeleteButton] = useState(false);
+  const [enlargedImage, setEnlargedImage] = useState(null); // URL of image to show enlarged
   const bottomRef = useRef(null);
 
   const { ready: turnstileReady, getToken } = useInvisibleTurnstile();
@@ -281,6 +282,17 @@ export default function ConversationPage() {
       return () => clearTimeout(timer);
     }
   }, [showDeleteButton]);
+
+  // ESC key to close enlarged image
+  useEffect(() => {
+    const handleEscape = (e) => {
+      if (e.key === "Escape" && enlargedImage) {
+        setEnlargedImage(null);
+      }
+    };
+    window.addEventListener("keydown", handleEscape);
+    return () => window.removeEventListener("keydown", handleEscape);
+  }, [enlargedImage]);
 
 // top-level (module scope)
   const prefetchAttemptedRef = useRef(false);
@@ -534,7 +546,12 @@ export default function ConversationPage() {
                 >
                   {m.kind === "image" ? (
                     src ? (
-                      <img src={src} alt="image" className="max-h-80 w-full object-cover" />
+                      <img
+                        src={src}
+                        alt="image"
+                        className="max-h-80 w-full object-cover cursor-pointer hover:opacity-90 transition-opacity"
+                        onClick={() => !mine && setEnlargedImage(src)}
+                      />
                     ) : (
                       <div className="w-64 h-64 bg-gray-300/50 animate-pulse" />
                     )
@@ -736,6 +753,30 @@ export default function ConversationPage() {
           </button>
         </div>
       </div>
+
+      {/* Image Enlargement Modal */}
+      {enlargedImage && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-4"
+          onClick={() => setEnlargedImage(null)}
+        >
+          <button
+            onClick={() => setEnlargedImage(null)}
+            className="absolute top-4 right-4 p-2 rounded-full bg-white/10 hover:bg-white/20 transition-colors z-10"
+            aria-label="Cerrar"
+          >
+            <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+          <img
+            src={enlargedImage}
+            alt="Imagen ampliada"
+            className="max-w-full max-h-full object-contain"
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
+      )}
     </div>
   );
 }
