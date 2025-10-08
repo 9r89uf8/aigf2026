@@ -4,7 +4,7 @@ import { query, mutation, internalMutation, internalQuery } from "./_generated/s
 import { api } from "./_generated/api";
 import { getAuthUserId } from "@convex-dev/auth/server";
 import {
-  FREE_TEXT_PER_GIRL, FREE_MEDIA_PER_GIRL, FREE_AUDIO_PER_GIRL,
+  FREE_TEXT_PER_GIRL, FREE_MEDIA_PER_GIRL, FREE_AUDIO_PER_GIRL, HEAVY_REPLY_COOLDOWN_MS,
 } from "./chat.config.js";
 
 
@@ -94,6 +94,14 @@ export const getConversation = query({
         audio: convo.freeRemaining.audio,
       },
 
+      // Typing indicator hints
+      pendingIntent: convo.pendingIntent,
+      pendingIntentExpiresAt: convo.pendingIntentExpiresAt,
+
+      // Seen ticks (lastReadAt for ✓✓ rendering)
+      lastReadAt: convo.lastReadAt,
+      lastAiReadAt: convo.lastAiReadAt,
+
       messages: msgs.map((m) => ({
         id: m._id,
         sender: m.sender,
@@ -105,6 +113,9 @@ export const getConversation = query({
         userLiked: m.userLiked,
         aiLiked: m.aiLiked,
         aiError: m.aiError,
+        replyTo: m.replyTo
+          ? { id: m.replyTo.id, sender: m.replyTo.sender, kind: m.replyTo.kind, text: m.replyTo.text }
+          : undefined,
       })),
     };
   },
@@ -300,8 +311,9 @@ export const sendMessage = mutation({
       updatedAt: now,
     });
 
-    // Schedule AI reply action (runs outside this transaction)
-    await ctx.scheduler.runAfter(0, api.chat_actions.aiReply, {
+    // Schedule AI reply action with jitter (feels more human)
+    const d = Math.floor(2000 + Math.random() * 5000); // 2-7s
+    await ctx.scheduler.runAfter(d, api.chat_actions.aiReply, {
       conversationId, userMessageId: userMsgId,
     });
 
@@ -355,22 +367,24 @@ export const sendMediaMessage = mutation({
 
     // Schedule media analysis (Rekognition)
     if (kind === "image") {
-      // Images: analyze immediately, AI reply waits 1.5s for insights
+      // Images: analyze immediately, AI reply with jitter
       await ctx.scheduler.runAfter(0, api.actions.analyzeImage.analyzeImageContent, {
         messageId,
         objectKey,
       });
-      await ctx.scheduler.runAfter(1500, api.chat_actions.aiReply, {
+      const d = Math.floor(2500 + Math.random() * 3500); // 2.5-6s
+      await ctx.scheduler.runAfter(d, api.chat_actions.aiReply, {
         conversationId,
         userMessageId: messageId
       });
     } else if (kind === "video") {
-      // Videos: frame sampling takes longer, AI reply waits 2.5s for insights
+      // Videos: frame sampling takes longer, AI reply with jitter
       await ctx.scheduler.runAfter(0, api.actions.analyzeVideo.analyzeVideoContent, {
         messageId,
         objectKey,
       });
-      await ctx.scheduler.runAfter(3000, api.chat_actions.aiReply, {
+      const d = Math.floor(3500 + Math.random() * 3500); // 3.5-7s
+      await ctx.scheduler.runAfter(d, api.chat_actions.aiReply, {
         conversationId,
         userMessageId: messageId
       });
@@ -475,12 +489,19 @@ export const _insertAIAudioAndDec = internalMutation({
     durationSec: v.optional(v.number()),
     shouldLikeUserMsg: v.optional(v.boolean()),
     lastUserMsgId: v.optional(v.id("messages")),
+    replyTo: v.optional(v.object({
+      id: v.id("messages"),
+      sender: v.union(v.literal("user"), v.literal("ai")),
+      kind: v.union(v.literal("text"), v.literal("image"), v.literal("video"), v.literal("audio")),
+      text: v.optional(v.string()),
+    })),
   },
-  handler: async (ctx, { conversationId, ownerUserId, premiumActive, freeRemaining, mediaKey, caption, durationSec, shouldLikeUserMsg, lastUserMsgId }) => {
+  handler: async (ctx, { conversationId, ownerUserId, premiumActive, freeRemaining, mediaKey, caption, durationSec, shouldLikeUserMsg, lastUserMsgId, replyTo }) => {
     const now = Date.now();
     await ctx.db.insert("messages", {
       conversationId, sender: "ai", kind: "audio",
       mediaKey, text: caption || undefined, durationSec, ownerUserId, createdAt: now,
+      ...(replyTo ? { replyTo } : {}),
     });
 
     // Atomically like user's message if requested, and clear any error flag
@@ -497,6 +518,7 @@ export const _insertAIAudioAndDec = internalMutation({
       lastMessageKind: "audio",
       lastMessageSender: "ai",
       lastMessageAt: now, updatedAt: now,
+      heavyCooldownUntil: now + HEAVY_REPLY_COOLDOWN_MS,
     });
   },
 });
@@ -529,6 +551,21 @@ export const _insertAIMessage = internalMutation({
       lastMessageAt: now,
       updatedAt: now,
     });
+    return { ok: true };
+  },
+});
+
+/** Mark conversation as read (for seen ticks) */
+export const markRead = mutation({
+  args: { conversationId: v.id("conversations"), at: v.optional(v.number()) },
+  handler: async (ctx, { conversationId, at }) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw new Error("Unauthenticated");
+    const convo = await ctx.db.get(conversationId);
+    if (!convo || convo.userId !== userId) throw new Error("Not found");
+    const now = at ?? Date.now();
+    if (now <= (convo.lastReadAt || 0)) return { ok: true };
+    await ctx.db.patch(conversationId, { lastReadAt: now });
     return { ok: true };
   },
 });

@@ -150,9 +150,17 @@ const schema = defineSchema({
     lastMessageSender: v.optional(v.union(v.literal("user"), v.literal("ai"))), // denormalized for thread list
     lastStorySeenAt: v.optional(v.number()), // ms epoch; for "new" story ring indicator
     lastReadAt: v.number(),           // ms epoch
+    lastAiReadAt: v.optional(v.number()), // ms epoch; AI "seen up to" timestamp for user messages (drives ✓✓ on user bubbles)
     clearedAt: v.optional(v.number()), // soft-clear pivot: only show messages created after this timestamp
     createdAt: v.number(),
     updatedAt: v.number(),
+    // Typing indicator: short-lived hint (no separate table needed)
+    pendingIntent: v.optional(v.union(
+      v.literal("text"), v.literal("audio"), v.literal("image"), v.literal("video")
+    )),
+    pendingIntentExpiresAt: v.optional(v.number()),
+    // Media/audio reply throttle: cooldown timestamp
+    heavyCooldownUntil: v.optional(v.number()),
   })
     .index("by_user_updated", ["userId", "updatedAt"])
     .index("by_user_girl", ["userId", "girlId"]),
@@ -170,6 +178,13 @@ const schema = defineSchema({
     mediaSummary: v.optional(v.string()),  // denormalized media insights summary
     ownerUserId: v.id("users"),            // denormalized for fast auth
     createdAt: v.number(),            // ms epoch
+    // Message references: denormalized "Replying to..." preview (no joins needed)
+    replyTo: v.optional(v.object({
+      id: v.id("messages"),
+      sender: v.union(v.literal("user"), v.literal("ai")),
+      kind: v.union(v.literal("text"), v.literal("image"), v.literal("video"), v.literal("audio")),
+      text: v.optional(v.string()), // 0-140 chars preview if text/caption/transcript
+    })),
   })
     .index("by_conversation_ts", ["conversationId", "createdAt"]),
 

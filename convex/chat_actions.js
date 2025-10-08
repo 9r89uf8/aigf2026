@@ -3,8 +3,40 @@ import { DateTime } from 'luxon';
 import { action, internalQuery, internalMutation } from "./_generated/server";
 import { v } from "convex/values";
 import { api } from "./_generated/api";
-import { CONTEXT_TURNS } from "./chat.config.js";
+import { CONTEXT_TURNS, HEAVY_REPLY_COOLDOWN_MS } from "./chat.config.js";
 
+
+// --- TYPING HINT HELPER ---
+// One mutation to set/clear the ephemeral typing hint
+export const _setPendingIntent = internalMutation({
+  args: {
+    conversationId: v.id("conversations"),
+    intent: v.optional(v.union(v.literal("text"), v.literal("audio"), v.literal("image"), v.literal("video"))),
+    ttlMs: v.optional(v.number()),
+  },
+  handler: async (ctx, { conversationId, intent, ttlMs }) => {
+    if (!intent) {
+      await ctx.db.patch(conversationId, { pendingIntent: undefined, pendingIntentExpiresAt: undefined });
+      return;
+    }
+    const expires = Date.now() + (ttlMs ?? 10_000);
+    await ctx.db.patch(conversationId, { pendingIntent: intent, pendingIntentExpiresAt: expires });
+  },
+});
+
+// --- SUPERSEDE HELPER ---
+// Find the latest USER message id quickly (small read for interrupt detection)
+export const _getLastUserMessage = internalQuery({
+  args: { conversationId: v.id("conversations") },
+  handler: async (ctx, { conversationId }) => {
+    const recent = await ctx.db
+      .query("messages")
+      .withIndex("by_conversation_ts", (q) => q.eq("conversationId", conversationId))
+      .order("desc")
+      .take(12); // tiny window is enough
+    return recent.find((m) => m.sender === "user") || null;
+  },
+});
 
 // --- FAST INTENT TOGGLE ---
 // const FAST_INTENT_ENABLED = process.env.FAST_INTENT_ENABLED !== "0"; // default enabled
@@ -225,7 +257,11 @@ límites y seguridad:
       premiumActive: convo.premiumActive,
       freeRemaining: convo.freeRemaining,
       lastUserMessage: lastUser,  // For fast-intent detection in actions
-      lastUserMediaSummary
+      lastUserMediaSummary,
+      lastAiWasMedia:
+        (convo.lastMessageSender === "ai") &&
+        (convo.lastMessageKind === "image" || convo.lastMessageKind === "video" || convo.lastMessageKind === "audio"),
+      heavyCooldownUntil: convo.heavyCooldownUntil ?? 0,
     };
   },
 });
@@ -238,6 +274,17 @@ export const _markAIError = internalMutation({
     if (!msg) return;
     if (msg.sender !== "user") return;
     await ctx.db.patch(messageId, { aiError: true });
+  },
+});
+
+/** Mark AI as having seen a user message (for ✓✓ ticks) */
+export const _markAiSeen = internalMutation({
+  args: { conversationId: v.id("conversations"), seenAt: v.number() },
+  handler: async (ctx, { conversationId, seenAt }) => {
+    const convo = await ctx.db.get(conversationId);
+    if (!convo) return;
+    if ((convo.lastAiReadAt ?? 0) >= seenAt) return; // monotonic
+    await ctx.db.patch(conversationId, { lastAiReadAt: seenAt });
   },
 });
 
@@ -309,6 +356,29 @@ reacciona con UNA sola línea (1–8 palabras), español mexicano, minúsculas, 
   });
 }
 
+// Micro-LLM helper: Generate short answer for superseded user text
+async function microAnswerToUserText(userText) {
+  const sys = `${TEXTING_STYLE_MX_TEEN}
+responde en 1–12 palabras, directo, sin repetir la pregunta.`;
+  const usr = `contesta breve a esto del user: "${(userText || "").slice(0, 240)}"`;
+  return callLLMShort({
+    baseUrl: process.env.LLM_BASE_URL_PRIMARY,
+    apiKey: process.env.LLM_API_KEY_PRIMARY,
+    model: process.env.LLM_MODEL_PRIMARY,
+    messages: [{ role: "system", content: sys }, { role: "user", content: usr }],
+    max_tokens: 40,
+  });
+}
+
+// Extract preview text from message for replyTo field
+function replyToPreviewFromMessage(m) {
+  if (m.kind === "text" && m.text) return m.text.slice(0, 140);
+  if (m.kind === "image") return "[Image]";
+  if (m.kind === "video") return "[Video]";
+  if (m.kind === "audio") return m.text ? `[Voice note] ${m.text.slice(0, 100)}` : "[Voice note]";
+  return "";
+}
+
 function parseDecision(s) {
   // Find first JSON object
   const m = s.match(/\{[\s\S]*\}/);
@@ -333,11 +403,18 @@ export const _insertAIText = internalMutation({
     text: v.string(),
     shouldLikeUserMsg: v.optional(v.boolean()),
     lastUserMsgId: v.optional(v.id("messages")),
+    replyTo: v.optional(v.object({
+      id: v.id("messages"),
+      sender: v.union(v.literal("user"), v.literal("ai")),
+      kind: v.union(v.literal("text"), v.literal("image"), v.literal("video"), v.literal("audio")),
+      text: v.optional(v.string()),
+    })),
   },
-  handler: async (ctx, { conversationId, ownerUserId, text, shouldLikeUserMsg, lastUserMsgId }) => {
+  handler: async (ctx, { conversationId, ownerUserId, text, shouldLikeUserMsg, lastUserMsgId, replyTo }) => {
     const now = Date.now();
     await ctx.db.insert("messages", {
       conversationId, sender: "ai", kind: "text", text, ownerUserId, createdAt: now,
+      ...(replyTo ? { replyTo } : {}),
     });
 
     // Atomically like user's message if requested, and clear any error flag
@@ -354,6 +431,43 @@ export const _insertAIText = internalMutation({
   },
 });
 
+/** Insert text if anchor is still latest (for burst replies) */
+export const insertTextIfAnchor = action({
+  args: {
+    conversationId: v.id("conversations"),
+    ownerUserId: v.id("users"),
+    text: v.string(),
+    anchorUserMsgId: v.id("messages"),
+    shouldLikeUserMsg: v.optional(v.boolean()),
+    lastUserMsgId: v.optional(v.id("messages")),
+  },
+  handler: async (ctx, args) => {
+    const latest = await ctx.runQuery(api.chat_actions._getLastUserMessage, { conversationId: args.conversationId });
+    let replyTo;
+    if (!latest || latest._id !== args.anchorUserMsgId) {
+      // Anchor is no longer latest → still send, but as "replying to"
+      const mAnchor = await ctx.runQuery(api.chat._getMessageInternal, { messageId: args.anchorUserMsgId });
+      if (mAnchor) {
+        replyTo = {
+          id: mAnchor._id,
+          sender: mAnchor.sender,
+          kind: mAnchor.kind,
+          text: (mAnchor.text || "").slice(0, 140) || replyToPreviewFromMessage(mAnchor),
+        };
+      }
+    }
+    await ctx.runMutation(api.chat_actions._insertAIText, {
+      conversationId: args.conversationId,
+      ownerUserId: args.ownerUserId,
+      text: args.text,
+      shouldLikeUserMsg: args.shouldLikeUserMsg,
+      lastUserMsgId: args.lastUserMsgId,
+      ...(replyTo ? { replyTo } : {}),
+    });
+    return { ok: true, mode: replyTo ? "replyTo_burst" : "normal" };
+  }
+});
+
 /** Insert AI media + decrement media quota if not premium */
 export const _insertAIMediaAndDec = internalMutation({
   args: {
@@ -366,12 +480,19 @@ export const _insertAIMediaAndDec = internalMutation({
     caption: v.optional(v.string()),
     shouldLikeUserMsg: v.optional(v.boolean()),
     lastUserMsgId: v.optional(v.id("messages")),
+    replyTo: v.optional(v.object({
+      id: v.id("messages"),
+      sender: v.union(v.literal("user"), v.literal("ai")),
+      kind: v.union(v.literal("text"), v.literal("image"), v.literal("video"), v.literal("audio")),
+      text: v.optional(v.string()),
+    })),
   },
-  handler: async (ctx, { conversationId, ownerUserId, premiumActive, freeRemaining, kind, mediaKey, caption, shouldLikeUserMsg, lastUserMsgId }) => {
+  handler: async (ctx, { conversationId, ownerUserId, premiumActive, freeRemaining, kind, mediaKey, caption, shouldLikeUserMsg, lastUserMsgId, replyTo }) => {
     const now = Date.now();
     // Insert media message
     await ctx.db.insert("messages", {
       conversationId, sender: "ai", kind, mediaKey, text: caption || undefined, ownerUserId, createdAt: now,
+      ...(replyTo ? { replyTo } : {}),
     });
 
     // Atomically like user's message if requested, and clear any error flag
@@ -387,6 +508,7 @@ export const _insertAIMediaAndDec = internalMutation({
       lastMessageKind: kind,
       lastMessageSender: "ai",
       lastMessageAt: now, updatedAt: now,
+      heavyCooldownUntil: now + HEAVY_REPLY_COOLDOWN_MS,
     });
   },
 });
@@ -394,12 +516,82 @@ export const _insertAIMediaAndDec = internalMutation({
 export const aiReply = action({
   args: { conversationId: v.id("conversations"), userMessageId: v.optional(v.id("messages")) },
   handler: async (ctx, { conversationId, userMessageId }) => {
-    const { persona, history, girlId, userId, voiceId, premiumActive, freeRemaining, lastUserMessage, lastUserMediaSummary } = await ctx.runQuery(api.chat_actions._getContextV2, {
+    // Helper: always clear hint before returning
+    async function done(result) {
+      await ctx.runMutation(api.chat_actions._setPendingIntent, { conversationId });
+      return result;
+    }
+
+    // Supersede guard (and clear pending hint if any)
+    const latestUser = await ctx.runQuery(api.chat_actions._getLastUserMessage, { conversationId });
+    const anchorId = userMessageId ?? latestUser?._id; // reused in burst scheduling
+
+    const { persona, history, girlId, userId, voiceId, premiumActive, freeRemaining,
+      lastUserMessage, lastUserMediaSummary, lastAiWasMedia, heavyCooldownUntil } = await ctx.runQuery(api.chat_actions._getContextV2, {
       conversationId, limit: CONTEXT_TURNS,
     });
 
+    // Mark AI as having seen this user message (for ✓✓ ticks)
+    if (userMessageId) {
+      const mAnchor = await ctx.runQuery(api.chat._getMessageInternal, { messageId: userMessageId });
+      if (mAnchor) {
+        await ctx.runMutation(api.chat_actions._markAiSeen, { conversationId, seenAt: mAnchor.createdAt });
+      }
+    }
+
+    // Check if this reply is superseded (user sent a newer message)
+    if (userMessageId && latestUser?._id && userMessageId !== latestUser._id) {
+      // Answer the older message anyway, as a "replying to" — keeps the convo feeling human
+      const mAnchor = await ctx.runQuery(api.chat._getMessageInternal, { messageId: userMessageId });
+      if (!mAnchor) {
+        await ctx.runMutation(api.chat_actions._setPendingIntent, { conversationId });
+        return { ok: true, kind: "skipped" };
+      }
+      const replyTo = {
+        id: mAnchor._id,
+        sender: mAnchor.sender,
+        kind: mAnchor.kind,
+        text: replyToPreviewFromMessage(mAnchor),
+      };
+      try {
+        let line = "si 👍";
+        if (mAnchor.kind === "text") {
+          line = await microAnswerToUserText(mAnchor.text || "");
+        } else if (mAnchor.kind === "audio") {
+          line = await microReactToUserMedia("audio", mAnchor.text || "");
+        } else {
+          // image or video
+          const detail = [mAnchor.text, mAnchor.mediaSummary].filter(Boolean).join(" | ");
+          line = await microReactToUserMedia(mAnchor.kind, detail);
+        }
+        await ctx.runMutation(api.chat_actions._insertAIText, {
+          conversationId, ownerUserId: mAnchor.ownerUserId, text: line || "si 👍",
+          shouldLikeUserMsg: true, lastUserMsgId: userMessageId, replyTo,
+        });
+        await ctx.runMutation(api.chat_actions._setPendingIntent, { conversationId }); // clear
+        return { ok: true, kind: "text", mode: "replyTo_superseded" };
+      } catch (e) {
+        await ctx.runMutation(api.chat_actions._setPendingIntent, { conversationId });
+        return { ok: false, error: "llm_unavailable" };
+      }
+    }
+
     // Deterministic 1/4 chance to like user's message
     const shouldLike = userMessageId ? (hashCode(userMessageId.toString()) % 4) === 0 : false;
+
+    // --- FAST INTENT PRE-LLM ---
+    let fastIntent = null;
+
+    if (FAST_INTENT_ENABLED && lastUserMessage?.sender === "user" && lastUserMessage.kind === "text") {
+      fastIntent = detectFastIntentFromText(lastUserMessage.text || "");
+    }
+
+    // Set initial typing hint
+    await ctx.runMutation(api.chat_actions._setPendingIntent, {
+      conversationId,
+      intent: fastIntent && !fastIntent.forceText ? fastIntent.type : "text",
+      ttlMs: 10_000,
+    });
 
     // --- MEDIA REACTION (MICRO-LLM) ---
     // If user sent media (not text), react with micro-LLM
@@ -421,20 +613,13 @@ export const aiReply = action({
           conversationId, ownerUserId: userId, text: line || "si 👍",
           shouldLikeUserMsg: shouldLike, lastUserMsgId: userMessageId,
         });
-        return { ok: true, kind: "text", mode: "micro-react" };
+        return await done({ ok: true, kind: "text", mode: "micro-react" });
       } catch (e) {
         if (userMessageId) await ctx.runMutation(api.chat_actions._markAIError, { messageId: userMessageId });
-        return { ok: false, error: "llm_unavailable" };
+        return await done({ ok: false, error: "llm_unavailable" });
       }
     }
     // --- END MEDIA REACTION ---
-
-    // --- FAST INTENT PRE-LLM ---
-    let fastIntent = null;
-
-    if (FAST_INTENT_ENABLED && lastUserMessage?.sender === "user" && lastUserMessage.kind === "text") {
-      fastIntent = detectFastIntentFromText(lastUserMessage.text || "");
-    }
 
     // If fastIntent is a clear media/audio ask, handle it now to save tokens
     if (fastIntent && !fastIntent.forceText) {
@@ -448,7 +633,7 @@ export const aiReply = action({
             text: "te mando vn cuando mejores tu plan 😘",
             shouldLikeUserMsg: shouldLike, lastUserMsgId: userMessageId,
           });
-          return { ok: true, kind: "text" };
+          return await done({ ok: true, kind: "text" });
         }
         const voiceIdToUse = voiceId || "EXAVITQu4vr4xnSDxMaL";
         let line;
@@ -456,7 +641,7 @@ export const aiReply = action({
           line = await microCaptionForSend("audio", lastUserMessage?.text || "");
         } catch (e) {
           if (userMessageId) await ctx.runMutation(api.chat_actions._markAIError, { messageId: userMessageId });
-          return { ok: false, error: "llm_unavailable" };
+          return await done({ ok: false, error: "llm_unavailable" });
         }
         try {
           const { key } = await ctx.runAction(api.s3.ensureTtsAudio, { voiceId: voiceIdToUse, text: line });
@@ -467,14 +652,14 @@ export const aiReply = action({
             mediaKey: key, caption: line,
             shouldLikeUserMsg: shouldLike, lastUserMsgId: userMessageId,
           });
-          return { ok: true, kind: "audio" };
+          return await done({ ok: true, kind: "audio" });
         } catch (e) {
           await ctx.runMutation(api.chat_actions._insertAIText, {
             conversationId, ownerUserId: userId,
             text: "toy fallando con el audio, pero aquí ando 💖",
             shouldLikeUserMsg: shouldLike, lastUserMsgId: userMessageId,
           });
-          return { ok: true, kind: "text" };
+          return await done({ ok: true, kind: "text" });
         }
       }
 
@@ -487,7 +672,7 @@ export const aiReply = action({
             text: "te paso fotito cuando mejores tu plan 😘",
             shouldLikeUserMsg: shouldLike, lastUserMsgId: userMessageId,
           });
-          return { ok: true, kind: "text" };
+          return await done({ ok: true, kind: "text" });
         }
 
         // fetch girl's reply assets by kind
@@ -500,7 +685,7 @@ export const aiReply = action({
             text: "no tengo algo listo pa enviarte justo ahora 😿",
             shouldLikeUserMsg: shouldLike, lastUserMsgId: userMessageId,
           });
-          return { ok: true, kind: "text" };
+          return await done({ ok: true, kind: "text" });
         }
 
         // tag-based pick, else random
@@ -517,7 +702,7 @@ export const aiReply = action({
           caption = await microCaptionForSend(fastIntent.type, lastUserMessage?.text || "");
         } catch (e) {
           if (userMessageId) await ctx.runMutation(api.chat_actions._markAIError, { messageId: userMessageId });
-          return { ok: false, error: "llm_unavailable" };
+          return await done({ ok: false, error: "llm_unavailable" });
         }
         await ctx.runMutation(api.chat_actions._insertAIMediaAndDec, {
           conversationId, ownerUserId: userId,
@@ -526,10 +711,19 @@ export const aiReply = action({
           caption: caption || undefined,
           shouldLikeUserMsg: shouldLike, lastUserMsgId: userMessageId,
         });
-        return { ok: true, kind: fastIntent.type };
+        return await done({ ok: true, kind: fastIntent.type });
       }
     }
     // --- END FAST INTENT PRE-LLM ---
+
+    // Helper: Check if heavy reply is allowed (cooldown-based throttle)
+    function shouldAllowHeavy({ explicitAsk, heavyCooldownUntil }) {
+      const now = Date.now();
+      if (explicitAsk) return true;
+      // Only block during active cooldown; after it expires, allow normally.
+      if (heavyCooldownUntil && heavyCooldownUntil > now) return false;
+      return true;
+    }
 
     const messages = [{ role: "system", content: persona }, ...history];
 
@@ -542,6 +736,7 @@ export const aiReply = action({
 
     let raw;
     try {
+      console.log(messages)
       raw = await callLLM({ ...cfg.primary, messages });
     } catch (e1) {
       if (fallbackEnabled) {
@@ -549,27 +744,52 @@ export const aiReply = action({
           raw = await callLLM({ ...cfg.fallback, messages });
         } catch (e2) {
           if (userMessageId) await ctx.runMutation(api.chat_actions._markAIError, { messageId: userMessageId });
-          return { ok: false, error: "llm_unavailable" };
+          return await done({ ok: false, error: "llm_unavailable" });
         }
       } else {
         if (userMessageId) await ctx.runMutation(api.chat_actions._markAIError, { messageId: userMessageId });
-        return { ok: false, error: "llm_unavailable" };
+        return await done({ ok: false, error: "llm_unavailable" });
       }
     }
 
     const decision = parseDecision(raw);
 
-    // Handle text response
+    // Handle text response (with optional burst)
     if (decision.type === "text") {
       const fallbackText = decision.text || "aquí contigo 💕";
-      await ctx.runMutation(api.chat_actions._insertAIText, {
-        conversationId,
-        ownerUserId: userId,
-        text: fallbackText,
-        shouldLikeUserMsg: shouldLike,
-        lastUserMsgId: userMessageId,
+      const burst = Math.random() < 0.45; // 35% chance for burst
+      if (!burst) {
+        await ctx.runMutation(api.chat_actions._insertAIText, {
+          conversationId,
+          ownerUserId: userId,
+          text: fallbackText,
+          shouldLikeUserMsg: shouldLike,
+          lastUserMsgId: userMessageId,
+        });
+        return await done({ ok: true, kind: "text" });
+      }
+      // Burst mode: 2-3 messages with anchor checking
+      const ack = cheapAck(conversationId.toString() + Date.now());
+      const d1 = Math.floor(600 + Math.random() * 900);    // 0.6-1.5s for ack
+      const d2 = d1 + Math.floor(1400 + Math.random() * 2200); // +1.4-3.6s for main
+      const d3 = d2 + Math.floor(1200 + Math.random() * 1600); // +1.2-2.8s for follow-up
+      await ctx.scheduler.runAfter(d1, api.chat_actions.insertTextIfAnchor, {
+        conversationId, ownerUserId: userId, text: ack,
+        anchorUserMsgId: anchorId,
+        shouldLikeUserMsg: shouldLike, lastUserMsgId: userMessageId,
       });
-      return { ok: true, kind: "text" };
+      await ctx.scheduler.runAfter(d2, api.chat_actions.insertTextIfAnchor, {
+        conversationId, ownerUserId: userId, text: fallbackText,
+        anchorUserMsgId: anchorId,
+      });
+      if (Math.random() < 0.15) { // 15% chance for 3rd message
+        const follow = Math.random() < 0.5 ? "y ya?" : "nmms 😂";
+        await ctx.scheduler.runAfter(d3, api.chat_actions.insertTextIfAnchor, {
+          conversationId, ownerUserId: userId, text: follow,
+          anchorUserMsgId: anchorId,
+        });
+      }
+      return await done({ ok: true, kind: "text", mode: "burst" });
     }
 
     // Handle audio response
@@ -584,7 +804,21 @@ export const aiReply = action({
           shouldLikeUserMsg: shouldLike,
           lastUserMsgId: userMessageId,
         });
-        return { ok: true, kind: "text" };
+        return await done({ ok: true, kind: "text" });
+      }
+
+      // Check cooldown throttle
+      const explicitAsk = !!fastIntent && !fastIntent.forceText;
+      if (!shouldAllowHeavy({ explicitAsk, heavyCooldownUntil })) {
+        const fallbackText = decision.text || "te cuento mejor por acá 😉";
+        await ctx.runMutation(api.chat_actions._insertAIText, {
+          conversationId,
+          ownerUserId: userId,
+          text: fallbackText,
+          shouldLikeUserMsg: shouldLike,
+          lastUserMsgId: userMessageId,
+        });
+        return await done({ ok: true, kind: "text" });
       }
 
       // Use denormalized voiceId from conversation
@@ -602,7 +836,7 @@ export const aiReply = action({
           shouldLikeUserMsg: shouldLike,
           lastUserMsgId: userMessageId,
         });
-        return { ok: true, kind: "audio" };
+        return await done({ ok: true, kind: "audio" });
       } catch (e) {
         // TTS failed - fallback to text (no quota decrement)
         console.error("TTS failed:", e);
@@ -614,7 +848,7 @@ export const aiReply = action({
           shouldLikeUserMsg: shouldLike,
           lastUserMsgId: userMessageId,
         });
-        return { ok: true, kind: "text" };
+        return await done({ ok: true, kind: "text" });
       }
     }
 
@@ -629,7 +863,21 @@ export const aiReply = action({
         shouldLikeUserMsg: shouldLike,
         lastUserMsgId: userMessageId,
       });
-      return { ok: true, kind: "text" };
+      return await done({ ok: true, kind: "text" });
+    }
+
+    // Check cooldown throttle
+    const explicitAsk = !!fastIntent && !fastIntent.forceText;
+    if (!shouldAllowHeavy({ explicitAsk, heavyCooldownUntil })) {
+      const fallbackText = decision.text || "te cuento mejor por acá 😉";
+      await ctx.runMutation(api.chat_actions._insertAIText, {
+        conversationId,
+        ownerUserId: userId,
+        text: fallbackText,
+        shouldLikeUserMsg: shouldLike,
+        lastUserMsgId: userMessageId,
+      });
+      return await done({ ok: true, kind: "text" });
     }
 
     // Choose an asset of the requested kind from girl's reply assets
@@ -644,7 +892,7 @@ export const aiReply = action({
         shouldLikeUserMsg: shouldLike,
         lastUserMsgId: userMessageId,
       });
-      return { ok: true, kind: "text" };
+      return await done({ ok: true, kind: "text" });
     }
 
     // Pick by tag if any; else random
@@ -668,6 +916,6 @@ export const aiReply = action({
       lastUserMsgId: userMessageId,
     });
 
-    return { ok: true, kind: decision.type };
+    return await done({ ok: true, kind: decision.type });
   },
 });

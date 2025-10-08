@@ -17,3 +17,6 @@ export const AUDIO_MIME_TYPES = ["audio/webm", "audio/mpeg", "audio/mp3", "audio
 
 // --- TTS settings ---
 export const TTS_AUDIO_MIME = "audio/mpeg"; // mp3 output from ElevenLabs
+
+// --- Heavy reply throttle ---
+export const HEAVY_REPLY_COOLDOWN_MS = 45 * 1000; // 45s cooldown after media/audio replies

@@ -236,8 +236,12 @@ export const transcribeAndReply = action({
     // Apply transcript to message
     await ctx.runMutation(api.chat._applyTranscript, { messageId, transcript });
 
-    // Continue to AI reply
-    await ctx.runAction(api.chat_actions.aiReply, { conversationId });
+    // Continue to AI reply (with delay + anchor so supersede works)
+    const d = Math.floor(2500 + Math.random() * 3500); // 2.5-6s
+    await ctx.scheduler.runAfter(d, api.chat_actions.aiReply, {
+      conversationId,
+      userMessageId: messageId,
+    });
     return { ok: true };
   },
 });

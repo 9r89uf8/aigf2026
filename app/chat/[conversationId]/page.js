@@ -59,6 +59,17 @@ function TypingBubble({ avatarUrl, girlName }) {
   );
 }
 
+function ReplyToBadge({ rt }) {
+  if (!rt) return null;
+  const label = rt.text || (rt.kind === "image" ? "[Image]" : rt.kind === "video" ? "[Video]" : rt.kind === "audio" ? "[Voice note]" : "");
+  return (
+    <div className="mb-1 ml-1 px-2 py-1 rounded-md bg-gray-100 text-gray-600 text-[11px] flex items-center gap-1">
+      <span className="text-xs">↩︎</span>
+      <span className="truncate max-w-[220px]">replying to: {label}</span>
+    </div>
+  );
+}
+
 export default function ConversationPage() {
   const router = useRouter();
   const { conversationId } = useParams();
@@ -72,6 +83,7 @@ export default function ConversationPage() {
   const send = useMutation(api.chat.sendMessage);
   const likeMsg = useMutation(api.chat.likeMessage);
   const clearConversation = useMutation(api.chat.clearConversation);
+  const markRead = useMutation(api.chat.markRead);
 
   // For upsell banner (cheapest plan)
   const listPlans = useAction(api.payments_actions.listPlansCached);
@@ -116,11 +128,11 @@ export default function ConversationPage() {
     return tokenInFlightRef.current;
   }
 
-  // Compute typing state from existing messages
-  const lastMsg = data?.messages?.[data.messages.length - 1] || null;
-  const isAiTyping = !!lastMsg && lastMsg.sender === "user" && !lastMsg.aiError;
-
-
+  // Smart typing indicator with mode (text/audio/image/video)
+  const intent = data?.pendingIntent;
+  const intentFresh = data?.pendingIntentExpiresAt && data.pendingIntentExpiresAt > Date.now();
+  const isAiTyping = !!intentFresh; // drive from hint freshness
+  const typingMode = intentFresh ? intent : "text"; // text | audio | image | video
 
   useEffect(() => {
     if (data) {
@@ -134,6 +146,26 @@ export default function ConversationPage() {
       bottomRef.current?.scrollIntoView({ behavior: "smooth" });
     }
   }, [isAiTyping]);
+
+  // Mark conversation as read when user scrolls to bottom (debounced)
+  useEffect(() => {
+    if (!bottomRef.current || !conversationId) return;
+    let debounceTimer;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) {
+          clearTimeout(debounceTimer);
+          debounceTimer = setTimeout(() => markRead({ conversationId }), 1000);
+        }
+      },
+      { root: null, threshold: 0.6 }
+    );
+    observer.observe(bottomRef.current);
+    return () => {
+      clearTimeout(debounceTimer);
+      observer.disconnect();
+    };
+  }, [bottomRef.current, conversationId, markRead]);
 
   // Fetch girl's avatar URL (via signed URL)
   useEffect(() => {
@@ -377,6 +409,7 @@ export default function ConversationPage() {
                   )
                 )}
                 <div className={`flex flex-col ${mine ? "items-end" : "items-start"} max-w-[70%]`}>
+                  {!mine && <ReplyToBadge rt={m.replyTo} />}
                   <div
                     className={`px-4 py-2.5 rounded-3xl ${
                       mine
@@ -389,6 +422,7 @@ export default function ConversationPage() {
                   <div className="flex items-center gap-1.5 mt-1 px-2">
                     <span className="text-[11px] text-gray-400">
                       {new Date(m.createdAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
+                      {mine && m.createdAt <= (data?.lastAiReadAt || 0) && <span className="ml-1">✓✓</span>}
                     </span>
                     {!mine && (
                       <button
@@ -423,6 +457,7 @@ export default function ConversationPage() {
                   )
                 )}
                 <div className={`flex flex-col ${mine ? "items-end" : "items-start"} max-w-[70%]`}>
+                  {!mine && <ReplyToBadge rt={m.replyTo} />}
                   <div
                     className={`px-3 py-2 rounded-3xl ${
                       mine ? "bg-gradient-to-r from-blue-400 to-blue-600" : "bg-gray-100"
@@ -438,6 +473,7 @@ export default function ConversationPage() {
                     <span className="text-[11px] text-gray-400">
                       {m.durationSec ? `${m.durationSec}s • ` : ""}
                       {new Date(m.createdAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
+                      {mine && m.createdAt <= (data?.lastAiReadAt || 0) && <span className="ml-1">✓✓</span>}
                     </span>
                     {!mine && (
                       <button
@@ -471,6 +507,7 @@ export default function ConversationPage() {
                 )
               )}
               <div className={`flex flex-col ${mine ? "items-end" : "items-start"} max-w-[70%]`}>
+                {!mine && <ReplyToBadge rt={m.replyTo} />}
                 <div
                   className={`rounded-2xl overflow-hidden ${
                     mine ? "bg-gradient-to-r from-blue-400/10 to-blue-600/10" : "bg-gray-100"
@@ -498,6 +535,7 @@ export default function ConversationPage() {
                 <div className="flex items-center gap-1.5 mt-1 px-2">
                   <span className="text-[11px] text-gray-400">
                     {new Date(m.createdAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
+                    {mine && m.createdAt <= (data?.lastAiReadAt || 0) && <span className="ml-1">✓✓</span>}
                   </span>
                   {!mine && (
                     <button
@@ -521,7 +559,11 @@ export default function ConversationPage() {
             <div className="flex flex-col items-start max-w-[70%]">
               <TypingBubble avatarUrl={avatarUrl} girlName={data?.girlName} />
               <div className="flex items-center gap-1.5 mt-1 px-2">
-                <span className="text-[11px] text-gray-400">typing…</span>
+                <span className="text-[11px] text-gray-400">
+                  {typingMode === "audio" ? "recording…" :
+                   typingMode === "image" ? "choosing a photo…" :
+                   typingMode === "video" ? "preparing a clip…" : "typing…"}
+                </span>
               </div>
             </div>
           </div>
