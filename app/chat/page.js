@@ -18,13 +18,13 @@ function formatTime(ts) {
 function lastLine({ lastMessageKind, lastMessageSender, lastMessagePreview, girlName }) {
   const who = lastMessageSender === "ai" ? girlName : "You";
   if (lastMessageKind === "text") {
-    const quoted = lastMessagePreview ? `"${lastMessagePreview}"` : "…";
+    const quoted = lastMessagePreview ? `${lastMessagePreview}` : "…";
     return `${who}: ${quoted}`;
   }
   const label =
-      lastMessageKind === "image" ? "envió una foto" :
-          lastMessageKind === "video" ? "envió un vídeo" :
-              lastMessageKind === "audio" ? "envió un audio" :
+      lastMessageKind === "image" ? "envió una foto 📷" :
+          lastMessageKind === "video" ? "envió un vídeo 🎥" :
+              lastMessageKind === "audio" ? "envió un audio 🎤" :
                   "envió un mensaje";
   return `${who} ${label}`;
 }
