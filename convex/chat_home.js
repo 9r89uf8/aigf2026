@@ -19,8 +19,16 @@ export const getHome = query({
         .order("desc")
         .collect();
 
-      // Filter out conversations without any messages
-      const convosWithMessages = convos.filter(c => c.lastMessageKind && c.lastMessageSender);
+      // Only show conversations that have a message AFTER the last clear.
+      // This hides "deleted"/cleared threads until a new message arrives.
+      const convosWithMessages = convos.filter((c) => {
+        const clearedAt = c.clearedAt ?? 0;
+        return (
+            c.lastMessageKind &&
+            c.lastMessageSender &&
+            (c.lastMessageAt ?? 0) > clearedAt
+            );
+        });
 
       threads = convosWithMessages.map(c => ({
         conversationId: c._id,
@@ -32,7 +40,7 @@ export const getHome = query({
         lastMessageKind: c.lastMessageKind || "text",       // default for backward compatibility
         lastMessageSender: c.lastMessageSender || "user",   // default for backward compatibility
         lastStorySeenAt: c.lastStorySeenAt || 0,            // for "new" ring
-        unread: c.lastMessageAt > (c.lastReadAt || 0),
+        unread: (c.lastMessageAt ?? 0) > Math.max(c.lastReadAt || 0, c.clearedAt || 0),
       }));
     }
 
