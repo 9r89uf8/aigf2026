@@ -40,7 +40,7 @@ export const _getLastUserMessage = internalQuery({
 
 // --- FAST INTENT TOGGLE ---
 // const FAST_INTENT_ENABLED = process.env.FAST_INTENT_ENABLED !== "0"; // default enabled
-const FAST_INTENT_ENABLED = 1
+const FAST_INTENT_ENABLED = true
 
 // --- Style Pack: Mexican Teen Texting ---
 export const TEXTING_STYLE_MX_TEEN = `
@@ -105,18 +105,10 @@ function normalizeMx(s = "") {
     .trim();
 }
 
-function cheapAck(seed) {
-  const opts = ["si 👍","va","oki","sale 😏","nmms 😂","obvio","tqm","ntp","jajaja","aaay 🙈"];
-  return opts[Math.abs(hashCode(String(seed))) % opts.length];
-}
-
-// --- BURST CONFIG (cheap, deterministic, no extra DB) ---
+// --- BURST CONFIG (timing only; used by smart split delays) ---
 const BURST_CFG = {
-  prob: 0.38,                   // overall chance to attempt a burst
   zeroDelayFirstChance: 0.35,   // chance first part has no delay
   zeroDelaySecondChance: 0.10,  // chance second part has no delay
-  minSplitWords: 6,             // avoid tiny shards
-  maxFirstChars: 60,            // keep the first split short-ish
   msPerChar: 35,                // keystroke-ish timing
   maxDelayMs: 4000,
   jitterMs: 250,
@@ -126,8 +118,9 @@ const BURST_CFG = {
 const SPLIT_CFG = {
   // probabilities for "optional" splits (seeded; deterministic per message)
   emojiSplitChance: 0.55,
+  phaticEmojiSplitChance: 0.85, // boost probability when phatic phrases detected
   ellipsisSplitChance: 0.60,
-  endEmojiBubbleChance: 0.35,
+  endEmojiBubbleChance: 0.50,
 
   // size guards
   minWordsEach: 2,          // for most splits
@@ -142,7 +135,6 @@ const STRONG_EMOJI = ["😘","🥺","🔥","😉","😍","😏","✨","❤️","
 const PHATIC_RE = /\b(gracias|mil gracias|ok|oki|va|sale|si|sí|holi|hola|ay+|oye|amor(?:cito)?|bb|bebe|bebé|papi|mi vida|cariñ[oa]|tqm|tkm|ntp|obvio)\b/i;
 
 function clamp(n, lo, hi) { return Math.min(hi, Math.max(lo, n)); }
-function pick(seed, arr) { return arr[Math.abs(hashCode(String(seed))) % arr.length]; }
 function wordCount(s="") { return (s.trim().match(/\S+/g)||[]).length; }
 
 function notTooLong(n, max){ return n <= max; }
@@ -193,7 +185,9 @@ function splitOnPhaticEmoji(raw, seed) {
   if (!notTooLong(left.length, SPLIT_CFG.maxFirstChars)) return null;
   const leftNorm = normalizeMx(left);
   const phatic = PHATIC_RE.test(leftNorm);
-  const okByChance = phatic ? true : seededChance(seed, "emojiSplit", SPLIT_CFG.emojiSplitChance);
+  const baseP = SPLIT_CFG.emojiSplitChance;            // 0.55
+  const p = phatic ? Math.max(baseP, SPLIT_CFG.phaticEmojiSplitChance) : baseP;    // boost if phatic, not force
+  const okByChance = seededChance(seed, "emojiSplit", p);
 
   if (!okByChance) return null;
   if (wordCount(right) < SPLIT_CFG.minWordsEach) return null;
@@ -202,9 +196,13 @@ function splitOnPhaticEmoji(raw, seed) {
 
 // 3) Ellipsis "… + continuation" (sometimes)
 function splitOnEllipsis(raw, seed) {
-  const idx = raw.indexOf("...");
-  if (idx === -1) return null;
-  const cut = idx + 3;
+  const i3 = raw.indexOf("...");
+  const iu = raw.indexOf("…");
+  let cut = -1;
+  if (i3 !== -1 && (iu === -1 || i3 < iu)) cut = i3 + 3;
+  else if (iu !== -1) cut = iu + 1;
+  if (cut === -1) return null;
+
   const left = raw.slice(0, cut).trim();
   const right = raw.slice(cut).trim();
   if (!left || !right) return null;
@@ -216,9 +214,13 @@ function splitOnEllipsis(raw, seed) {
 
 // 4) Early sentence boundary . ! ? … (fallback)
 function splitOnPunctuation(raw) {
-  const re = /[.!?…]/g;
   const cuts = [];
-  let m; while ((m = re.exec(raw))) cuts.push(m.index + 1); // keep delimiter with left
+  for (let i = 0; i < raw.length; i++) {
+    const ch = raw[i];
+    if (ch === '.' && (raw[i-1] === '.' || raw[i+1] === '.')) continue; // part of "..."
+    if (ch === '…') continue; // handled by ellipsis rule
+    if (ch === '.' || ch === '!' || ch === '?') cuts.push(i + 1);
+  }
   const idx = cuts.sort((a,b)=>a-b).find(i => i > 0 && i <= SPLIT_CFG.maxFirstChars);
   if (!idx) return null;
   const left = raw.slice(0, idx).trim();
