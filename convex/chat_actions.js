@@ -24,6 +24,15 @@ export const _setPendingIntent = internalMutation({
   },
 });
 
+// Clear typing hint (for scheduled cleanup after split replies)
+export const clearTypingHint = action({
+  args: { conversationId: v.id("conversations") },
+  handler: async (ctx, { conversationId }) => {
+    await ctx.runMutation(api.chat_actions._setPendingIntent, { conversationId });
+    return { ok: true };
+  },
+});
+
 // --- SUPERSEDE HELPER ---
 // Find the latest USER message id quickly (small read for interrupt detection)
 export const _getLastUserMessage = internalQuery({
@@ -704,13 +713,10 @@ export const aiReply = action({
       conversationId, limit: CONTEXT_TURNS,
     });
 
-    // Mark AI as having seen this user message (for ✓✓ ticks)
-    if (userMessageId) {
-      const mAnchor = await ctx.runQuery(api.chat._getMessageInternal, { messageId: userMessageId });
-      if (mAnchor) {
-        await ctx.runMutation(api.chat_actions._markAiSeen, { conversationId, seenAt: mAnchor.createdAt });
-      }
-    }
+    // Fetch anchor message once for later use (for tick timing and supersede logic)
+    const anchorMsg = userMessageId
+      ? await ctx.runQuery(api.chat._getMessageInternal, { messageId: userMessageId })
+      : null;
 
     // Check if this reply is superseded (user sent a newer message)
     if (userMessageId && latestUser?._id && userMessageId !== latestUser._id) {
@@ -726,6 +732,10 @@ export const aiReply = action({
         kind: mAnchor.kind,
         text: replyToPreviewFromMessage(mAnchor),
       };
+      // Show ✓✓ as we're about to respond to that older message
+      await ctx.runMutation(api.chat_actions._markAiSeen, {
+        conversationId, seenAt: mAnchor.createdAt
+      });
       try {
         let line = "si 👍";
         if (mAnchor.kind === "text") {
@@ -765,6 +775,13 @@ export const aiReply = action({
       intent: fastIntent && !fastIntent.forceText ? fastIntent.type : "text",
       ttlMs: 10_000,
     });
+
+    // Show ✓✓ now that AI is "about to type"
+    if (anchorMsg) {
+      await ctx.runMutation(api.chat_actions._markAiSeen, {
+        conversationId, seenAt: anchorMsg.createdAt
+      });
+    }
 
     // --- MEDIA REACTION (MICRO-LLM) ---
     // If user sent media (not text), react with micro-LLM
@@ -969,6 +986,11 @@ export const aiReply = action({
           anchorUserMsgId: anchorId,
         });
       }
+
+      // Actively clear typing after the last scheduled part. This guarantees
+      // a Convex doc update so the client hides the bubble even if it
+      // doesn't re-render on TTL expiration.
+      await ctx.scheduler.runAfter(keepTypingMs, api.chat_actions.clearTypingHint, { conversationId });
 
       return await done({ ok: true, kind: "text", mode: "split_text" }, { keepTyping: true });
     }

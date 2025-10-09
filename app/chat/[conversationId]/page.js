@@ -154,8 +154,17 @@ export default function ConversationPage() {
 
   // Smart typing indicator with mode (text/audio/image/video)
   const intent = data?.pendingIntent;
-  const intentFresh = data?.pendingIntentExpiresAt && data.pendingIntentExpiresAt > Date.now();
-  const isAiTyping = !!intentFresh; // drive from hint freshness
+  const [nowTs, setNowTs] = useState(Date.now());
+  useEffect(() => {
+    const exp = data?.pendingIntentExpiresAt ?? 0;
+    if (!exp) return;
+    // Fire at expiry + slop, heartbeat fallback every second
+    const t1 = setTimeout(() => setNowTs(Date.now()), Math.max(0, exp - Date.now()) + 20);
+    const t2 = setInterval(() => setNowTs(Date.now()), 1000);
+    return () => { clearTimeout(t1); clearInterval(t2); };
+  }, [data?.pendingIntentExpiresAt]);
+  const intentFresh = !!intent && (data?.pendingIntentExpiresAt ?? 0) > nowTs;
+  const isAiTyping = intentFresh;
   const typingMode = intentFresh ? intent : "text"; // text | audio | image | video
 
   // Reset guards when conversation changes
@@ -191,8 +200,13 @@ export default function ConversationPage() {
         const isIntersecting = !!entries[0]?.isIntersecting;
         setIsAtBottom(isIntersecting);
         if (isIntersecting) {
-          clearTimeout(debounceTimer);
-          debounceTimer = setTimeout(() => markRead({ conversationId }), 800);
+          const hasNew = (data?.lastMessageAt ?? 0) > (data?.lastReadAt ?? 0);
+          if (hasNew) {
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(() =>
+              markRead({ conversationId, at: data?.lastMessageAt }), 400
+            );
+          }
         }
       },
       { root, threshold: 0.99 } // almost fully visible
@@ -492,7 +506,11 @@ export default function ConversationPage() {
                   <div className="flex items-center gap-1.5 mt-1 px-2">
                     <span className="text-[15px] text-gray-400">
                       {new Date(m.createdAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
-                      {mine && m.createdAt <= (data?.lastAiReadAt || 0) && <span className="ml-1">✓✓</span>}
+                      {mine && (
+                        <span className="ml-1">
+                          {m.createdAt <= (data?.lastAiReadAt || 0) ? "✓✓" : "✓"}
+                        </span>
+                      )}
                     </span>
                     {!mine && (
                       <button
@@ -543,7 +561,11 @@ export default function ConversationPage() {
                     <span className="text-[15px] text-gray-400">
                       {m.durationSec ? `${m.durationSec}s • ` : ""}
                       {new Date(m.createdAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
-                      {mine && m.createdAt <= (data?.lastAiReadAt || 0) && <span className="ml-1">✓✓</span>}
+                      {mine && (
+                        <span className="ml-1">
+                          {m.createdAt <= (data?.lastAiReadAt || 0) ? "✓✓" : "✓"}
+                        </span>
+                      )}
                     </span>
                     {!mine && (
                       <button
@@ -610,7 +632,11 @@ export default function ConversationPage() {
                 <div className="flex items-center gap-1.5 mt-1 px-2">
                   <span className="text-[15px] text-gray-400">
                     {new Date(m.createdAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
-                    {mine && m.createdAt <= (data?.lastAiReadAt || 0) && <span className="ml-1">✓✓</span>}
+                    {mine && (
+                      <span className="ml-1">
+                        {m.createdAt <= (data?.lastAiReadAt || 0) ? "✓✓" : "✓"}
+                      </span>
+                    )}
                   </span>
                   {!mine && (
                     <button

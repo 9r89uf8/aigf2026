@@ -99,6 +99,7 @@ export const getConversation = query({
       pendingIntentExpiresAt: convo.pendingIntentExpiresAt,
 
       // Seen ticks (lastReadAt for ✓✓ rendering)
+      lastMessageAt: convo.lastMessageAt,
       lastReadAt: convo.lastReadAt,
       lastAiReadAt: convo.lastAiReadAt,
 
