@@ -145,7 +145,7 @@ export default function ChatHomePage() {
         {/* Sticky header with title + search only */}
         <header className="sticky top-0 z-20 backdrop-blur border-b">
           <div className="max-w-screen-sm mx-auto px-4 py-3 flex items-center justify-center">
-            <h1 className="text-lg font-semibold">Mensajes</h1>
+            <h1 className="text-2xl font-semibold">Mensajes</h1>
           </div>
         </header>
 
@@ -171,7 +171,7 @@ export default function ChatHomePage() {
                               isVideo={s.kind === "video"}
                               size={64}
                           />
-                          <span className="text-[11px] text-gray-700 max-w-16 truncate">{s.girlName}</span>
+                          <span className="text-[15px] text-gray-700 max-w-16 truncate">{s.girlName}</span>
                         </div>
                     );
                   })}
@@ -182,11 +182,11 @@ export default function ChatHomePage() {
           {/* Threads */}
           {threads.length === 0 ? (
               <div className="text-center py-16 text-gray-500">
-                <p className="text-sm">Aún no hay conversaciones</p>
-                <p className="text-xs mt-1">Comienza a chatear con tus compañeras de IA favoritas</p>
+                <p className="text-[19px]">Aún no hay conversaciones</p>
+                <p className="text-base mt-1">Comienza a chatear con tus compañeras de IA favoritas</p>
                 <Link
                     href="/girls"
-                    className="inline-flex items-center gap-2 mt-4 px-4 py-2 rounded-full bg-black text-white text-sm"
+                    className="inline-flex items-center gap-2 mt-4 px-4 py-2 rounded-full bg-black text-white text-[19px]"
                 >
                   Buscar compañeras
                   <svg viewBox="0 0 24 24" className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="1.8">
@@ -219,7 +219,7 @@ export default function ChatHomePage() {
                                       draggable={false}
                                   />
                               ) : (
-                                  <span className="text-sm text-gray-500">{t.girlName?.[0]}</span>
+                                  <span className="text-[19px] text-gray-500">{t.girlName?.[0]}</span>
                               )}
                             </div>
                             {t.unread && (
@@ -230,10 +230,10 @@ export default function ChatHomePage() {
                           {/* Texts */}
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center justify-between gap-2">
-                              <span className={`truncate ${t.unread ? "font-semibold" : "font-medium"}`}>{t.girlName}</span>
-                              <span className="text-xs text-gray-500 shrink-0">{formatTime(t.lastMessageAt)}</span>
+                              <span className={`truncate text-xl ${t.unread ? "font-semibold" : "font-medium"}`}>{t.girlName}</span>
+                              <span className="text-base text-gray-500 shrink-0">{formatTime(t.lastMessageAt)}</span>
                             </div>
-                            <div className={`text-sm truncate ${t.unread ? "text-black font-medium" : "text-gray-600"}`}>
+                            <div className={`text-[19px] truncate ${t.unread ? "text-black font-medium" : "text-gray-600"}`}>
                               {preview}
                             </div>
                           </div>

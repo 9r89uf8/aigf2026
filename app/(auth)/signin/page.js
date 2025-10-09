@@ -145,7 +145,7 @@ export default function SignInPage() {
             setFlow("signUp");
             setError("");
           }}
-          className={`flex-1 py-2.5 px-4 rounded-md font-medium transition-all ${
+          className={`flex-1 py-2.5 px-4 rounded-md font-medium text-[19px] transition-all ${
             flow === "signUp"
               ? "bg-white text-blue-600 shadow-sm"
               : "text-gray-600 hover:text-gray-900"
@@ -159,7 +159,7 @@ export default function SignInPage() {
             setFlow("signIn");
             setError("");
           }}
-          className={`flex-1 py-2.5 px-4 rounded-md font-medium transition-all ${
+          className={`flex-1 py-2.5 px-4 rounded-md font-medium text-[19px] transition-all ${
             flow === "signIn"
               ? "bg-white text-blue-600 shadow-sm"
               : "text-gray-600 hover:text-gray-900"
@@ -169,19 +169,19 @@ export default function SignInPage() {
         </button>
       </div>
 
-      <h1 className="text-2xl font-semibold mb-6 text-center">
+      <h1 className="text-3xl font-semibold mb-6 text-center">
         {flow === "signIn" ? "Bienvenido de nuevo" : "Crear una cuenta"}
       </h1>
 
       {error && (
-        <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded mb-4 text-sm">
+        <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded mb-4 text-[19px]">
           {error}
         </div>
       )}
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+          <label htmlFor="email" className="block text-[19px] font-medium text-gray-700 mb-1">
             Correo Electrónico
           </label>
           <input
@@ -191,12 +191,12 @@ export default function SignInPage() {
             placeholder="tu@ejemplo.com"
             required
             autoComplete="email"
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 border border-gray-300 rounded-md text-[19px] focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
         </div>
 
         <div>
-          <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
+          <label htmlFor="password" className="block text-[19px] font-medium text-gray-700 mb-1">
             Contraseña
           </label>
           <div className="relative">
@@ -208,12 +208,12 @@ export default function SignInPage() {
               required
               minLength={8}
               autoComplete={flow === "signIn" ? "current-password" : "new-password"}
-              className="w-full pr-24 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full pr-24 px-3 py-2 border border-gray-300 rounded-md text-[19px] focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
             <button
               type="button"
               onClick={() => setShowPwd((s) => !s)}
-              className="absolute inset-y-0 right-2 my-auto text-sm px-2 py-1 rounded hover:bg-gray-100"
+              className="absolute inset-y-0 right-2 my-auto text-base px-2 py-1 rounded hover:bg-gray-100"
               aria-label={showPwd ? "Ocultar contraseña" : "Mostrar contraseña"}
             >
               {showPwd ? "Ocultar" : "Mostrar"}
@@ -238,7 +238,7 @@ export default function SignInPage() {
         <button
           type="submit"
           disabled={isLoading}
-          className="w-full px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          className="w-full px-4 py-2 bg-blue-500 text-white text-[19px] rounded-md hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {isLoading ? "Cargando..." : (flow === "signIn" ? "Iniciar sesión" : "Crear cuenta")}
         </button>
@@ -246,7 +246,7 @@ export default function SignInPage() {
 
       {flow === "signIn" && (
         <div className="mt-6 text-center">
-          <a className="text-blue-500 hover:text-blue-600 text-sm" href="/reset-password">
+          <a className="text-blue-500 hover:text-blue-600 text-[19px]" href="/reset-password">
             ¿Olvidaste tu contraseña?
           </a>
         </div>

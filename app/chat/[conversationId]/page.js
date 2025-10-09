@@ -63,8 +63,8 @@ function ReplyToBadge({ rt }) {
   if (!rt) return null;
   const label = rt.text || (rt.kind === "image" ? "[Imagen]" : rt.kind === "video" ? "[Video]" : rt.kind === "audio" ? "[Nota de voz]" : "");
   return (
-    <div className="mb-1 ml-1 px-2 py-1 rounded-md bg-gray-100 text-gray-600 text-[11px] flex items-center gap-1">
-      <span className="text-xs">↩︎</span>
+    <div className="mb-1 ml-1 px-2 py-1 rounded-md bg-gray-100 text-gray-600 text-[15px] flex items-center gap-1">
+      <span className="text-base">↩︎</span>
       <span className="truncate max-w-[220px]">respondiendo a: {label}</span>
     </div>
   );
@@ -83,7 +83,7 @@ function MediaStatusIndicator({ avatarUrl, girlName, status }) {
         <div className="w-7 h-7 rounded-full bg-gradient-to-br from-purple-400 to-pink-400 flex-shrink-0" />
       )}
       <div className="flex items-center gap-1.5">
-        <span className="text-[11px] text-gray-500 italic">{status}</span>
+        <span className="text-[15px] text-gray-500 italic">{status}</span>
       </div>
     </div>
   );
@@ -428,7 +428,7 @@ export default function ConversationPage() {
           ) : (
             <div className="w-9 h-9 rounded-full bg-gradient-to-br from-purple-400 to-pink-400" />
           )}
-          <span className="font-semibold text-base">{data?.girlName || "Chat"}</span>
+          <span className="font-semibold text-xl">{data?.girlName || "Chat"}</span>
         </div>
 
         {!showDeleteButton ? (
@@ -487,10 +487,10 @@ export default function ConversationPage() {
                         : "bg-gray-100 text-gray-900"
                     }`}
                   >
-                    <div className="text-[15px] leading-relaxed whitespace-pre-wrap">{m.text}</div>
+                    <div className="text-[20px] leading-relaxed whitespace-pre-wrap">{m.text}</div>
                   </div>
                   <div className="flex items-center gap-1.5 mt-1 px-2">
-                    <span className="text-[11px] text-gray-400">
+                    <span className="text-[15px] text-gray-400">
                       {new Date(m.createdAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
                       {mine && m.createdAt <= (data?.lastAiReadAt || 0) && <span className="ml-1">✓✓</span>}
                     </span>
@@ -505,7 +505,7 @@ export default function ConversationPage() {
                     {mine && m.aiLiked && <span className="text-sm ml-1">❤️</span>}
                   </div>
                   {mine && m.aiError && (
-                    <div className="text-[11px] text-red-500 mt-1 px-2">IA temporalmente no disponible</div>
+                    <div className="text-[15px] text-red-500 mt-1 px-2">IA temporalmente no disponible</div>
                   )}
                 </div>
               </div>
@@ -540,7 +540,7 @@ export default function ConversationPage() {
                     )}
                   </div>
                   <div className="flex items-center gap-1.5 mt-1 px-2">
-                    <span className="text-[11px] text-gray-400">
+                    <span className="text-[15px] text-gray-400">
                       {m.durationSec ? `${m.durationSec}s • ` : ""}
                       {new Date(m.createdAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
                       {mine && m.createdAt <= (data?.lastAiReadAt || 0) && <span className="ml-1">✓✓</span>}
@@ -556,7 +556,7 @@ export default function ConversationPage() {
                     {mine && m.aiLiked && <span className="text-sm ml-1">❤️</span>}
                   </div>
                   {mine && m.aiError && (
-                    <div className="text-[11px] text-red-500 mt-1 px-2">IA temporalmente no disponible</div>
+                    <div className="text-[15px] text-red-500 mt-1 px-2">IA temporalmente no disponible</div>
                   )}
                 </div>
               </div>
@@ -602,13 +602,13 @@ export default function ConversationPage() {
                     )
                   )}
                   {!!m.text && (
-                    <div className={`px-3 py-2 text-sm ${mine ? "text-gray-900" : "text-gray-700"}`}>
+                    <div className={`px-3 py-2 text-[19px] ${mine ? "text-gray-900" : "text-gray-700"}`}>
                       {m.text}
                     </div>
                   )}
                 </div>
                 <div className="flex items-center gap-1.5 mt-1 px-2">
-                  <span className="text-[11px] text-gray-400">
+                  <span className="text-[15px] text-gray-400">
                     {new Date(m.createdAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
                     {mine && m.createdAt <= (data?.lastAiReadAt || 0) && <span className="ml-1">✓✓</span>}
                   </span>
@@ -623,7 +623,7 @@ export default function ConversationPage() {
                   {mine && m.aiLiked && <span className="text-sm ml-1">❤️</span>}
                 </div>
                 {mine && m.aiError && (
-                  <div className="text-[11px] text-red-500 mt-1 px-2">AI temporarily unavailable</div>
+                  <div className="text-[15px] text-red-500 mt-1 px-2">AI temporarily unavailable</div>
                 )}
               </div>
             </div>
@@ -634,7 +634,7 @@ export default function ConversationPage() {
             <div className="flex flex-col items-start max-w-[70%]">
               <TypingBubble avatarUrl={avatarUrl} girlName={data?.girlName} />
               <div className="flex items-center gap-1.5 mt-1 px-2">
-                <span className="text-[11px] text-gray-400">escribiendo…</span>
+                <span className="text-[15px] text-gray-400">escribiendo…</span>
               </div>
             </div>
           </div>
@@ -669,30 +669,30 @@ export default function ConversationPage() {
             <div className="relative px-4 py-4 sm:flex sm:items-center sm:justify-between sm:gap-4">
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2 mb-2">
-          <span className="text-sm font-semibold text-white">
+          <span className="text-[19px] font-semibold text-white">
             {premiumLocked ? "Se requiere Premium para mensajear con esta compañera" : "Mensajes gratuitos agotados"}
           </span>
                 </div>
 
                 <div className="mb-3">
                   <div className="flex items-baseline gap-2 flex-wrap">
-                    <span className="text-lg font-bold text-white">Premium comienza en</span>
+                    <span className="text-[24px] font-bold text-white">Premium comienza en</span>
                     {cheapestLabel ? (
                         <>
-                <span className="text-2xl font-extrabold text-white drop-shadow-md">
+                <span className="text-[32px] font-extrabold text-white drop-shadow-md">
                   {cheapestLabel}
                 </span>
                           {!selectedCurrency && cheapestCountry && (
-                              <span className="text-sm text-white/90">en {cheapestCountry}</span>
+                              <span className="text-[19px] text-white/90">en {cheapestCountry}</span>
                           )}
                         </>
                     ) : (
-                        <span className="text-xl font-bold text-white">nuestro precio regional más bajo</span>
+                        <span className="text-[27px] font-bold text-white">nuestro precio regional más bajo</span>
                     )}
                   </div>
                 </div>
 
-                <div className="flex flex-wrap items-center gap-x-5 gap-y-1.5 text-[11px] text-white/90">
+                <div className="flex flex-wrap items-center gap-x-5 gap-y-1.5 text-[15px] text-white/90">
           <span className="inline-flex items-center gap-1.5">
             <svg viewBox="0 0 24 24" className="w-3.5 h-3.5 text-white" fill="currentColor">
               <path d="M6 10V8a6 6 0 1112 0v2h1a1 1 0 011 1v9a1 1 0 01-1 1H5a1 1 0 01-1-1v-9a1 1 0 011-1h1zm2 0h8V8a4 4 0 10-8 0v2z"/>
@@ -716,7 +716,7 @@ export default function ConversationPage() {
 
               <a
                   href={plansHref}
-                  className="mt-3 sm:mt-0 flex-shrink-0 inline-flex items-center justify-center gap-2 px-5 py-2.5 text-sm font-semibold rounded-lg bg-white text-indigo-700 shadow-lg shadow-black/20 hover:shadow-xl hover:shadow-black/30 hover:scale-105 transition-all duration-200 active:scale-95 border border-white/50"
+                  className="mt-3 sm:mt-0 flex-shrink-0 inline-flex items-center justify-center gap-2 px-5 py-2.5 text-[19px] font-semibold rounded-lg bg-white text-indigo-700 shadow-lg shadow-black/20 hover:shadow-xl hover:shadow-black/30 hover:scale-105 transition-all duration-200 active:scale-95 border border-white/50"
               >
                 <span>Ver planes</span>
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -742,7 +742,7 @@ export default function ConversationPage() {
           style={{ paddingBottom: "max(env(safe-area-inset-bottom), 20px)" }}
       >
         {!turnstileReady && (
-          <div className="text-xs text-gray-500 mb-2">Preparando seguridad…</div>
+          <div className="text-base text-gray-500 mb-2">Preparando seguridad…</div>
         )}
 
         <div className="flex items-center gap-2">
@@ -763,7 +763,7 @@ export default function ConversationPage() {
 
           {/* Text input */}
           <input
-            className="flex-1 px-4 py-2.5 border border-gray-300 rounded-full text-[15px] focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-50 disabled:cursor-not-allowed placeholder:text-gray-400"
+            className="flex-1 px-4 py-2.5 border border-gray-300 rounded-full text-[20px] focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-50 disabled:cursor-not-allowed placeholder:text-gray-400"
             placeholder="Mensaje..."
             value={text}
             onChange={(e) => setText(e.target.value)}
