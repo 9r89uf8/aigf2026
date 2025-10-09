@@ -9,13 +9,16 @@ import { api } from "../../../convex/_generated/api";
 export default function SignInPage() {
   const { signIn } = useAuthActions();
   const { isAuthenticated } = useConvexAuth();
-  const [flow, setFlow] = useState("signIn");
+  const [flow, setFlow] = useState("signUp"); // CHANGED: default to Register
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [countryGuess, setCountryGuess] = useState("");  // NEW
+  const [showPwd, setShowPwd] = useState(true);          // NEW: visible by default
   const verifyTurnstile = useAction(api.turnstile.verify);
   const ensureCountry = useMutation(api.profile.ensureCountry); // NEW
   const justSignedUp = useRef(false);
+  const tsRef = useRef(null);        // Turnstile container ref
+  const widgetId = useRef(null);     // Track widget ID for cleanup
 
   useEffect(() => {
     // Light-weight, server-sourced country
@@ -25,21 +28,76 @@ export default function SignInPage() {
         .catch(() => setCountryGuess(""));
   }, []);
 
-  // Run AFTER Convex auth is live so the mutation is authenticated
+  // Run AFTER Convex auth is live so the mutation is authenticated.
+  // Strategy: call ensureCountry *once* immediately after signup (even if guess missing),
+  // then call *once more* automatically when guess becomes available.
   useEffect(() => {
-    if (!justSignedUp.current) return;
-    if (!isAuthenticated) return;
-    if (!countryGuess) { justSignedUp.current = false; return; }
+    if (!justSignedUp.current || !isAuthenticated) return;
     (async () => {
       try {
-        await ensureCountry({ country: countryGuess });
-      } catch (e) {
+        await ensureCountry({ country: countryGuess || undefined });
+      } catch {
         // non-fatal; ignore
       } finally {
-        justSignedUp.current = false;
+        // If we still don't have a guess, keep the flag true so we can try once more
+        if (countryGuess) {
+          justSignedUp.current = false;
+        }
       }
     })();
   }, [isAuthenticated, countryGuess, ensureCountry]);
+
+  // Explicit Turnstile lifecycle management with retry logic
+  useEffect(() => {
+    const el = tsRef.current;
+    if (!el || typeof window === "undefined") return;
+
+    const timeouts = [];
+
+    // Try to render the widget
+    const tryRender = () => {
+      if (!window.turnstile) return false; // Not ready yet
+      if (widgetId.current !== null) return true; // Already rendered
+
+      try {
+        widgetId.current = window.turnstile.render(el, {
+          sitekey: process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY,
+          action: flow,
+          retry: "auto",
+          "refresh-expired": "auto",
+        });
+        return true; // Success
+      } catch (e) {
+        return false; // Failed
+      }
+    };
+
+    // Try immediately
+    if (!tryRender()) {
+      // If not ready, retry with increasing delays
+      [100, 250, 500, 1000, 2000].forEach((delay) => {
+        timeouts.push(
+          setTimeout(() => {
+            tryRender();
+          }, delay)
+        );
+      });
+    }
+
+    // Cleanup when flow changes or component unmounts
+    return () => {
+      // Clear pending timeouts
+      timeouts.forEach(clearTimeout);
+
+      // Remove widget
+      if (widgetId.current !== null) {
+        try {
+          window.turnstile?.remove(widgetId.current);
+        } catch {}
+        widgetId.current = null;
+      }
+    };
+  }, [flow]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -141,16 +199,26 @@ export default function SignInPage() {
           <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
             Contraseña
           </label>
-          <input
-            id="password"
-            name="password"
-            type="password"
-            placeholder={flow === "signIn" ? "Ingresa tu contraseña" : "Elige una contraseña (8+ caracteres)"}
-            required
-            minLength={8}
-            autoComplete={flow === "signIn" ? "current-password" : "new-password"}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
+          <div className="relative">
+            <input
+              id="password"
+              name="password"
+              type={showPwd ? "text" : "password"}
+              placeholder={flow === "signIn" ? "Ingresa tu contraseña" : "Elige una contraseña (8+ caracteres)"}
+              required
+              minLength={8}
+              autoComplete={flow === "signIn" ? "current-password" : "new-password"}
+              className="w-full pr-24 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+            <button
+              type="button"
+              onClick={() => setShowPwd((s) => !s)}
+              className="absolute inset-y-0 right-2 my-auto text-sm px-2 py-1 rounded hover:bg-gray-100"
+              aria-label={showPwd ? "Ocultar contraseña" : "Mostrar contraseña"}
+            >
+              {showPwd ? "Ocultar" : "Mostrar"}
+            </button>
+          </div>
         </div>
 
         <input name="flow" type="hidden" value={flow} />
@@ -160,12 +228,11 @@ export default function SignInPage() {
             <input name="country" type="hidden" value={countryGuess} />
         )}
 
-        {/* Cloudflare Turnstile widget inside the form so it posts cf-turnstile-response */}
+        {/* Cloudflare Turnstile widget - explicitly rendered via useEffect */}
         <div
-          className="cf-turnstile"
-          data-sitekey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY}
-          data-action={flow}
-          data-retry="auto"
+          key={flow} // Force remount when switching tabs so token/action are fresh
+          ref={tsRef}
+          className="min-h-[70px]" // reserve space; avoids layout shift
         />
 
         <button

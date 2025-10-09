@@ -405,7 +405,7 @@ export default function ConversationPage() {
   }
 
   return (
-    <div className="max-w-screen-sm mx-auto h-[calc(100dvh-3.5rem)] md:h-[calc(100vh-3.5rem)] flex flex-col overflow-hidden min-h-0 -mb-[76px] sm:mb-0">
+    <div className="max-w-screen-sm mx-auto h-[calc(100dvh-3.5rem)] md:h-[calc(100vh-3.5rem)] flex flex-col overflow-hidden min-h-0 -mb-[70px] sm:mb-0">
       {/* Instagram-style header */}
       <div className="px-4 py-3 border-b border-gray-200 flex items-center justify-between z-10 flex-none">
         <button

@@ -1,18 +1,15 @@
 // app/api/geo/route.js
-import { geolocation } from "@vercel/functions";
+import { headers } from "next/headers";
 
-// Optional but recommended (Edge is fastest for geo)
-export const runtime = "edge";
+export async function GET() {
+  const h = headers();
+  const country = (
+    h.get("x-vercel-ip-country") || // Vercel
+    h.get("cf-ipcountry") ||        // Cloudflare
+    h.get("cf-ip-country") ||       // Some CF setups
+    h.get("x-country") ||           // Custom reverse proxies
+    ""
+  ).toUpperCase();
 
-export async function GET(request) {
-    const geo = geolocation(request) || {};
-    // Fallback header also works on Vercel (handy for local/Node runtime)
-    const headerCountry = request.headers.get("x-vercel-ip-country") || "";
-    const country = (geo.country || headerCountry || (process.env.NODE_ENV === 'development' ? 'MX' : '')).toUpperCase();
-    const code = /^[A-Z]{2}$/.test(country) ? country : ""; // sanitize
-
-
-    return new Response(JSON.stringify({ country: code }), {
-        headers: { "content-type": "application/json", "cache-control": "no-store" },
-    });
+  return Response.json({ country });
 }

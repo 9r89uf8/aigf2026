@@ -16,10 +16,10 @@ export default function RootLayout({ children }) {
   return (
       <ConvexAuthNextjsServerProvider>
     <html lang="es">
-      <body className="pb-[76px] sm:pb-0 bg-gradient-to-br from-gray-50 to-gray-100 min-h-[100dvh] flex flex-col">
+      <body className="pb-[60px] sm:pb-0 bg-gradient-to-br from-gray-50 to-gray-100 min-h-[100dvh] flex flex-col">
         <Script
           src="https://challenges.cloudflare.com/turnstile/v0/api.js"
-          strategy="lazyOnload"
+          strategy="afterInteractive" // CHANGED: load right after hydration
         />
         <Providers>
           <Navbar />
