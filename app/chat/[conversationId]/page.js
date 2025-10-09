@@ -739,7 +739,7 @@ export default function ConversationPage() {
       {/* Instagram-style input area */}
       <div
           className="px-4 py-3 border-t border-gray-200 bg-white flex-none z-10"
-          style={{ paddingBottom: "max(env(safe-area-inset-bottom), 0px)" }}
+          style={{ paddingBottom: "max(env(safe-area-inset-bottom), 20px)" }}
       >
         {!turnstileReady && (
           <div className="text-xs text-gray-500 mb-2">Preparando seguridad…</div>
