@@ -155,7 +155,7 @@ export const startConversation = mutation({
     const conversationId = await ctx.db.insert("conversations", {
       userId,
       girlId,
-      girlName: girl.name,
+      girlName: girl.username,
       girlAvatarKey: girl.avatarKey,
       freeRemaining: {
         text: FREE_TEXT_PER_GIRL,

@@ -19,7 +19,7 @@ function lastLine({ lastMessageKind, lastMessageSender, lastMessagePreview, girl
   const who = lastMessageSender === "ai" ? girlName : "You";
   if (lastMessageKind === "text") {
     const quoted = lastMessagePreview ? `${lastMessagePreview}` : "…";
-    return `${who}: ${quoted}`;
+    return `${quoted}`;
   }
   const label =
       lastMessageKind === "image" ? "envió una foto 📷" :

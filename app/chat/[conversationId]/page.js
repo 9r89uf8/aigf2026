@@ -742,59 +742,65 @@ export default function ConversationPage() {
           style={{ paddingBottom: "max(env(safe-area-inset-bottom), 20px)" }}
       >
         {!turnstileReady && (
-          <div className="text-base text-gray-500 mb-2">Preparando seguridad…</div>
+            <div className="text-base text-gray-500 mb-2">Preparando seguridad…</div>
         )}
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5 sm:gap-2">
           {/* Media & Audio buttons */}
-          <div className={`flex items-center gap-1 ${disableComposer ? "pointer-events-none opacity-40" : ""}`}>
+          <div className={`flex items-center shrink-0 ${disableComposer ? "pointer-events-none opacity-40" : ""}`}>
             <MediaComposer
                 conversationId={conversationId}
                 ensurePermit={ensurePermit}
                 onSent={() => bottomRef.current?.scrollIntoView({ behavior: "smooth" })}
             />
-            <AudioComposer
-                conversationId={conversationId}
-                ensurePermit={ensurePermit}
-                onSent={() => bottomRef.current?.scrollIntoView({ behavior: "smooth" })}
+            {/* Hide the audio button on super-narrow screens to keep things tidy */}
+            <div className="max-[360px]:hidden">
+              <AudioComposer
+                  conversationId={conversationId}
+                  ensurePermit={ensurePermit}
+                  onSent={() => bottomRef.current?.scrollIntoView({ behavior: "smooth" })}
+              />
+            </div>
+          </div>
+
+          {/* Text input (wrapped so it can shrink) */}
+          <div className="flex-1 min-w-0 overflow-hidden">
+            <input
+                className="w-full px-3 sm:px-4 py-2 border border-gray-300 rounded-full text-[16px] sm:text-[20px] leading-tight focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-50 disabled:cursor-not-allowed placeholder:text-gray-400"
+                placeholder="Mensaje..."
+                value={text}
+                onChange={(e) => setText(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !e.shiftKey && text.trim() && !disableComposer && !isSending && turnstileReady) {
+                    e.preventDefault();
+                    onSend();
+                  }
+                }}
+                disabled={disableComposer || isSending || !turnstileReady}
             />
           </div>
 
-
-          {/* Text input */}
-          <input
-            className="flex-1 px-4 py-2.5 border border-gray-300 rounded-full text-[20px] focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-50 disabled:cursor-not-allowed placeholder:text-gray-400"
-            placeholder="Mensaje..."
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && !e.shiftKey && text.trim() && !disableComposer && !isSending && turnstileReady) {
-                e.preventDefault();
-                onSend();
-              }
-            }}
-            disabled={disableComposer || isSending || !turnstileReady}
-          />
-
           {/* Send button */}
           <button
-            className="p-2 text-blue-500 hover:text-blue-600 disabled:text-gray-300 disabled:cursor-not-allowed transition-colors font-semibold text-sm"
-            onClick={onSend}
-            disabled={!text.trim() || disableComposer || isSending || !turnstileReady}
+              className="p-2 flex-shrink-0 text-blue-500 hover:text-blue-600 disabled:text-gray-300 disabled:cursor-not-allowed transition-colors font-semibold text-sm"
+              onClick={onSend}
+              disabled={!text.trim() || disableComposer || isSending || !turnstileReady}
+              aria-label="Enviar"
           >
             {isSending ? (
-              <svg className="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-              </svg>
+                <svg className="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
             ) : (
-              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
-              </svg>
+                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
+                </svg>
             )}
           </button>
         </div>
       </div>
+
 
       {/* Image Enlargement Modal */}
       {enlargedImage && (

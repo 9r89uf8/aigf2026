@@ -124,7 +124,7 @@ export default function GirlProfilePage() {
   const canNext = currentStoryIndex >= 0 && currentStoryIndex < stories.length - 1;
 
   return (
-      <div className="min-h-screen">
+      <div className="pb-[60px] min-h-screen">
         {/* Hero Section */}
         <ProfileHero
             girl={girl}

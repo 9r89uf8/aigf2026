@@ -136,7 +136,7 @@ export default function AccountForm() {
   </div>;
 
   return (
-    <main className="min-h-screen bg-gray-50">
+    <main className="pb-[60px] min-h-screen bg-gray-50">
       {/* Cover Header - Social Media Style */}
       <div className="relative pt-6 px-6">
         <div className="h-48 bg-gradient-to-br from-indigo-600 via-amber-500 to-cyan-400 rounded-2xl"></div>

@@ -78,9 +78,10 @@ export const getHome = query({
     const stories = Array.from(latestByGirl.entries()).map(([gid, s]) => {
       const girl = activeById.get(gid);
       const lastSeen = lastSeenByGirl.get(gid) || 0;
+
       return {
         girlId: girl._id,
-        girlName: girl.name,
+        girlName: girl.username,
         girlAvatarKey: girl.avatarKey,
         storyId: s._id,
         kind: s.kind,
