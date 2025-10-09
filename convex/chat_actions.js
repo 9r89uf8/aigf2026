@@ -110,6 +110,175 @@ function cheapAck(seed) {
   return opts[Math.abs(hashCode(String(seed))) % opts.length];
 }
 
+// --- BURST CONFIG (cheap, deterministic, no extra DB) ---
+const BURST_CFG = {
+  prob: 0.38,                   // overall chance to attempt a burst
+  zeroDelayFirstChance: 0.35,   // chance first part has no delay
+  zeroDelaySecondChance: 0.10,  // chance second part has no delay
+  minSplitWords: 6,             // avoid tiny shards
+  maxFirstChars: 60,            // keep the first split short-ish
+  msPerChar: 35,                // keystroke-ish timing
+  maxDelayMs: 4000,
+  jitterMs: 250,
+};
+
+// --- SPLIT CONFIG ---
+const SPLIT_CFG = {
+  // probabilities for "optional" splits (seeded; deterministic per message)
+  emojiSplitChance: 0.55,
+  ellipsisSplitChance: 0.60,
+  endEmojiBubbleChance: 0.35,
+
+  // size guards
+  minWordsEach: 2,          // for most splits
+  minWordsEitherLenient: 1, // for paragraph / blank-line cases
+  maxFirstChars: 60,        // keep opener short-ish
+};
+
+// strong, affective emoji we care about (short curated set; cheap to scan)
+const STRONG_EMOJI = ["😘","🥺","🔥","😉","😍","😏","✨","❤️","💖","😂","🤣","😊","😁","😚","🙈","👍","💋"];
+
+// phatic/ack phrases that pair well with a following emoji
+const PHATIC_RE = /\b(gracias|mil gracias|ok|oki|va|sale|si|sí|holi|hola|ay+|oye|amor(?:cito)?|bb|bebe|bebé|papi|mi vida|cariñ[oa]|tqm|tkm|ntp|obvio)\b/i;
+
+function clamp(n, lo, hi) { return Math.min(hi, Math.max(lo, n)); }
+function pick(seed, arr) { return arr[Math.abs(hashCode(String(seed))) % arr.length]; }
+function wordCount(s="") { return (s.trim().match(/\S+/g)||[]).length; }
+
+function notTooLong(n, max){ return n <= max; }
+function seededScore(seed, tag){ return (Math.abs(hashCode(seed+":"+tag)) % 1000) / 1000; }
+function seededChance(seed, tag, p){ return seededScore(seed, tag) < p; }
+
+// Find first/last emoji span using simple indexOf over a small set
+function findFirstEmojiSpan(s) {
+  let best = null;
+  for (const emo of STRONG_EMOJI) {
+    const i = s.indexOf(emo);
+    if (i !== -1 && (best === null || i < best.start)) best = { start: i, end: i + emo.length, value: emo };
+  }
+  return best;
+}
+function findLastEmojiSpan(s) {
+  let best = null;
+  for (const emo of STRONG_EMOJI) {
+    const i = s.lastIndexOf(emo);
+    if (i !== -1 && (best === null || i > best.start)) best = { start: i, end: i + emo.length, value: emo };
+  }
+  return best;
+}
+
+// --- SMART SPLIT STRATEGIES ---
+
+// 1) Paragraph / blank-line split
+function splitOnBlankLine(raw) {
+  const m = raw.match(/\n\s*\n/);
+  if (!m) return null;
+  const i = m.index;
+  const a = raw.slice(0, i).trim();
+  const b = raw.slice(i + m[0].length).trim();
+  if (!a || !b) return null;
+  if (wordCount(a) < SPLIT_CFG.minWordsEitherLenient || wordCount(b) < SPLIT_CFG.minWordsEitherLenient) return null;
+  return [a, b];
+}
+
+// 2) "phatic + emoji + continuation" → split after emoji (sometimes)
+function splitOnPhaticEmoji(raw, seed) {
+  const span = findFirstEmojiSpan(raw);
+  if (!span) return null;
+  const left = raw.slice(0, span.end).trim();
+  const right = raw.slice(span.end).trim();
+  if (!left || !right) return null;
+
+  // left should be short and phatic-ish
+  if (!notTooLong(left.length, SPLIT_CFG.maxFirstChars)) return null;
+  const leftNorm = normalizeMx(left);
+  const phatic = PHATIC_RE.test(leftNorm);
+  const okByChance = phatic ? true : seededChance(seed, "emojiSplit", SPLIT_CFG.emojiSplitChance);
+
+  if (!okByChance) return null;
+  if (wordCount(right) < SPLIT_CFG.minWordsEach) return null;
+  return [left, right];
+}
+
+// 3) Ellipsis "… + continuation" (sometimes)
+function splitOnEllipsis(raw, seed) {
+  const idx = raw.indexOf("...");
+  if (idx === -1) return null;
+  const cut = idx + 3;
+  const left = raw.slice(0, cut).trim();
+  const right = raw.slice(cut).trim();
+  if (!left || !right) return null;
+  if (!notTooLong(left.length, SPLIT_CFG.maxFirstChars)) return null;
+  if (!seededChance(seed, "ellipsisSplit", SPLIT_CFG.ellipsisSplitChance)) return null;
+  if (wordCount(left) < SPLIT_CFG.minWordsEach || wordCount(right) < SPLIT_CFG.minWordsEach) return null;
+  return [left, right];
+}
+
+// 4) Early sentence boundary . ! ? … (fallback)
+function splitOnPunctuation(raw) {
+  const re = /[.!?…]/g;
+  const cuts = [];
+  let m; while ((m = re.exec(raw))) cuts.push(m.index + 1); // keep delimiter with left
+  const idx = cuts.sort((a,b)=>a-b).find(i => i > 0 && i <= SPLIT_CFG.maxFirstChars);
+  if (!idx) return null;
+  const left = raw.slice(0, idx).trim();
+  const right = raw.slice(idx).trim();
+  if (!left || !right) return null;
+  if (wordCount(left) < SPLIT_CFG.minWordsEach || wordCount(right) < SPLIT_CFG.minWordsEach) return null;
+  return [left, right];
+}
+
+// 5) Terminal emoji bubble (sometimes) → "text" + "😘"
+function splitOnEndEmojiBubble(raw, seed) {
+  const span = findLastEmojiSpan(raw);
+  if (!span) return null;
+  const after = raw.slice(span.end).trim();
+  if (after) return null; // only if emoji is last
+  const left = raw.slice(0, span.start).trim();
+  const emoji = raw.slice(span.start, span.end).trim();
+  if (!left || !emoji) return null;
+  if (!seededChance(seed, "endEmojiBubble", SPLIT_CFG.endEmojiBubbleChance)) return null;
+  if (!notTooLong(left.length, SPLIT_CFG.maxFirstChars)) return null;
+  if (wordCount(left) < SPLIT_CFG.minWordsEitherLenient) return null;
+  return [left, emoji];
+}
+
+// Main splitter: first match wins
+function smartSplitAiText(text, seed) {
+  const raw = (text || "").trim();
+  if (!raw) return null;
+
+  // short messages don't need splitting
+  if (raw.length < 14) return null;
+
+  return (
+    splitOnBlankLine(raw) ||
+    splitOnPhaticEmoji(raw, seed) ||
+    splitOnEllipsis(raw, seed) ||
+    splitOnPunctuation(raw) ||
+    splitOnEndEmojiBubble(raw, seed) ||
+    null
+  );
+}
+
+function jitter(ms, j=BURST_CFG.jitterMs) {
+  return Math.max(0, Math.round(ms + (Math.random()*2 - 1) * j));
+}
+
+function delayForPart(len, zeroChance) {
+  if (Math.random() < zeroChance) return 0;
+  const base = clamp(Math.round(len * BURST_CFG.msPerChar), 250, BURST_CFG.maxDelayMs);
+  return jitter(base, BURST_CFG.jitterMs);
+}
+
+function planDelays(parts) {
+  // returns cumulative ms offsets for scheduler
+  const d1 = delayForPart(parts[0].length, BURST_CFG.zeroDelayFirstChance);
+  if (parts.length === 1) return [d1];
+  const d2 = d1 + delayForPart(parts[1].length, BURST_CFG.zeroDelaySecondChance);
+  return [d1, d2];
+}
+
 // Extract tags for asset picking
 function extractTags(t) {
   const tags = [];
@@ -517,8 +686,10 @@ export const aiReply = action({
   args: { conversationId: v.id("conversations"), userMessageId: v.optional(v.id("messages")) },
   handler: async (ctx, { conversationId, userMessageId }) => {
     // Helper: always clear hint before returning
-    async function done(result) {
-      await ctx.runMutation(api.chat_actions._setPendingIntent, { conversationId });
+    async function done(result, { keepTyping = false } = {}) {
+      if (!keepTyping) {
+        await ctx.runMutation(api.chat_actions._setPendingIntent, { conversationId });
+      }
       return result;
     }
 
@@ -736,7 +907,6 @@ export const aiReply = action({
 
     let raw;
     try {
-      console.log(messages)
       raw = await callLLM({ ...cfg.primary, messages });
     } catch (e1) {
       if (fallbackEnabled) {
@@ -754,42 +924,51 @@ export const aiReply = action({
 
     const decision = parseDecision(raw);
 
-    // Handle text response (with optional burst)
+    // Handle text response (now with smart split; no random ack)
     if (decision.type === "text") {
-      const fallbackText = decision.text || "aquí contigo 💕";
-      const burst = Math.random() < 0.45; // 35% chance for burst
-      if (!burst) {
+      const finalText = (decision.text || "aquí contigo 💕").trim();
+
+      const seed = `${conversationId}:${anchorId ?? ""}:${finalText}`;
+      const parts = smartSplitAiText(finalText, seed);
+
+      // No split → send once
+      if (!parts) {
         await ctx.runMutation(api.chat_actions._insertAIText, {
           conversationId,
           ownerUserId: userId,
-          text: fallbackText,
+          text: finalText,
           shouldLikeUserMsg: shouldLike,
           lastUserMsgId: userMessageId,
         });
         return await done({ ok: true, kind: "text" });
       }
-      // Burst mode: 2-3 messages with anchor checking
-      const ack = cheapAck(conversationId.toString() + Date.now());
-      const d1 = Math.floor(600 + Math.random() * 900);    // 0.6-1.5s for ack
-      const d2 = d1 + Math.floor(1400 + Math.random() * 2200); // +1.4-3.6s for main
-      const d3 = d2 + Math.floor(1200 + Math.random() * 1600); // +1.2-2.8s for follow-up
+
+      // Split into two messages with human-ish delays
+      const [d1, d2] = planDelays(parts);
+      const keepTypingMs = (parts.length === 2 ? d2 : d1) + 1200;
+
+      await ctx.runMutation(api.chat_actions._setPendingIntent, {
+        conversationId,
+        intent: "text",
+        ttlMs: keepTypingMs,
+      });
+
+      // First part
       await ctx.scheduler.runAfter(d1, api.chat_actions.insertTextIfAnchor, {
-        conversationId, ownerUserId: userId, text: ack,
+        conversationId, ownerUserId: userId, text: parts[0],
         anchorUserMsgId: anchorId,
         shouldLikeUserMsg: shouldLike, lastUserMsgId: userMessageId,
       });
-      await ctx.scheduler.runAfter(d2, api.chat_actions.insertTextIfAnchor, {
-        conversationId, ownerUserId: userId, text: fallbackText,
-        anchorUserMsgId: anchorId,
-      });
-      if (Math.random() < 0.15) { // 15% chance for 3rd message
-        const follow = Math.random() < 0.5 ? "y ya?" : "nmms 😂";
-        await ctx.scheduler.runAfter(d3, api.chat_actions.insertTextIfAnchor, {
-          conversationId, ownerUserId: userId, text: follow,
+
+      // Second part
+      if (parts.length === 2) {
+        await ctx.scheduler.runAfter(d2, api.chat_actions.insertTextIfAnchor, {
+          conversationId, ownerUserId: userId, text: parts[1],
           anchorUserMsgId: anchorId,
         });
       }
-      return await done({ ok: true, kind: "text", mode: "burst" });
+
+      return await done({ ok: true, kind: "text", mode: "split_text" }, { keepTyping: true });
     }
 
     // Handle audio response
