@@ -161,6 +161,12 @@ const schema = defineSchema({
     pendingIntentExpiresAt: v.optional(v.number()),
     // Media/audio reply throttle: cooldown timestamp
     heavyCooldownUntil: v.optional(v.number()),
+    // Media deduplication: track sent media per conversation (newest first, clipped to prevent bloat)
+    mediaSeen: v.optional(v.object({
+      image: v.array(v.string()),
+      video: v.array(v.string()),
+      audio: v.array(v.string()),
+    })),
   })
     .index("by_user_updated", ["userId", "updatedAt"])
     .index("by_user_girl", ["userId", "girlId"]),

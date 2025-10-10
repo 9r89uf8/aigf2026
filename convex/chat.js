@@ -6,6 +6,7 @@ import { getAuthUserId } from "@convex-dev/auth/server";
 import {
   FREE_TEXT_PER_GIRL, FREE_MEDIA_PER_GIRL, FREE_AUDIO_PER_GIRL, HEAVY_REPLY_COOLDOWN_MS,
 } from "./chat.config.js";
+import { MEDIA_DEDUP } from "./chat_actions.js";
 
 
 // Read-only premium check for girl access (enforcement now happens in send mutations via permit)
@@ -510,6 +511,13 @@ export const _insertAIAudioAndDec = internalMutation({
       await ctx.db.patch(lastUserMsgId, { aiLiked: !!shouldLikeUserMsg, aiError: false });
     }
 
+    // Load convo to update mediaSeen safely (ensures uniqueness + clipping)
+    const convo = await ctx.db.get(conversationId);
+    const prevSeen = convo?.mediaSeen || { image: [], video: [], audio: [] };
+    const currentList = Array.isArray(prevSeen.audio) ? prevSeen.audio : [];
+    const nextList = [mediaKey, ...currentList.filter(k => k !== mediaKey)].slice(0, MEDIA_DEDUP.PER_KIND_LIMIT);
+    const nextMediaSeen = { ...prevSeen, audio: nextList };
+
     // Decrement audio quota if not premium
     await ctx.db.patch(conversationId, {
       freeRemaining: premiumActive
@@ -520,6 +528,7 @@ export const _insertAIAudioAndDec = internalMutation({
       lastMessageSender: "ai",
       lastMessageAt: now, updatedAt: now,
       heavyCooldownUntil: now + HEAVY_REPLY_COOLDOWN_MS,
+      mediaSeen: nextMediaSeen,
     });
   },
 });

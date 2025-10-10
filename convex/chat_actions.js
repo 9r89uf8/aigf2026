@@ -140,6 +140,46 @@ const SPLIT_CFG = {
 // strong, affective emoji we care about (short curated set; cheap to scan)
 const STRONG_EMOJI = ["😘","🥺","🔥","😉","😍","😏","✨","❤️","💖","😂","🤣","😊","😁","😚","🙈","👍","💋"];
 
+// --- MEDIA DEDUP CONFIG ---
+export const MEDIA_DEDUP = {
+  PER_KIND_LIMIT: 120,     // cap per kind to keep convo doc small
+  AVOID_RECENT_N: 8,       // when all are "seen", avoid most recent N if possible
+};
+
+// Get ordered list (newest first) from convo, safe default
+function getSeenList(convo, kind) {
+  return (convo.mediaSeen?.[kind] ?? []);
+}
+
+// Prefer unseen; if all seen, avoid very recent N if possible; else random
+function pickAssetWithDedup({ assets, kind, tags = [], seenList = [] }) {
+  let pool = assets;
+
+  if (tags.length) {
+    const tl = tags.map(t => t.toLowerCase());
+    const tagged = assets.filter(a => tl.some(t => (a.text || "").toLowerCase().includes(t)));
+    if (tagged.length) pool = tagged;
+  }
+
+  const seenSet = new Set(seenList);
+  const unseen = pool.filter(a => !seenSet.has(a.objectKey));
+  if (unseen.length) {
+    return unseen[Math.floor(Math.random() * unseen.length)];
+  }
+
+  // All seen → try to avoid the most recent N if there are other choices
+  if (pool.length > MEDIA_DEDUP.AVOID_RECENT_N) {
+    const recentSet = new Set(seenList.slice(0, MEDIA_DEDUP.AVOID_RECENT_N));
+    const olderSeen = pool.filter(a => !recentSet.has(a.objectKey));
+    if (olderSeen.length) {
+      return olderSeen[Math.floor(Math.random() * olderSeen.length)];
+    }
+  }
+
+  // Fallback: fully random
+  return pool[Math.floor(Math.random() * pool.length)];
+}
+
 // phatic/ack phrases that pair well with a following emoji
 const PHATIC_RE = /\b(gracias|mil gracias|ok|oki|va|sale|si|sí|holi|hola|ay+|oye|amor(?:cito)?|bb|bebe|bebé|papi|mi vida|cariñ[oa]|tqm|tkm|ntp|obvio)\b/i;
 
@@ -445,6 +485,11 @@ límites y seguridad:
         (convo.lastMessageSender === "ai") &&
         (convo.lastMessageKind === "image" || convo.lastMessageKind === "video" || convo.lastMessageKind === "audio"),
       heavyCooldownUntil: convo.heavyCooldownUntil ?? 0,
+      mediaSeen: {
+        image: convo.mediaSeen?.image ?? [],
+        video: convo.mediaSeen?.video ?? [],
+        audio: convo.mediaSeen?.audio ?? [],
+      },
     };
   },
 });
@@ -683,6 +728,13 @@ export const _insertAIMediaAndDec = internalMutation({
       await ctx.db.patch(lastUserMsgId, { aiLiked: !!shouldLikeUserMsg, aiError: false });
     }
 
+    // Load convo to update mediaSeen safely (ensures uniqueness + clipping)
+    const convo = await ctx.db.get(conversationId);
+    const prevSeen = convo?.mediaSeen || { image: [], video: [], audio: [] };
+    const currentList = Array.isArray(prevSeen[kind]) ? prevSeen[kind] : [];
+    const nextList = [mediaKey, ...currentList.filter(k => k !== mediaKey)].slice(0, MEDIA_DEDUP.PER_KIND_LIMIT);
+    const nextMediaSeen = { ...prevSeen, [kind]: nextList };
+
     await ctx.db.patch(conversationId, {
       freeRemaining: premiumActive
         ? freeRemaining
@@ -692,6 +744,7 @@ export const _insertAIMediaAndDec = internalMutation({
       lastMessageSender: "ai",
       lastMessageAt: now, updatedAt: now,
       heavyCooldownUntil: now + HEAVY_REPLY_COOLDOWN_MS,
+      mediaSeen: nextMediaSeen,
     });
   },
 });
@@ -712,7 +765,7 @@ export const aiReply = action({
     const anchorId = userMessageId ?? latestUser?._id; // reused in burst scheduling
 
     const { persona, history, girlId, userId, voiceId, premiumActive, freeRemaining,
-      lastUserMessage, lastUserMediaSummary, lastAiWasMedia, heavyCooldownUntil } = await ctx.runQuery(api.chat_actions._getContextV2, {
+      lastUserMessage, lastUserMediaSummary, lastAiWasMedia, heavyCooldownUntil, mediaSeen } = await ctx.runQuery(api.chat_actions._getContextV2, {
       conversationId, limit: CONTEXT_TURNS,
     });
 
@@ -923,14 +976,14 @@ export const aiReply = action({
           return await done({ ok: true, kind: "text" });
         }
 
-        // tag-based pick, else random
-        let chosen = assets[Math.floor(Math.random() * assets.length)];
-        if (fastIntent.tags?.length) {
-          const tagged = assets.filter(a =>
-            fastIntent.tags.some(t => (a.text || "").toLowerCase().includes(t))
-          );
-          if (tagged.length) chosen = tagged[Math.floor(Math.random() * tagged.length)];
-        }
+        // Pick with deduplication (prefer unseen, avoid recent repeats)
+        const seenList = mediaSeen?.[fastIntent.type] ?? [];
+        const chosen = pickAssetWithDedup({
+          assets,
+          kind: fastIntent.type,
+          tags: fastIntent.tags ?? [],
+          seenList,
+        });
 
         let caption;
         try {
@@ -1143,14 +1196,14 @@ export const aiReply = action({
       return await done({ ok: true, kind: "text" });
     }
 
-    // Pick by tag if any; else random
-    let chosen = assets[Math.floor(Math.random() * assets.length)];
-    if (decision.tags && decision.tags.length) {
-      const tagged = assets.filter(a =>
-        decision.tags.some(t => (a.text || "").toLowerCase().includes(t.toLowerCase()))
-      );
-      if (tagged.length) chosen = tagged[Math.floor(Math.random() * tagged.length)];
-    }
+    // Pick with deduplication (prefer unseen, avoid recent repeats)
+    const seenList = mediaSeen?.[decision.type] ?? [];
+    const chosen = pickAssetWithDedup({
+      assets,
+      kind: decision.type,
+      tags: decision.tags ?? [],
+      seenList,
+    });
 
     await ctx.runMutation(api.chat_actions._insertAIMediaAndDec, {
       conversationId,
