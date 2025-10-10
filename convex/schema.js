@@ -55,7 +55,7 @@ const schema = defineSchema({
 
   girl_media: defineTable({
     girlId: v.id("girls"),
-    kind: v.union(v.literal("image"), v.literal("video")),
+    kind: v.union(v.literal("image"), v.literal("video"), v.literal("audio")),
 
     // "Surfaces" (any combination, but validations enforce sane combos)
     isGallery: v.boolean(),

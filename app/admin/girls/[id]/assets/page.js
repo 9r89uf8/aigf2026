@@ -130,6 +130,14 @@ export default function AssetsManagerPage() {
                           controls
                           muted
                         />
+                      ) : item.kind === "audio" ? (
+                        <div className="w-full h-full flex items-center justify-center p-4">
+                          <audio
+                            controls
+                            src={mediaUrls[item._id]}
+                            className="w-full"
+                          />
+                        </div>
                       ) : (
                         <img
                           src={mediaUrls[item._id]}
@@ -274,6 +282,8 @@ export default function AssetsManagerPage() {
               <li>• "Workout photo at gym for fitness/health topics"</li>
               <li>• "Evening dress photo for formal/date conversations"</li>
               <li>• "Beach vacation video for travel/summer discussions"</li>
+              <li>• "moan • soft • 3s • playful" (for audio assets)</li>
+              <li>• "gemido • intense • 4s" (for audio assets)</li>
             </ul>
           </div>
           <div>
@@ -283,6 +293,7 @@ export default function AssetsManagerPage() {
               <li>• Missing context about when to use it</li>
               <li>• Too short (less than 10 characters)</li>
               <li>• Descriptions that don't help AI decide usage</li>
+              <li>• Audio without keywords like "moan" or "gemido"</li>
             </ul>
           </div>
         </div>

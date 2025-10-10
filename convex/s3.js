@@ -26,13 +26,21 @@ function extFromContentType(ct) {
   if (ct.includes("webp")) return "webp";
   if (ct.includes("mp4")) return "mp4";
   if (ct.includes("webm")) return "webm";
+  if (ct.includes("mpeg")) return "mp3";
+  if (ct.includes("wav")) return "wav";
+  if (ct.includes("m4a")) return "m4a";
   return "bin";
 }
 
 function assertAllowed(ct, size) {
-  const ok = ct?.startsWith("image/") || ct?.startsWith("video/");
-  if (!ok) throw new Error("Only image/* or video/* allowed");
-  if (size > 200 * 1024 * 1024) throw new Error("File too large (max 200MB)");
+  const ok = ct?.startsWith("image/") || ct?.startsWith("video/") || ct?.startsWith("audio/");
+  if (!ok) throw new Error("Only image/*, video/*, or audio/* allowed");
+  // Audio files have smaller size limit (20MB) to prevent abuse
+  const maxSize = ct?.startsWith("audio/") ? 20 * 1024 * 1024 : 200 * 1024 * 1024;
+  if (size > maxSize) {
+    const maxMB = ct?.startsWith("audio/") ? "20MB" : "200MB";
+    throw new Error(`File too large (max ${maxMB})`);
+  }
 }
 
 export const signAvatarUpload = action({

@@ -34,3 +34,30 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+
+Priority Order:
+1. Safety check (minor protection) - highest priority
+2. Moan check (RE_MOAN) - triggers audio with moan: true
+3. Generic audio (RE_AUDIO) - triggers audio with moan: false (TTS)
+4. Image/Video checks
+
+✅ Examples That Now Work:
+
+| User Input            | Detection  | Result                 |
+  |-----------------------|------------|------------------------|
+| "puedes gemir"        | RE_MOAN ✓  | Curated moan audio     |
+| "gime para mi"        | RE_MOAN ✓  | Curated moan audio     |
+| "quiero oírte gemir"  | RE_MOAN ✓  | Curated moan audio     |
+| "manda gemidos"       | RE_MOAN ✓  | Curated moan audio     |
+| "gemidito pls"        | RE_MOAN ✓  | Curated moan audio     |
+| "manda audio gemidos" | RE_MOAN ✓  | Curated moan audio     |
+| "manda voz"           | RE_AUDIO ✓ | TTS audio (moan=false) |
+| "graba audio"         | RE_AUDIO ✓ | TTS audio (moan=false) |
+| "nota de voz"         | RE_AUDIO ✓ | TTS audio (moan=false) |
+
+🔍 Key Improvements:
+
+1. Natural language support: Users don't need to say "audio" explicitly for moaning
+2. Better UX: "puedes gemir" is more natural than "manda audio gemidos"
+3. Fallback intact: Regular audio requests still work with TTS
+4. No conflicts: Moan check happens first, so priority is correct

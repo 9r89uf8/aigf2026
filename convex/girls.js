@@ -342,7 +342,7 @@ export const finalizeGirlMedia = mutation({
   args: {
     girlId: v.id("girls"),
     objectKey: v.string(),
-    kind: v.union(v.literal("image"), v.literal("video")),
+    kind: v.union(v.literal("image"), v.literal("video"), v.literal("audio")),
 
     // Surfaces (exactly one must be true)
     isGallery: v.boolean(),
@@ -489,7 +489,7 @@ export const listGirlMedia = query({
 export const listGirlAssetsForReply = query({
   args: {
     girlId: v.id("girls"),
-    kind: v.union(v.literal("image"), v.literal("video")),
+    kind: v.union(v.literal("image"), v.literal("video"), v.literal("audio")),
   },
   handler: async (ctx, { girlId, kind }) => {
     return await ctx.db
@@ -497,6 +497,7 @@ export const listGirlAssetsForReply = query({
       .withIndex("by_girl_assets", (q) => q.eq("girlId", girlId))
       .filter((q) => q.eq(q.field("isReplyAsset"), true))
       .filter((q) => q.eq(q.field("kind"), kind))
+      .filter((q) => q.eq(q.field("published"), true))
       .collect();
   },
 });

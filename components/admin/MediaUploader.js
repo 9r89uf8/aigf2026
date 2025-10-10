@@ -23,7 +23,7 @@ export default function MediaUploader({ girlId, surface, onUploaded }) {
         setProgress({ current: i + 1, total: files.length, fileName: file.name });
 
         // Validate file type
-        if (!file.type.startsWith("image/") && !file.type.startsWith("video/")) {
+        if (!file.type.startsWith("image/") && !file.type.startsWith("video/") && !file.type.startsWith("audio/")) {
           console.error(`Skipping ${file.name}: unsupported file type`);
           continue;
         }
@@ -51,13 +51,19 @@ export default function MediaUploader({ girlId, surface, onUploaded }) {
           const base = {
             girlId,
             objectKey,
-            kind: file.type.startsWith("video/") ? "video" : "image",
+            kind: file.type.startsWith("video/") ? "video" : file.type.startsWith("audio/") ? "audio" : "image",
             isGallery: surface === "gallery",
             isPost: surface === "posts",
             isReplyAsset: surface === "assets",
           };
 
           const surfaceDefaults = getSurfaceDefaults(surface);
+
+          // Auto-mark audio assets as mature (typically used for moaning sounds)
+          if (surface === "assets" && file.type.startsWith("audio/")) {
+            surfaceDefaults.mature = true;
+          }
+
           await finalize({ ...base, ...surfaceDefaults });
 
         } catch (error) {
@@ -108,8 +114,8 @@ export default function MediaUploader({ girlId, surface, onUploaded }) {
     }
   }
 
-  const acceptedTypes = "image/*,video/*";
-  const maxSizeText = "Max 200MB per file";
+  const acceptedTypes = "image/*,video/*,audio/*";
+  const maxSizeText = "Max 200MB for media, 20MB for audio";
 
   return (
     <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 bg-gray-50">
@@ -179,7 +185,7 @@ export default function MediaUploader({ girlId, surface, onUploaded }) {
               Choose Files
             </label>
             <p className="text-xs text-gray-500 mt-2">
-              {maxSizeText} • Images and videos supported
+              {maxSizeText} • Images, videos, and audio supported
             </p>
           </>
         )}

@@ -311,6 +311,7 @@ function extractTags(t) {
 const RE_AUDIO = /\b(audio|nota de voz|vn|voz|voice|grab(a|ame)|hazme.*audio|mand(a|ame).*(audio|nota))\b/;
 const RE_IMAGE = /\b(foto|fotito|pic|selfie|imagen|pack)\b|mand(a|ame).*(foto|selfie|pic|imagen)|rola(me)?.*(foto|selfie)/;
 const RE_VIDEO = /\b(video|vid|clip|reel)\b|mand(a|ame).*(video|clip)|rola(me)?.*(video)/;
+const RE_MOAN = /\b(moan(?:ing)?|gemid(?:o|a|os|as)|gemir|gemidito|gimiendo|sonido\s+de\s+gemid(?:o|os))\b/i;
 
 function detectFastIntentFromText(text) {
   const t = normalizeMx(text);
@@ -319,7 +320,9 @@ function detectFastIntentFromText(text) {
   // Safety: if user claims to be minor, never fast-path to media/audio
   if (/\b(ten[gt]o|tengo)\s*(1[0-7])\b|\bsoy menor\b/.test(t)) return { type: "text", forceText: true };
 
-  if (RE_AUDIO.test(t)) return { type: "audio", tags: [] };
+  // Check moan first - moaning is inherently audio content
+  if (RE_MOAN.test(t)) return { type: "audio", tags: [], moan: true };
+  if (RE_AUDIO.test(t)) return { type: "audio", tags: [], moan: false };
   if (RE_IMAGE.test(t)) return { type: "image", tags: extractTags(t) };
   if (RE_VIDEO.test(t)) return { type: "video", tags: extractTags(t) };
 
@@ -825,6 +828,48 @@ export const aiReply = action({
           });
           return await done({ ok: true, kind: "text" });
         }
+
+        // If they asked for moaning, serve a curated sound asset instead of TTS
+        if (fastIntent.moan) {
+          // Heavy-cooldown guard (treat like media)
+          const explicitAsk = true;
+          if (heavyCooldownUntil && heavyCooldownUntil > Date.now()) {
+            await ctx.runMutation(api.chat_actions._insertAIText, {
+              conversationId, ownerUserId: userId,
+              text: "te lo mando en un ratito 😉",
+              shouldLikeUserMsg: shouldLike, lastUserMsgId: userMessageId,
+            });
+            return await done({ ok: true, kind: "text" });
+          }
+
+          // Load girl's audio reply assets (one cheap query)
+          const assets = await ctx.runQuery(api.girls.listGirlAssetsForReply, {
+            girlId, kind: "audio",
+          });
+          // Prefer items whose description mentions moans; else, any audio asset.
+          let pool = assets.filter(a => /moan|gemid/i.test(a.text || "") && a.mature);
+          if (!pool.length) pool = assets.filter(a => a.mature);
+          if (pool.length) {
+            const chosen = pool[Math.floor(Math.random() * pool.length)];
+            let line;
+            try {
+              line = await microCaptionForSend("audio", lastUserMessage?.text || "");
+            } catch (e) {
+              if (userMessageId) await ctx.runMutation(api.chat_actions._markAIError, { messageId: userMessageId });
+              return await done({ ok: false, error: "llm_unavailable" });
+            }
+            await ctx.runMutation(api.chat._insertAIAudioAndDec, {
+              conversationId, ownerUserId: userId,
+              premiumActive, freeRemaining,
+              mediaKey: chosen.objectKey, caption: line || "mmm 😘",
+              shouldLikeUserMsg: shouldLike, lastUserMsgId: userMessageId,
+            });
+            return await done({ ok: true, kind: "audio" });
+          }
+          // If no curated audio uploaded, fallback to TTS path below.
+        }
+
+        // Default audio (TTS) when not a moan request or no assets available
         const voiceIdToUse = voiceId || "EXAVITQu4vr4xnSDxMaL";
         let line;
         try {
