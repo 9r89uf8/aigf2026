@@ -140,6 +140,7 @@ const schema = defineSchema({
       media: v.number(),
       audio: v.number(),
     }),
+    girlAge: v.number(),
     premiumActive: v.boolean(),       // denormalized from profiles (snapshot)
     girlPremiumOnly: v.boolean(),     // denormalized from girls (for enforcement)
     personaPrompt: v.optional(v.string()), // denormalized from girls

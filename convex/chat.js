@@ -158,6 +158,7 @@ export const startConversation = mutation({
       userId,
       girlId,
       girlName: girl.username,
+      girlAge: girl.age,
       girlAvatarKey: girl.avatarKey,
       freeRemaining: {
         text: FREE_TEXT_PER_GIRL,
