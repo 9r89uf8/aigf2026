@@ -12,6 +12,7 @@ export default function PostsManagerPage() {
   const girl = useQuery(api.girls.getGirl, { girlId: id });
   const media = useQuery(api.girls.listGirlPosts, { girlId: id });
   const updateMedia = useMutation(api.girls.updateGirlMedia);
+  const deleteMedia = useMutation(api.girls.deleteGirlMedia);
   const cfSignView = useAction(api.cdn.cfSignView);
 
   const [mediaUrls, setMediaUrls] = useState({});
@@ -62,6 +63,17 @@ export default function PostsManagerPage() {
   function randomizeLikes(item) {
     const newLikeCount = Math.floor(Math.random() * 376) + 25; // 25-400
     handleUpdateItem(item._id, { likeCount: newLikeCount });
+  }
+
+  async function handleDeleteItem(itemId) {
+    if (!confirm("Are you sure you want to delete this post?")) return;
+
+    try {
+      await deleteMedia({ mediaId: itemId });
+      handleRefresh();
+    } catch (error) {
+      alert(error?.message ?? "Failed to delete item");
+    }
   }
 
   if (!girl) {
@@ -117,12 +129,12 @@ export default function PostsManagerPage() {
               {media.map((item) => (
                 <div key={item._id} className="border rounded-lg overflow-hidden">
                   {/* Media Preview */}
-                  <div className="aspect-video bg-gray-100 flex items-center justify-center">
+                  <div className="bg-gray-100 flex items-center justify-center overflow-hidden">
                     {mediaUrls[item._id] ? (
                       item.kind === "video" ? (
                         <video
                           src={mediaUrls[item._id]}
-                          className="w-full h-full object-cover"
+                          className="w-full h-auto max-h-80 object-contain"
                           controls
                           muted
                         />
@@ -130,7 +142,7 @@ export default function PostsManagerPage() {
                         <img
                           src={mediaUrls[item._id]}
                           alt="Post"
-                          className="w-full h-full object-cover"
+                          className="w-full h-auto max-h-80 object-contain"
                         />
                       )
                     ) : (
@@ -269,6 +281,13 @@ export default function PostsManagerPage() {
                         <span className="text-xs text-gray-700">Published</span>
                       </label>
                     </div>
+
+                    <button
+                      onClick={() => handleDeleteItem(item._id)}
+                      className="w-full text-xs px-3 py-2 border border-red-200 text-red-600 bg-red-50 rounded hover:bg-red-100 transition-colors"
+                    >
+                      Delete Post
+                    </button>
                   </div>
                 </div>
               ))}

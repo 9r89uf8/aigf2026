@@ -2,6 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
+      <module fileurl="file://$PROJECT_DIR$/../banana/.idea/banana.iml" filepath="$PROJECT_DIR$/../banana/.idea/banana.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/nextaifg2026.iml" filepath="$PROJECT_DIR$/.idea/nextaifg2026.iml" />
     </modules>
   </component>

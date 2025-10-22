@@ -430,6 +430,37 @@ export const updateGirlMedia = mutation({
   },
 });
 
+export const deleteGirlMedia = mutation({
+  args: { mediaId: v.id("girl_media") },
+  handler: async (ctx, { mediaId }) => {
+    await assertAdmin(ctx);
+    const media = await ctx.db.get(mediaId);
+    if (!media) throw new Error("Media not found");
+
+    const girl = await ctx.db.get(media.girlId);
+    if (!girl) throw new Error("Girl not found");
+
+    const likes = await ctx.db
+      .query("likes")
+      .withIndex("by_media", (q) => q.eq("mediaId", mediaId))
+      .collect();
+
+    for (const like of likes) {
+      await ctx.db.delete(like._id);
+    }
+
+    const counts = { ...girl.counts };
+    if (media.isGallery) counts.gallery = Math.max(0, (counts.gallery ?? 0) - 1);
+    if (media.isPost) counts.posts = Math.max(0, (counts.posts ?? 0) - 1);
+    if (media.isReplyAsset) counts.assets = Math.max(0, (counts.assets ?? 0) - 1);
+    await ctx.db.patch(media.girlId, { counts, updatedAt: now() });
+
+    await ctx.db.delete(mediaId);
+
+    return true;
+  },
+});
+
 
 // NEW
 export const listGirlGallery = query({
