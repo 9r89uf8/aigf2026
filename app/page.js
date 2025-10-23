@@ -288,7 +288,7 @@ export default function Home() {
                 <div className="bg-white rounded-3xl overflow-hidden shadow-2xl hover:shadow-3xl transition-all duration-500 transform hover:scale-105">
                   <div className="relative h-[500px] md:h-[600px]">
                     <Image
-                      src="/second.jpg"
+                      src="/second.png"
                       alt="Sofia - Compañera de IA"
                       fill
                       className="object-cover"
@@ -300,26 +300,26 @@ export default function Home() {
                     <div className="absolute bottom-0 left-0 right-0 p-6">
                       {/* Profile Picture with Instagram-style ring */}
                       <StoryAvatarButton
-                        avatarSrc="/first.jpg"
+                        avatarSrc="/first.png"
                         size={80}
                         stories={[
                           {
-                            url: "/first.jpg",
+                            url: "/first.png",
                             text: "Sofia te saluda 👋",
                             createdAt: Date.now() - 3 * 24 * 60 * 60 * 1000,
-                            user: { name: "Sofia", avatarUrl: "/first.jpg" },
+                            user: { name: "Sofia", avatarUrl: "/first.png" },
                           },
                           {
                             url: "/third.png",
                             text: "Detrás de cámaras 📸",
                             createdAt: Date.now() - 2 * 24 * 60 * 60 * 1000,
-                            user: { name: "Sofia", avatarUrl: "/first.jpg" },
+                            user: { name: "Sofia", avatarUrl: "/first.png" },
                           },
                         ]}
                       />
 
-                      <h3 className="text-3xl font-bold text-white mb-2">Sofia</h3>
-                      <p className="text-white/90 text-lg mb-4">24 años</p>
+                      <h3 className="text-3xl font-bold text-white mb-2">Andrea</h3>
+                      <p className="text-white/90 text-lg mb-4">18 años</p>
 
                       {/* CTA Buttons */}
                       <div className="flex items-center justify-center gap-3">

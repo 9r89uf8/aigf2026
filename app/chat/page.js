@@ -26,7 +26,7 @@ function lastLine({ lastMessageKind, lastMessageSender, lastMessagePreview, girl
           lastMessageKind === "video" ? "envió un vídeo 🎥" :
               lastMessageKind === "audio" ? "envió un audio 🎤" :
                   "envió un mensaje";
-  return `${who} ${label}`;
+  return `${label}`;
 }
 
 // Stable empty array reference so deps don't churn
