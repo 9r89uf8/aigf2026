@@ -6,11 +6,17 @@ export default function MediaCard({
   media,
   signedUrl,
   isLiked,
-  onLikeToggle
+  onLikeToggle,
+  onImageClick
 }) {
   const [isLiking, setIsLiking] = useState(false);
   const [localLiked, setLocalLiked] = useState(isLiked);
   const [localLikeCount, setLocalLikeCount] = useState(media.likeCount);
+
+  function handleImageClick() {
+    if (media.kind !== "image" || !signedUrl || !onImageClick) return;
+    onImageClick({ media, signedUrl });
+  }
 
   async function handleLikeClick() {
     if (!media.canBeLiked || isLiking) return;
@@ -53,12 +59,18 @@ export default function MediaCard({
               playsInline
             />
           ) : (
-            <img
-              src={signedUrl}
-              alt={media.text || "Media"}
-              className="w-full h-full object-cover"
-              loading="lazy"
-            />
+            <button
+              type="button"
+              onClick={handleImageClick}
+              className="block w-full h-full focus:outline-none"
+            >
+              <img
+                src={signedUrl}
+                alt={media.text || "Media"}
+                className="w-full h-full object-cover"
+                loading="lazy"
+              />
+            </button>
           )
         ) : (
           <div className="w-full h-full flex items-center justify-center">

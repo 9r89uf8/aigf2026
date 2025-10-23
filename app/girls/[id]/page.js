@@ -19,6 +19,7 @@ export default function GirlProfilePage() {
   const [signedUrls, setSignedUrls] = useState({});
   const [activeTab, setActiveTab] = useState("gallery"); // "gallery" | "posts"
   const [viewingStory, setViewingStory] = useState(null); // holds the selected story object
+  const [selectedMedia, setSelectedMedia] = useState(null);
 
   // Sign all URLs in batch when profile data loads
   useEffect(() => {
@@ -33,6 +34,19 @@ export default function GirlProfilePage() {
     }
     fetchSignedUrls();
   }, [profileData?.keysToSign, signViewBatch]);
+
+  useEffect(() => {
+    if (!selectedMedia) return;
+
+    function handleKeyDown(event) {
+      if (event.key === "Escape") {
+        setSelectedMedia(null);
+      }
+    }
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [selectedMedia]);
 
   // Loading state
   if (profileData === undefined) {
@@ -68,6 +82,27 @@ export default function GirlProfilePage() {
 
   function handleStoryClick(story) {
     setViewingStory(story);
+  }
+
+  function handleMediaImageClick(payload) {
+    setSelectedMedia({
+      media: payload.media,
+      url: payload.signedUrl,
+    });
+  }
+
+  function handleMediaClose() {
+    setSelectedMedia(null);
+  }
+
+  function handleAvatarClick(url) {
+    if (!url) return;
+    setSelectedMedia({
+      media: {
+        text: girl?.name ? `Avatar de ${girl.name}` : "Avatar",
+      },
+      url,
+    });
   }
 
   // --- Viewer wiring (index, neighbors, user injection) --------------------
@@ -130,6 +165,7 @@ export default function GirlProfilePage() {
             girl={girl}
             backgroundUrl={girl.backgroundKey ? signedUrls[girl.backgroundKey] : null}
             avatarUrl={girl.avatarKey ? signedUrls[girl.avatarKey] : null}
+            onAvatarClick={handleAvatarClick}
         />
 
         {/* Main Content */}
@@ -200,6 +236,7 @@ export default function GirlProfilePage() {
                               signedUrl={item.objectKey ? signedUrls[item.objectKey] : null}
                               isLiked={isLiked}
                               onLikeToggle={handleLikeToggle}
+                              onImageClick={handleMediaImageClick}
                           />
                       );
                     })
@@ -225,6 +262,7 @@ export default function GirlProfilePage() {
                               signedUrl={item.objectKey ? signedUrls[item.objectKey] : null}
                               isLiked={isLiked}
                               onLikeToggle={handleLikeToggle}
+                              onImageClick={handleMediaImageClick}
                           />
                       );
                     })
@@ -251,6 +289,32 @@ export default function GirlProfilePage() {
                 imageDurationMs={5000}
                 textDurationMs={5000}
             />
+        )}
+
+        {selectedMedia && selectedMedia.url && (
+            <div
+                className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 px-4"
+                onClick={handleMediaClose}
+            >
+              <div
+                  className="relative max-h-[90vh] w-full max-w-4xl"
+                  onClick={(event) => event.stopPropagation()}
+              >
+                <button
+                    type="button"
+                    onClick={handleMediaClose}
+                    className="absolute top-3 right-12 rounded-full bg-black/70 px-8 py-1 text-white text-sm font-semibold hover:bg-black/80 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/80"
+                    aria-label="Close image preview"
+                >
+                  Cerrar
+                </button>
+                <img
+                    src={selectedMedia.url}
+                    alt={selectedMedia.media?.text || "Preview"}
+                    className="max-h-[90vh] w-full object-contain rounded-lg shadow-2xl"
+                />
+              </div>
+            </div>
         )}
       </div>
   );

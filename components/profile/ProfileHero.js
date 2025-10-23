@@ -2,7 +2,12 @@
 
 import StartChatButton from "@/components/StartChatButton";
 
-export default function ProfileHero({ girl, backgroundUrl, avatarUrl }) {
+export default function ProfileHero({ girl, backgroundUrl, avatarUrl, onAvatarClick }) {
+  function handleAvatarClick() {
+    if (!avatarUrl || !onAvatarClick) return;
+    onAvatarClick(avatarUrl);
+  }
+
   return (
     <div className="relative w-full pt-4 px-4">
       {/* Background Image */}
@@ -26,11 +31,26 @@ export default function ProfileHero({ girl, backgroundUrl, avatarUrl }) {
           {/* Avatar */}
           <div className="relative inline-block">
             {avatarUrl ? (
-              <img
-                src={avatarUrl}
-                alt={girl.name}
-                className="w-32 h-32 rounded-full border-4 border-white shadow-lg object-cover"
-              />
+              onAvatarClick ? (
+                <button
+                  type="button"
+                  onClick={handleAvatarClick}
+                  className="block rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-white/80"
+                  aria-label={girl.name ? `Ver avatar de ${girl.name}` : "Ver avatar"}
+                >
+                  <img
+                    src={avatarUrl}
+                    alt={girl.name}
+                    className="w-32 h-32 rounded-full border-4 border-white shadow-lg object-cover"
+                  />
+                </button>
+              ) : (
+                <img
+                  src={avatarUrl}
+                  alt={girl.name}
+                  className="w-32 h-32 rounded-full border-4 border-white shadow-lg object-cover"
+                />
+              )
             ) : (
               <div className="w-32 h-32 rounded-full border-4 border-white shadow-lg bg-gradient-to-br from-purple-300 to-pink-300 flex items-center justify-center">
                 <span className="text-4xl font-bold text-white">
