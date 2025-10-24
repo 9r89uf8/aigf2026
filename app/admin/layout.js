@@ -20,6 +20,12 @@ export default async function AdminLayout({ children }) {
         <nav className="flex flex-col gap-2 text-sm">
           <h2 className="font-semibold text-lg mb-4">Admin Panel</h2>
           <a
+            href="/admin/conversations"
+            className="p-2 rounded hover:bg-gray-100 transition-colors"
+          >
+            Conversations
+          </a>
+          <a
             href="/admin/girls"
             className="p-2 rounded hover:bg-gray-100 transition-colors"
           >

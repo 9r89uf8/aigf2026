@@ -3,6 +3,7 @@ import { v } from "convex/values";
 import { query, mutation, internalMutation, internalQuery } from "./_generated/server";
 import { api } from "./_generated/api";
 import { getAuthUserId } from "@convex-dev/auth/server";
+import { assertAdmin } from "./_utils/auth";
 import {
   FREE_TEXT_PER_GIRL, FREE_MEDIA_PER_GIRL, FREE_AUDIO_PER_GIRL, HEAVY_REPLY_COOLDOWN_MS,
 } from "./chat.config.js";
@@ -25,6 +26,54 @@ async function requirePremiumIfGirlIsPremiumOnly(ctx, userId, girlId) {
   if (!active) throw new Error("PREMIUM_REQUIRED");
 
   return { premiumNeeded: true, girl };
+}
+
+function serializeMessagesForClient(messages) {
+  return messages.map((m) => ({
+    id: m._id,
+    sender: m.sender,
+    kind: m.kind,
+    text: m.text,
+    mediaKey: m.mediaKey,
+    durationSec: m.durationSec,
+    createdAt: m.createdAt,
+    userLiked: m.userLiked,
+    aiLiked: m.aiLiked,
+    aiError: m.aiError,
+    replyTo: m.replyTo
+      ? {
+          id: m.replyTo.id,
+          sender: m.replyTo.sender,
+          kind: m.replyTo.kind,
+          text: m.replyTo.text,
+        }
+      : undefined,
+  }));
+}
+
+function serializeConversationForClient(convo, messages) {
+  return {
+    conversationId: convo._id,
+    girlId: convo.girlId,
+    girlName: convo.girlName,
+    girlAvatarKey: convo.girlAvatarKey,
+    createdAt: convo.createdAt,
+    updatedAt: convo.updatedAt,
+    premiumActive: convo.premiumActive,
+    girlPremiumOnly: convo.girlPremiumOnly,
+    locked: false,
+    freeRemaining: {
+      text: convo.freeRemaining.text,
+      media: convo.freeRemaining.media,
+      audio: convo.freeRemaining.audio,
+    },
+    pendingIntent: convo.pendingIntent,
+    pendingIntentExpiresAt: convo.pendingIntentExpiresAt,
+    lastMessageAt: convo.lastMessageAt,
+    lastReadAt: convo.lastReadAt,
+    lastAiReadAt: convo.lastAiReadAt,
+    messages: serializeMessagesForClient(messages),
+  };
 }
 
 
@@ -75,51 +124,72 @@ export const getConversation = query({
         .take(limit);
     msgs.reverse();
 
+    return serializeConversationForClient(convo, msgs);
+  },
+});
+
+export const getConversationAdmin = query({
+  args: { conversationId: v.id("conversations"), limit: v.optional(v.number()) },
+  handler: async (ctx, { conversationId, limit = 50 }) => {
+    await assertAdmin(ctx);
+
+    const convo = await ctx.db.get(conversationId);
+    if (!convo) throw new Error("Not found");
+
+    const cutoff = convo.clearedAt ?? 0;
+    const msgs = await ctx.db
+      .query("messages")
+      .withIndex("by_conversation_ts", (q) =>
+        q.eq("conversationId", conversationId).gt("createdAt", cutoff)
+      )
+      .order("desc")
+      .take(limit);
+    msgs.reverse();
+
+    const userDoc = await ctx.db.get(convo.userId);
+
     return {
-      conversationId,
-      girlId: convo.girlId,
-      girlName: convo.girlName,
-      girlAvatarKey: convo.girlAvatarKey,
-
-      // Premium snapshot from conversation (client computes locked state)
-      premiumActive: convo.premiumActive,
-      girlPremiumOnly: convo.girlPremiumOnly,
-
-      // Client computes: locked = girlPremiumOnly && !me.premiumActive
-      locked: false,
-
-      // Only needed by the free‑quota banner
-      freeRemaining: {
-        text: convo.freeRemaining.text,
-        media: convo.freeRemaining.media,
-        audio: convo.freeRemaining.audio,
-      },
-
-      // Typing indicator hints
-      pendingIntent: convo.pendingIntent,
-      pendingIntentExpiresAt: convo.pendingIntentExpiresAt,
-
-      // Seen ticks (lastReadAt for ✓✓ rendering)
-      lastMessageAt: convo.lastMessageAt,
-      lastReadAt: convo.lastReadAt,
-      lastAiReadAt: convo.lastAiReadAt,
-
-      messages: msgs.map((m) => ({
-        id: m._id,
-        sender: m.sender,
-        kind: m.kind,
-        text: m.text,
-        mediaKey: m.mediaKey,
-        durationSec: m.durationSec,
-        createdAt: m.createdAt,
-        userLiked: m.userLiked,
-        aiLiked: m.aiLiked,
-        aiError: m.aiError,
-        replyTo: m.replyTo
-          ? { id: m.replyTo.id, sender: m.replyTo.sender, kind: m.replyTo.kind, text: m.replyTo.text }
-          : undefined,
-      })),
+      ...serializeConversationForClient(convo, msgs),
+      userId: convo.userId,
+      userEmail: userDoc?.email ?? null,
     };
+  },
+});
+
+export const listRecentConversationsAdmin = query({
+  args: { limit: v.optional(v.number()) },
+  handler: async (ctx, { limit = 10 }) => {
+    await assertAdmin(ctx);
+
+    const convos = await ctx.db
+      .query("conversations")
+      .withIndex("by_updatedAt")
+      .order("desc")
+      .take(limit);
+
+    const userIds = convos.map((c) => c.userId);
+    const userMap = new Map();
+    for (const userId of userIds) {
+      const cached = userMap.get(userId.toString());
+      if (cached) continue;
+      const userDoc = await ctx.db.get(userId);
+      userMap.set(userId.toString(), userDoc);
+    }
+
+    return convos.map((c) => {
+      const userDoc = userMap.get(c.userId.toString());
+      return {
+        conversationId: c._id,
+        userId: c.userId,
+        userEmail: userDoc?.email ?? null,
+        girlId: c.girlId,
+        girlName: c.girlName,
+        girlAvatarKey: c.girlAvatarKey,
+        lastMessagePreview: c.lastMessagePreview,
+        lastMessageAt: c.lastMessageAt,
+        updatedAt: c.updatedAt,
+      };
+    });
   },
 });
 
