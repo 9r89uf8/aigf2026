@@ -21,6 +21,20 @@ export default function RootLayout({ children }) {
           src="https://challenges.cloudflare.com/turnstile/v0/api.js"
           strategy="afterInteractive" // CHANGED: load right after hydration
         />
+        <Script
+          src="https://www.googletagmanager.com/gtag/js?id=G-ENZST04463"
+          strategy="lazyOnload"
+        />
+        <Script id="ga4-init" strategy="lazyOnload">
+          {`
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', 'G-ENZST04463', {
+              page_path: window.location.pathname,
+            });
+          `}
+        </Script>
         <Providers>
           <Navbar />
           <main className="flex-1 min-h-0 flex flex-col">
