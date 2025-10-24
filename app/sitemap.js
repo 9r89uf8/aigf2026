@@ -22,9 +22,9 @@ export default function sitemap() {
       priority: 0.8,
     },
     {
-      url: `${baseUrl}/signin`,
+      url: `${baseUrl}/novia-virtual`,
       lastModified: new Date(),
-      changeFrequency: 'monthly',
+      changeFrequency: 'weekly',
       priority: 0.7,
     },
   ];
