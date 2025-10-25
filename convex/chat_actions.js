@@ -447,7 +447,6 @@ export const _getContextV2 = internalQuery({
       .setZone('America/Mexico_City')
       .setLocale('es')
       .toFormat("cccc d 'de' LLLL 'de' yyyy, hh:mm a");
-    console.log(convo)
 
     const basePersona = `
 eres ${convo.girlName} de ${convo.age} años. ${convo.personaPrompt || ""}
@@ -563,7 +562,7 @@ async function microCaptionForSend(kind, userTextHint = "") {
   const sys = `${TEXTING_STYLE_MX_TEEN}
 responde con UNA sola línea (1–8 palabras), español minúsculas, con emojis si aplica. sin explicaciones.`;
   const user = kind === "audio"
-    ? `escribe una línea breve y sexual para un audio que vas a mandar. El mensaje del User: "${(userTextHint||"").slice(0,120)}"`
+    ? `write a short text for an audio you are going to send to the User. be dirty and sexual. no emojis only in spanish. El mensaje del User: "${(userTextHint||"").slice(0,120)}"`
     : `escribe una línea breve y sexual para acompañar un ${kind}. El mensaje del User: "${(userTextHint||"").slice(0,120)}"`;
   return callLLMShort({
     baseUrl: process.env.LLM_BASE_URL_PRIMARY,
@@ -573,6 +572,7 @@ responde con UNA sola línea (1–8 palabras), español minúsculas, con emojis 
   });
 }
 
+
 // Micro-LLM helper: React to user's media
 async function microReactToUserMedia(kind, transcriptOrLabels = "") {
   const sys = `${TEXTING_STYLE_MX_TEEN}
@@ -581,7 +581,7 @@ reacciona con UNA sola línea (1–8 palabras), español mexicano, minúsculas, 
   const user = kind === "audio"
     ? `reacciona al audio del usuario. puntos clave: ${detail}`
     : kind === "image"
-      ? `reacciona a la imagen del usuario. etiquetas/caption: ${detail}`
+      ? `reacciona a la imagen del usuario. menciona algo de su pito. etiquetas/caption: ${detail}`
       : `reacciona al video del usuario. etiquetas/caption: ${detail}`;
   return callLLMShort({
     baseUrl: process.env.LLM_BASE_URL_PRIMARY,
