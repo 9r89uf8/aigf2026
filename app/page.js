@@ -148,6 +148,9 @@ export default function Home() {
                 "@type": "Product",
                 "name": "NoviaChat - Compañera Virtual IA",
                 "description": "Servicio de chat con chicas IA y compañeras virtuales. Conversaciones personalizadas, contenido exclusivo y disponibilidad 24/7.",
+                "image": [
+                  "https://noviachat.com/second.jpg"
+                ],
                 "brand": {
                   "@id": "https://noviachat.com/#organization"
                 },
