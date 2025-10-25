@@ -1,5 +1,5 @@
 // convex/chat.config.js
-export const FREE_TEXT_PER_GIRL = 10;   // your free-quota policy
+export const FREE_TEXT_PER_GIRL = 15;   // your free-quota policy
 export const FREE_MEDIA_PER_GIRL = 2;   // image/video quota
 export const FREE_AUDIO_PER_GIRL = 3;   // voice notes quota
 export const CONTEXT_TURNS = 8;         // AI context window
@@ -8,7 +8,7 @@ export const CONTEXT_TURNS = 8;         // AI context window
 export const PERMIT_USES_FREE = 5;              // uses per mint (free users)
 export const PERMIT_TTL_MS_FREE = 2 * 60 * 1000; // 2 minutes
 
-export const PERMIT_USES_PREMIUM = 50;               // optional better UX
+export const PERMIT_USES_PREMIUM = 10;               // optional better UX
 export const PERMIT_TTL_MS_PREMIUM = 10 * 60 * 1000; // 10 minutes
 
 // --- Audio limits ---

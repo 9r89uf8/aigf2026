@@ -5,6 +5,7 @@ import { action } from "./_generated/server";
 import { v } from "convex/values";
 import { api } from "./_generated/api";
 import { S3Client, PutObjectCommand, HeadObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3";
+import { ElevenLabsClient } from "@elevenlabs/elevenlabs-js";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { getAuthUserId } from "@convex-dev/auth/server";
 import { assertAdmin } from "./_utils/auth";
@@ -18,6 +19,16 @@ const s3 = new S3Client({
   },
 });
 const BUCKET = process.env.AWS_S3_BUCKET;
+let elevenLabsClient;
+
+function getElevenLabsClient() {
+  if (!elevenLabsClient) {
+    elevenLabsClient = new ElevenLabsClient({
+      apiKey: process.env.ELEVENLABS_API_KEY,
+    });
+  }
+  return elevenLabsClient;
+}
 
 function extFromContentType(ct) {
   if (!ct) return "bin";
@@ -259,6 +270,43 @@ async function sha256hex(s) {
   return crypto.createHash("sha256").update(s).digest("hex");
 }
 
+async function streamToBuffer(stream) {
+  if (!stream) throw new Error("ElevenLabs returned no audio stream");
+
+  if (typeof stream.getReader === "function") {
+    const reader = stream.getReader();
+    const chunks = [];
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        if (value) chunks.push(Buffer.from(value));
+      }
+    } finally {
+      reader.releaseLock();
+    }
+    return Buffer.concat(chunks);
+  }
+
+  if (typeof stream[Symbol.asyncIterator] === "function") {
+    const chunks = [];
+    for await (const chunk of stream) {
+      chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+    }
+    return Buffer.concat(chunks);
+  }
+
+  if (stream instanceof ArrayBuffer) {
+    return Buffer.from(stream);
+  }
+
+  if (ArrayBuffer.isView(stream)) {
+    return Buffer.from(stream.buffer, stream.byteOffset, stream.byteLength);
+  }
+
+  throw new Error("Unsupported ElevenLabs audio stream type");
+}
+
 /** Ensure TTS audio exists in S3 with deterministic caching */
 export const ensureTtsAudio = action({
   args: { voiceId: v.string(), text: v.string() },
@@ -274,26 +322,16 @@ export const ensureTtsAudio = action({
       // Cache miss - generate with ElevenLabs
     }
 
-    // Call ElevenLabs TTS
-    const ttsRes = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
-      method: "POST",
-      headers: {
-        "xi-api-key": process.env.ELEVENLABS_API_KEY,
-        "accept": TTS_AUDIO_MIME,
-        "content-type": "application/json",
-      },
-      body: JSON.stringify({
-        text,
-        model_id: process.env.ELEVENLABS_MODEL_ID || "eleven_monolingual_v1",
-        voice_settings: { stability: 0.5, similarity_boost: 0.8 },
-      }),
+    const client = getElevenLabsClient();
+    const audioStream = await client.textToSpeech.convert(voiceId, {
+      text,
+      modelId: process.env.ELEVENLABS_MODEL_ID || "eleven_monolingual_v1",
+      outputFormat: "mp3_44100_128"
     });
-    if (!ttsRes.ok) throw new Error(`TTS HTTP ${ttsRes.status}`);
 
-    // Upload to S3
-    const arrayBuf = await ttsRes.arrayBuffer();
+    const audioBuffer = await streamToBuffer(audioStream);
     await s3.send(new PutObjectCommand({
-      Bucket: BUCKET, Key: key, ContentType: TTS_AUDIO_MIME, Body: Buffer.from(arrayBuf),
+      Bucket: BUCKET, Key: key, ContentType: TTS_AUDIO_MIME, Body: audioBuffer,
     }));
 
     return { key };
