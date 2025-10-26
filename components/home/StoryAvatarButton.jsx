@@ -5,13 +5,14 @@ import Image from "next/image";
 import HomeStoryModal from "./HomeStoryModal";
 
 export default function StoryAvatarButton({
-  avatarSrc = "/first.jpg",
+  avatarSrc = "/first.webp",
   size = 80, // px
   stories = [],
   ringClassName = "",
   alt = "Profile",
 }) {
   const [open, setOpen] = useState(false);
+  const hasBlurData = typeof avatarSrc === "object" && avatarSrc?.blurDataURL;
 
   return (
     <>
@@ -25,7 +26,15 @@ export default function StoryAvatarButton({
             className="relative rounded-full overflow-hidden"
             style={{ width: size, height: size }}
           >
-            <Image src={avatarSrc} alt={alt} fill className="object-cover" sizes={`${size}px`} priority />
+            <Image
+              src={avatarSrc}
+              alt={alt}
+              fill
+              className="object-cover"
+              sizes={`${size}px`}
+              loading="lazy"
+              placeholder={hasBlurData ? "blur" : undefined}
+            />
           </div>
         </div>
       </button>

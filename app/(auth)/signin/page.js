@@ -182,7 +182,7 @@ export default function SignInPage() {
                     id="password"
                     name="password"
                     type={showPwd ? "text" : "password"}
-                    placeholder={flow === "signIn" ? "Ingresa tu contraseña" : "Elige una contraseña (8+ caracteres)"}
+                    placeholder={flow === "signIn" ? "Ingresa tu contraseña" : "Elige una contraseña"}
                     required
                     minLength={8}
                     autoComplete={flow === "signIn" ? "current-password" : "new-password"}

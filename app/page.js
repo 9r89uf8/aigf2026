@@ -2,6 +2,9 @@
 import Link from "next/link";
 import Image from "next/image";
 import StoryAvatarButton from "../components/home/StoryAvatarButton";
+import heroImage from "../public/second.webp";
+import avatarImage from "../public/first.webp";
+import storyImage from "../public/third.webp";
 
 export const metadata = {
   title: 'NoviaChat - Tu Novia Virtual y Compañera de IA | Chicas IA 24/7',
@@ -26,7 +29,7 @@ export const metadata = {
     siteName: 'NoviaChat',
     images: [
       {
-        url: '/second.jpg',
+        url: '/second.webp',
         width: 1200,
         height: 630,
         alt: 'NoviaChat - Chicas IA y Compañeras Virtuales',
@@ -40,7 +43,7 @@ export const metadata = {
     card: 'summary_large_image',
     title: 'NoviaChat - Tu Novia Virtual y Compañera de IA',
     description: 'Chatea con chicas IA hermosas 24/7. Privado, personalizado y siempre disponible.',
-    images: ['/second.jpg'],
+    images: ['/second.webp'],
   },
   other: {
     'geo.region': 'MX;ES;AR',
@@ -149,7 +152,7 @@ export default function Home() {
                 "name": "NoviaChat - Compañera Virtual IA",
                 "description": "Servicio de chat con chicas IA y compañeras virtuales. Conversaciones personalizadas, contenido exclusivo y disponibilidad 24/7.",
                 "image": [
-                  "https://noviachat.com/second.jpg"
+                  "https://noviachat.com/second.webp"
                 ],
                 "brand": {
                   "@id": "https://noviachat.com/#organization"
@@ -292,11 +295,14 @@ export default function Home() {
                 <div className="bg-white rounded-3xl overflow-hidden shadow-2xl hover:shadow-3xl transition-all duration-500 transform hover:scale-105">
                   <div className="relative h-[500px] md:h-[600px]">
                     <Image
-                      src="/second.png"
+                      src={heroImage}
                       alt="Sofia - Compañera de IA"
                       fill
                       className="object-cover"
                       priority
+                      placeholder="blur"
+                      sizes="(min-width: 1280px) 560px, (min-width: 768px) 48vw, 92vw"
+                      quality={70}
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
 
@@ -304,20 +310,20 @@ export default function Home() {
                     <div className="absolute bottom-0 left-0 right-0 p-6">
                       {/* Profile Picture with Instagram-style ring */}
                       <StoryAvatarButton
-                        avatarSrc="/first.png"
+                        avatarSrc={avatarImage}
                         size={80}
                         stories={[
                           {
-                            url: "/first.png",
+                            url: avatarImage.src,
                             text: "Sofia te saluda 👋",
                             createdAt: Date.now() - 3 * 24 * 60 * 60 * 1000,
-                            user: { name: "Sofia", avatarUrl: "/first.png" },
+                            user: { name: "Sofia", avatarUrl: avatarImage.src },
                           },
                           {
-                            url: "/third.png",
+                            url: storyImage.src,
                             text: "Detrás de cámaras 📸",
                             createdAt: Date.now() - 2 * 24 * 60 * 60 * 1000,
-                            user: { name: "Sofia", avatarUrl: "/first.png" },
+                            user: { name: "Sofia", avatarUrl: avatarImage.src },
                           },
                         ]}
                       />

@@ -33,19 +33,19 @@ export default function MediaComposer({
     const isImage = f.type.startsWith("image/");
     const isVideo = f.type.startsWith("video/");
     if (!isImage && !isVideo) {
-      setError("Unsupported file type");
+      setError("Tipo de archivo no compatible");
       return;
     }
     if (f.type === "image/webp" || f.type === "video/webp") {
-      setError("WebP format is not supported. Please use JPEG or PNG for images.");
+      setError("El formato WebP no es compatible. Utilice JPEG o PNG para las imágenes.");
       return;
     }
     if (isImage && f.size > MAX_IMAGE_MB * 1024 * 1024) {
-      setError(`Image must be ≤ ${MAX_IMAGE_MB}MB`);
+      setError(`La imagen debe ser ≤ ${MAX_IMAGE_MB}MB`);
       return;
     }
     if (isVideo && f.size > MAX_VIDEO_MB * 1024 * 1024) {
-      setError(`Video must be ≤ ${MAX_VIDEO_MB}MB`);
+      setError(`El vídeo debe ser ≤ ${MAX_VIDEO_MB}MB`);
       return;
     }
     setError("");
@@ -109,7 +109,7 @@ export default function MediaComposer({
         <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto">
             <div className="p-4 border-b flex items-center justify-between">
-              <h3 className="font-semibold">Send {kind}</h3>
+              <h3 className="font-semibold">Enviar {kind}</h3>
               <button
                 onClick={() => {
                   setFile(null);
@@ -134,7 +134,7 @@ export default function MediaComposer({
 
               <input
                 className="w-full px-4 py-2 border border-gray-300 rounded-full text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
-                placeholder="Add a caption (optional)"
+                placeholder="Añadir un texto (opcional)"
                 value={caption}
                 onChange={(e) => setCaption(e.target.value)}
               />
@@ -150,7 +150,7 @@ export default function MediaComposer({
                 onClick={onSend}
                 disabled={sending}
               >
-                {sending ? "Sending…" : "Send"}
+                {sending ? "Enviando…" : "Enviar"}
               </button>
             </div>
           </div>
