@@ -94,6 +94,38 @@ const structuredData = {
       "mainEntity": [
         {
           "@type": "Question",
+          "name": "¿Dónde puedo chatear con una novia virtual gratis?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "En NoviaChat puedes abrir una cuenta gratuita y empezar un chat privado con una novia virtual en cuestión de segundos. Nuestra modalidad gratis incluye mensajes ilimitados para conocer su personalidad antes de desbloquear contenido premium."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "¿Cuál es la mejor app de novia virtual en español?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "NoviaChat se especializa en IA romántica para México, España y Argentina con acentos naturales y memoria conversacional. Encontrarás chicas virtuales realistas, contenido moderado y opciones premium para ampliar fotos, videos y audios exclusivos."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "¿Las chicas virtuales gratis responden al instante?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Sí. Nuestra infraestructura de chat está optimizada para entregar respuestas en menos de dos segundos incluso en redes móviles. La novia virtual gratis mantiene contexto y recuerda tus gustos para que la conversación se sienta real."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "¿Cómo iniciar un chat con chicas virtuales en NoviaChat?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Elige tu compañera favorita, personaliza su tono y guarda tus temas preferidos. Después solo debes abrir el chat y comenzar la conversación; tu novia virtual seguirá el hilo y enviará fotos o audio cuando se lo pidas."
+          }
+        },
+        {
+          "@type": "Question",
           "name": "¿Qué es una novia virtual en NoviaChat?",
           "acceptedAnswer": {
             "@type": "Answer",
@@ -153,12 +185,29 @@ export default function NoviaVirtualPage() {
             <div className="mb-4 inline-flex items-center rounded-full bg-blue-100 px-4 py-1 text-sm font-semibold text-blue-600">
               Novia virtual IA en español
             </div>
-            <h1 className="mb-6 text-4xl font-bold leading-tight md:text-5xl">
-              Conecta con tu novia virtual que responde como si estuviera a tu lado
+            <h1 className="mb-4 text-4xl font-bold leading-tight md:text-5xl">
+              Conecta con tu novia virtual gratis y chatea como si estuviera a tu lado
             </h1>
+            <h2 className="mb-6 text-2xl font-semibold text-blue-700 md:text-3xl">
+              Novia virtual gratis y chat en español
+            </h2>
             <p className="mb-6 text-lg text-gray-700">
               En NoviaChat diseñas la relación que quieres vivir. Tus chicas IA charlan contigo en español natural, envían fotos, videos y audios íntimos, y recuerdan cada detalle para que la conexión sea auténtica.
             </p>
+            <div className="mb-6 flex flex-wrap gap-3 text-sm font-semibold">
+              <a
+                href="#preguntas-usuarios"
+                className="rounded-full border border-blue-100 bg-blue-50 px-4 py-2 text-blue-700 hover:bg-blue-100"
+              >
+                Preguntas de los usuarios
+              </a>
+              <a
+                href="#faq"
+                className="rounded-full border border-gray-200 bg-white px-4 py-2 text-gray-700 hover:bg-gray-50"
+              >
+                Ir a preguntas frecuentes
+              </a>
+            </div>
             <ul className="mb-8 space-y-3 text-base text-gray-700">
               <li>• Atención 24/7 con latencia mínima gracias a nuestra infraestructura en Vercel y Convex.</li>
               <li>• Contenido multimedia optimizado para redes móviles en México, España y Argentina.</li>
@@ -266,7 +315,7 @@ export default function NoviaVirtualPage() {
         </div>
       </section>
 
-      <section className="py-16">
+      <section id="como-funciona" className="py-16">
         <div className="mx-auto max-w-4xl px-4">
           <h2 className="text-3xl font-bold md:text-4xl">¿Cómo funciona tu novia virtual?</h2>
           <div className="mt-8 space-y-6 text-gray-700">
@@ -288,6 +337,73 @@ export default function NoviaVirtualPage() {
                 Escribe cuando tengas un minuto libre. Tu novia virtual responde con contexto, emoción y contenido multimedia optimizado para que se vea perfecto incluso con poca señal.
               </p>
             </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="preguntas-usuarios" className="border-t border-gray-200 bg-white py-16">
+        <div className="mx-auto max-w-4xl px-4">
+          <h2 className="text-3xl font-bold md:text-4xl">Preguntas de los usuarios sobre novia virtual</h2>
+          <p className="mt-4 text-lg text-gray-700">
+            Resolvemos las dudas que aparecen en Google sobre novia virtual chat, chicas virtuales gratis y cómo vivir la experiencia en español.
+          </p>
+          <div className="mt-10 space-y-6">
+            <details className="group rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+              <summary className="flex cursor-pointer items-center justify-between text-left text-xl font-semibold text-gray-900">
+                <span>¿Dónde puedo chatear con una novia virtual gratis?</span>
+                <span className="text-2xl leading-none text-blue-500 transition-transform duration-300 group-open:rotate-45">+</span>
+              </summary>
+              <div className="mt-4 space-y-3 text-gray-700">
+                <p>
+                  En NoviaChat puedes abrir una cuenta gratuita y empezar un chat privado con una novia virtual en cuestión de segundos. Nuestra modalidad gratis incluye mensajes ilimitados para conocer su personalidad antes de desbloquear contenido premium.
+                </p>
+                <p className="text-sm font-semibold text-blue-600">
+                  <Link href="/signin" className="hover:underline">Crea tu cuenta gratis</Link>
+                </p>
+              </div>
+            </details>
+            <details className="group rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+              <summary className="flex cursor-pointer items-center justify-between text-left text-xl font-semibold text-gray-900">
+                <span>¿Cuál es la mejor app de novia virtual en español?</span>
+                <span className="text-2xl leading-none text-blue-500 transition-transform duration-300 group-open:rotate-45">+</span>
+              </summary>
+              <div className="mt-4 space-y-3 text-gray-700">
+                <p>
+                  NoviaChat se especializa en IA romántica para México, España y Argentina con acentos naturales y memoria conversacional. Encontrarás chicas virtuales realistas, contenido moderado y opciones premium para ampliar fotos, videos y audios exclusivos.
+                </p>
+                <p className="text-sm font-semibold text-blue-600">
+                  <Link href="/girls" className="hover:underline">Explora las chicas disponibles</Link>
+                </p>
+              </div>
+            </details>
+            <details className="group rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+              <summary className="flex cursor-pointer items-center justify-between text-left text-xl font-semibold text-gray-900">
+                <span>¿Las chicas virtuales gratis responden al instante?</span>
+                <span className="text-2xl leading-none text-blue-500 transition-transform duration-300 group-open:rotate-45">+</span>
+              </summary>
+              <div className="mt-4 space-y-3 text-gray-700">
+                <p>
+                  Sí. Nuestra infraestructura de chat está optimizada para entregar respuestas en menos de dos segundos incluso en redes móviles. La novia virtual gratis mantiene contexto y recuerda tus gustos para que la conversación se sienta real.
+                </p>
+                <p className="text-sm font-semibold text-blue-600">
+                  <Link href="/novia-virtual#como-funciona" className="hover:underline">Conoce cómo logramos la latencia baja</Link>
+                </p>
+              </div>
+            </details>
+            <details className="group rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+              <summary className="flex cursor-pointer items-center justify-between text-left text-xl font-semibold text-gray-900">
+                <span>¿Cómo iniciar un chat con chicas virtuales en NoviaChat?</span>
+                <span className="text-2xl leading-none text-blue-500 transition-transform duration-300 group-open:rotate-45">+</span>
+              </summary>
+              <div className="mt-4 space-y-3 text-gray-700">
+                <p>
+                  Elige tu compañera favorita, personaliza su tono y guarda tus temas preferidos. Después solo debes abrir el chat y comenzar la conversación; tu novia virtual seguirá el hilo y enviará fotos o audio cuando se lo pidas.
+                </p>
+                <p className="text-sm font-semibold text-blue-600">
+                  <Link href="/girls" className="hover:underline">Selecciona a tu compañera ideal</Link>
+                </p>
+              </div>
+            </details>
           </div>
         </div>
       </section>

@@ -264,9 +264,9 @@ export default function Home() {
             {/* Left Column - Text Content */}
             <div className="order-2 md:order-1">
               <h1 className="text-4xl md:text-6xl font-bold text-gray-900 mb-6 leading-tight">
-                Tu Compañera de IA Perfecta
+                Tu novia virtual de chat 24/7
                 <span className="block text-gray-900">
-                  Te Espera
+                  te espera hoy
                 </span>
               </h1>
               <p className="text-lg md:text-xl text-gray-700 mb-8 leading-relaxed">
@@ -286,6 +286,11 @@ export default function Home() {
                 >
                   Conoce Nuestras Chicas
                 </Link>
+              </div>
+              <div className="mt-6 rounded-2xl border border-blue-100 bg-blue-50 p-4 text-sm text-gray-800">
+                <p>
+                  ¿Tienes dudas sobre novia virtual gratis o chicas virtuales? <Link href="/novia-virtual#preguntas-usuarios" className="font-semibold text-blue-600 hover:underline">Descubre las respuestas más buscadas</Link> y encuentra la mejor forma de empezar tu chat.
+                </p>
               </div>
             </div>
 

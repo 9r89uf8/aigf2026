@@ -2,6 +2,7 @@
 "use client";
 
 import React, { useState, useEffect, useMemo } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAction, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
@@ -74,7 +75,12 @@ export default function PlansPage() {
       <main className="mx-auto max-w-screen-md p-6 space-y-6">
         <div className="text-center">
           <h1 className="text-3xl font-bold mb-2">Planes Premium</h1>
-          <p className="text-gray-600 mb-6">{explain}</p>
+          <p className="text-gray-600 mb-3">{explain}</p>
+          <p className="text-sm text-blue-600">
+            <Link href="/novia-virtual#preguntas-usuarios" className="font-semibold hover:underline">
+              Resuelve dudas comunes sobre novia virtual gratis antes de elegir un plan
+            </Link>
+          </p>
         </div>
 
         {plans.length === 0 ? (

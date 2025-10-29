@@ -84,6 +84,9 @@ export default function GirlsListingPage() {
           <h5 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
             Compañeras de IA
           </h5>
+          <p className="mx-auto max-w-2xl text-base text-gray-600">
+            ¿Quieres saber cómo funciona una novia virtual gratis antes de elegir? <Link href="/novia-virtual#preguntas-usuarios" className="font-semibold text-blue-600 hover:underline">Lee las respuestas populares sobre chat con chicas virtuales</Link> y llega al match perfecto.
+          </p>
         </div>
 
         {/* Girls Grid */}
