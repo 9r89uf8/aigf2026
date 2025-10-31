@@ -14,36 +14,36 @@ export const viewport = {
 
 export default function RootLayout({ children }) {
   return (
-      <ConvexAuthNextjsServerProvider>
     <html lang="es">
       <body className="sm:pb-0 bg-gradient-to-br from-gray-50 to-gray-100 min-h-[100dvh] flex flex-col overflow-x-hidden">
-        <Script
-          src="https://challenges.cloudflare.com/turnstile/v0/api.js"
-          strategy="afterInteractive" // CHANGED: load right after hydration
-        />
-        <Script
-          src="https://www.googletagmanager.com/gtag/js?id=G-ENZST04463"
-          strategy="lazyOnload"
-        />
-        <Script id="ga4-init" strategy="lazyOnload">
-          {`
-            window.dataLayer = window.dataLayer || [];
-            function gtag(){dataLayer.push(arguments);}
-            gtag('js', new Date());
-            gtag('config', 'G-ENZST04463', {
-              page_path: window.location.pathname,
-            });
-          `}
-        </Script>
-        <Providers>
-          <Navbar />
-          <main className="flex-1 min-h-0 flex flex-col">
-            {children}
-          </main>
-          <BottomNav/>
-        </Providers>
+        <ConvexAuthNextjsServerProvider>
+          <Script
+            src="https://challenges.cloudflare.com/turnstile/v0/api.js"
+            strategy="afterInteractive" // CHANGED: load right after hydration
+          />
+          <Script
+            src="https://www.googletagmanager.com/gtag/js?id=G-ENZST04463"
+            strategy="lazyOnload"
+          />
+          <Script id="ga4-init" strategy="lazyOnload">
+            {`
+              window.dataLayer = window.dataLayer || [];
+              function gtag(){dataLayer.push(arguments);}
+              gtag('js', new Date());
+              gtag('config', 'G-ENZST04463', {
+                page_path: window.location.pathname,
+              });
+            `}
+          </Script>
+          <Providers>
+            <Navbar />
+            <main className="flex-1 min-h-0 flex flex-col">
+              {children}
+            </main>
+            <BottomNav/>
+          </Providers>
+        </ConvexAuthNextjsServerProvider>
       </body>
     </html>
-      </ConvexAuthNextjsServerProvider>
   );
 }
