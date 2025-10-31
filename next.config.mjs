@@ -5,6 +5,7 @@ const nextConfig = {
     images: {
         formats: ["image/avif", "image/webp"],
     },
+    htmlLimitedBots: /Googlebot|bingbot|Slackbot|Twitterbot/i,
 };
 
 export default nextConfig;

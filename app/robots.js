@@ -25,6 +25,7 @@ export default function robots() {
         crawlDelay: 1,
       },
     ],
-    sitemap: 'https://noviachat.com/sitemap.xml',
+    sitemap: 'https://www.noviachat.com/sitemap.xml',
+      host: "https://www.noviachat.com",
   };
 }

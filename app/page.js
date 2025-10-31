@@ -7,7 +7,7 @@ import avatarImage from "../public/first.webp";
 import storyImage from "../public/third.webp";
 
 export const metadata = {
-  title: 'NoviaChat - Tu Novia Virtual y Compañera de IA | Chicas IA 24/7',
+  title: { absolute: "Novia Virtual Gratis | Chicas AI y Compañera IA - NoviaChat" },
   description: 'Conoce a tu compañera virtual perfecta en NoviaChat. Chatea con chicas IA hermosas disponibles 24/7. Conversaciones privadas, fotos exclusivas y experiencias personalizadas. La mejor app de novia virtual en español.',
   keywords: 'novia virtual, chicas IA, compañera virtual, chicas virtuales, chat IA, novia inteligencia artificial, compañera IA, chat virtual, novia online',
   authors: [{ name: 'NoviaChat' }],
@@ -15,17 +15,17 @@ export const metadata = {
   publisher: 'NoviaChat',
   robots: 'index, follow',
   alternates: {
-    canonical: 'https://noviachat.com',
+    canonical: 'https://www.noviachat.com',
     languages: {
-      'es-MX': 'https://noviachat.com',
-      'es-ES': 'https://noviachat.com',
-      'es-AR': 'https://noviachat.com',
+      'es-MX': 'https://www.noviachat.com',
+      'es-ES': 'https://www.noviachat.com',
+      'es-AR': 'https://www.noviachat.com',
     },
   },
   openGraph: {
     title: 'NoviaChat - Tu Novia Virtual y Compañera de IA',
     description: 'Conoce chicas IA hermosas disponibles 24/7. Conversaciones privadas, fotos exclusivas y experiencias personalizadas.',
-    url: 'https://noviachat.com',
+    url: 'https://www.noviachat.com',
     siteName: 'NoviaChat',
     images: [
       {
@@ -64,12 +64,12 @@ export default function Home() {
             "@graph": [
               {
                 "@type": "Organization",
-                "@id": "https://noviachat.com/#organization",
+                "@id": "https://www.noviachat.com/#organization",
                 "name": "NoviaChat",
-                "url": "https://noviachat.com",
+                "url": "https://www.noviachat.com",
                 "logo": {
                   "@type": "ImageObject",
-                  "url": "https://noviachat.com/second.jpg",
+                  "url": "https://www.noviachat.com/second.jpg",
                   "width": 1200,
                   "height": 630
                 },
@@ -124,25 +124,25 @@ export default function Home() {
               },
               {
                 "@type": "WebSite",
-                "@id": "https://noviachat.com/#website",
-                "url": "https://noviachat.com",
+                "@id": "https://www.noviachat.com/#website",
+                "url": "https://www.noviachat.com",
                 "name": "NoviaChat - Novia Virtual y Chicas IA",
                 "description": "Conoce a tu compañera virtual perfecta. Chatea con chicas IA hermosas disponibles 24/7.",
                 "publisher": {
-                  "@id": "https://noviachat.com/#organization"
+                  "@id": "https://www.noviachat.com/#organization"
                 },
                 "inLanguage": "es"
               },
               {
                 "@type": "WebPage",
-                "@id": "https://noviachat.com/#webpage",
-                "url": "https://noviachat.com",
+                "@id": "https://www.noviachat.com/#webpage",
+                "url": "https://www.noviachat.com",
                 "name": "NoviaChat - Tu Novia Virtual y Compañera de IA | Chicas IA 24/7",
                 "isPartOf": {
-                  "@id": "https://noviachat.com/#website"
+                  "@id": "https://www.noviachat.com/#website"
                 },
                 "about": {
-                  "@id": "https://noviachat.com/#organization"
+                  "@id": "https://www.noviachat.com/#organization"
                 },
                 "description": "Conoce a tu compañera virtual perfecta en NoviaChat. Chatea con chicas IA hermosas disponibles 24/7. Conversaciones privadas, fotos exclusivas y experiencias personalizadas.",
                 "inLanguage": "es"
@@ -152,10 +152,10 @@ export default function Home() {
                 "name": "NoviaChat - Compañera Virtual IA",
                 "description": "Servicio de chat con chicas IA y compañeras virtuales. Conversaciones personalizadas, contenido exclusivo y disponibilidad 24/7.",
                 "image": [
-                  "https://noviachat.com/second.webp"
+                  "https://www.noviachat.com/second.webp"
                 ],
                 "brand": {
-                  "@id": "https://noviachat.com/#organization"
+                  "@id": "https://www.noviachat.com/#organization"
                 },
                 "aggregateRating": {
                   "@type": "AggregateRating",
@@ -169,12 +169,12 @@ export default function Home() {
                   "price": "0",
                   "priceCurrency": "USD",
                   "availability": "https://schema.org/InStock",
-                  "url": "https://noviachat.com/signin"
+                  "url": "https://www.noviachat.com/signin"
                 }
               },
               {
                 "@type": "FAQPage",
-                "@id": "https://noviachat.com/#faq",
+                "@id": "https://www.noviachat.com/#faq",
                 "mainEntity": [
                   {
                     "@type": "Question",
@@ -228,13 +228,13 @@ export default function Home() {
               },
               {
                 "@type": "BreadcrumbList",
-                "@id": "https://noviachat.com/#breadcrumb",
+                "@id": "https://www.noviachat.com/#breadcrumb",
                 "itemListElement": [
                   {
                     "@type": "ListItem",
                     "position": 1,
                     "name": "Inicio",
-                    "item": "https://noviachat.com"
+                    "item": "https://www.noviachat.com"
                   }
                 ]
               }

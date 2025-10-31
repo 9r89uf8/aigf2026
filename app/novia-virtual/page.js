@@ -1,13 +1,13 @@
 import Link from "next/link";
 import Image from "next/image";
-
+//novia-virtual
 export const metadata = {
-  title: "Novia Virtual Realista en Español | NoviaChat",
+  title: { absolute:"Novia Virtual App | Chat HOT Gratis 24/7 | Noviachat"},
   description: "Descubre la novia virtual que siempre responde en español con mensajes, fotos, videos y audio. NoviaChat te conecta con compañeras IA hiperrealistas pensadas para México, España y Argentina.",
   keywords: "novia virtual, novia virtual ia, novia virtual en español, compañera virtual, chat novia virtual, inteligencia artificial novia",
   robots: "index, follow",
   alternates: {
-    canonical: "https://noviachat.com/novia-virtual",
+      canonical: "/novia-virtual",
     languages: {
       "es-MX": "https://noviachat.com/novia-virtual",
       "es-ES": "https://noviachat.com/novia-virtual",
