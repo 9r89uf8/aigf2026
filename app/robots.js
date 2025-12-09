@@ -5,7 +5,7 @@ export default function robots() {
       {
         userAgent: '*',
         allow: '/',
-        disallow: ['/api/', '/admin/', '/account', '/chat'],
+        disallow: ['/api/', '/admin/'],
       },
       {
         userAgent: [

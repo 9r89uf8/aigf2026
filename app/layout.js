@@ -24,7 +24,6 @@ export const metadata = {
         "Conoce a tu compañera virtual perfecta en NoviaChat. Chatea con chicas IA hermosas disponibles 24/7.",
     robots: { index: true, follow: true },
     alternates: {
-        canonical: "/", // resolves to https://www.noviachat.com/
         languages: {
             "es-MX": "/",
             "es-ES": "/",
