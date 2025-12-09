@@ -3,7 +3,9 @@
   <component name="ProjectModuleManager">
     <modules>
       <module fileurl="file://$PROJECT_DIR$/../banana/.idea/banana.iml" filepath="$PROJECT_DIR$/../banana/.idea/banana.iml" />
+      <module fileurl="file://$PROJECT_DIR$/../image-genv2/.idea/image-genv2.iml" filepath="$PROJECT_DIR$/../image-genv2/.idea/image-genv2.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/nextaifg2026.iml" filepath="$PROJECT_DIR$/.idea/nextaifg2026.iml" />
+      <module fileurl="file://$PROJECT_DIR$/../pick3v2025/.idea/pick3v2025.iml" filepath="$PROJECT_DIR$/../pick3v2025/.idea/pick3v2025.iml" />
     </modules>
   </component>
 </project>

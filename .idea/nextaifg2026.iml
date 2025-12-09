@@ -13,5 +13,7 @@
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
     <orderEntry type="module" module-name="banana" />
+    <orderEntry type="module" module-name="pick3v2025" />
+    <orderEntry type="module" module-name="image-genv2" />
   </component>
 </module>

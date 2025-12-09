@@ -21,7 +21,7 @@ export default function robots() {
           'YouBot',              // You.com
         ],
         allow: '/',
-        disallow: ['/api/', '/admin/', '/account', '/chat'],
+        disallow: ['/api/', '/admin/'],
         crawlDelay: 1,
       },
     ],
