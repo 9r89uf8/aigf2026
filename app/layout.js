@@ -6,6 +6,7 @@ import { ConvexAuthNextjsServerProvider } from "@convex-dev/auth/nextjs/server";
 import { Navbar } from "@/components/Navbar";
 import Providers from "@/app/providers";
 import { BottomNav } from "@/components/BottomNav";
+import { SiteFooter } from "@/components/SiteFooter";
 
 export const viewport = {
     width: "device-width",
@@ -71,6 +72,7 @@ export default function RootLayout({ children }) {
             <Providers>
                 <Navbar />
                 <main className="flex-1 min-h-0 flex flex-col">{children}</main>
+                <SiteFooter />
                 <BottomNav />
             </Providers>
         </ConvexAuthNextjsServerProvider>
@@ -78,4 +80,3 @@ export default function RootLayout({ children }) {
         </html>
     );
 }
-

@@ -69,7 +69,7 @@ export default function Home() {
                 "url": "https://www.noviachat.com",
                 "logo": {
                   "@type": "ImageObject",
-                  "url": "https://www.noviachat.com/second.jpg",
+                  "url": "https://www.noviachat.com/second.webp",
                   "width": 1200,
                   "height": 630
                 },
@@ -686,13 +686,6 @@ export default function Home() {
           </Link>
         </div>
       </section>
-
-      {/* Footer */}
-      <footer className="border-t border-gray-200 py-8">
-        <div className="container mx-auto px-4 text-center text-gray-600">
-          <p>&copy; 2025 NoviaChat. Todos los derechos reservados.</p>
-        </div>
-      </footer>
     </div>
   );
 }

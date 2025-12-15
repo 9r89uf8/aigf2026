@@ -4,12 +4,21 @@ import {
   createRouteMatcher,
   nextjsMiddlewareRedirect,
 } from "@convex-dev/auth/nextjs/server";
+import { NextResponse } from "next/server";
 
 const isSignIn = createRouteMatcher(["/signin", "/reset-password"]);
 const isProtected = createRouteMatcher(["/dashboard(.*)", "/account(.*)"]);
 const isAdminArea = createRouteMatcher(["/admin(.*)"]);
 
 export default convexAuthNextjsMiddleware(async (request, { convexAuth }) => {
+  const hostname = request.nextUrl.hostname;
+  if (hostname === "noviachat.com") {
+    const url = request.nextUrl.clone();
+    url.hostname = "www.noviachat.com";
+    url.protocol = "https:";
+    return NextResponse.redirect(url, 308);
+  }
+
   // Redirect authenticated users away from auth pages
   if (isSignIn(request) && (await convexAuth.isAuthenticated())) {
     return nextjsMiddlewareRedirect(request, "/");

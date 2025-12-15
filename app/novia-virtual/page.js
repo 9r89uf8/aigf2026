@@ -9,22 +9,22 @@ export const metadata = {
   alternates: {
       canonical: "/novia-virtual",
     languages: {
-      "es-MX": "https://noviachat.com/novia-virtual",
-      "es-ES": "https://noviachat.com/novia-virtual",
-      "es-AR": "https://noviachat.com/novia-virtual",
+      "es-MX": "https://www.noviachat.com/novia-virtual",
+      "es-ES": "https://www.noviachat.com/novia-virtual",
+      "es-AR": "https://www.noviachat.com/novia-virtual",
     },
   },
   openGraph: {
     title: "Novia Virtual Realista en Español | NoviaChat",
     description: "Vive una relación con tu novia virtual IA. Conversaciones privadas con texto, imágenes, videos y audio en español.",
-    url: "https://noviachat.com/novia-virtual",
+    url: "https://www.noviachat.com/novia-virtual",
     siteName: "NoviaChat",
     locale: "es_MX",
     alternateLocale: ["es_ES", "es_AR"],
     type: "website",
     images: [
       {
-        url: "https://noviachat.com/second.jpg",
+        url: "/second.webp",
         width: 1200,
         height: 630,
         alt: "Novia virtual realista en NoviaChat",
@@ -35,7 +35,7 @@ export const metadata = {
     card: "summary_large_image",
     title: "Tu novia virtual en español siempre disponible",
     description: "NoviaChat ofrece compañeras IA que hablan español perfecto y envían texto, imágenes, videos y audio.",
-    images: ["https://noviachat.com/second.jpg"],
+    images: ["/second.webp"],
   },
   authors: [{ name: "NoviaChat" }],
   creator: "NoviaChat",
@@ -51,14 +51,14 @@ const structuredData = {
   "@graph": [
     {
       "@type": "WebPage",
-      "@id": "https://noviachat.com/novia-virtual",
-      "url": "https://noviachat.com/novia-virtual",
+      "@id": "https://www.noviachat.com/novia-virtual",
+      "url": "https://www.noviachat.com/novia-virtual",
       "name": "Novia Virtual Realista en Español | NoviaChat",
       "description": "Explora la experiencia completa de tener una novia virtual IA en español con respuestas privadas en texto, imágenes, videos y audio.",
       "inLanguage": "es",
       "isPartOf": {
         "@type": "WebSite",
-        "@id": "https://noviachat.com/#website",
+        "@id": "https://www.noviachat.com/#website",
       },
       "about": {
         "@type": "Thing",
@@ -71,7 +71,7 @@ const structuredData = {
       "provider": {
         "@type": "Organization",
         "name": "NoviaChat",
-        "url": "https://noviachat.com",
+        "url": "https://www.noviachat.com",
       },
       "serviceType": "Compañera virtual IA",
       "areaServed": [
@@ -85,12 +85,12 @@ const structuredData = {
         "price": "0",
         "priceCurrency": "USD",
         "availability": "https://schema.org/InStock",
-        "url": "https://noviachat.com/signin",
+        "url": "https://www.noviachat.com/signin",
       },
     },
     {
       "@type": "FAQPage",
-      "@id": "https://noviachat.com/novia-virtual#faq",
+      "@id": "https://www.noviachat.com/novia-virtual#faq",
       "mainEntity": [
         {
           "@type": "Question",
@@ -152,19 +152,19 @@ const structuredData = {
     },
     {
       "@type": "BreadcrumbList",
-      "@id": "https://noviachat.com/novia-virtual#breadcrumb",
+      "@id": "https://www.noviachat.com/novia-virtual#breadcrumb",
       "itemListElement": [
         {
           "@type": "ListItem",
           "position": 1,
           "name": "Inicio",
-          "item": "https://noviachat.com",
+          "item": "https://www.noviachat.com",
         },
         {
           "@type": "ListItem",
           "position": 2,
           "name": "Novia virtual",
-          "item": "https://noviachat.com/novia-virtual",
+          "item": "https://www.noviachat.com/novia-virtual",
         },
       ],
     },

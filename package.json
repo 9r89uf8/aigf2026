@@ -29,5 +29,8 @@
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
     "tailwindcss": "^4"
+  },
+  "optionalDependencies": {
+    "lightningcss-win32-x64-msvc": "^1.30.2"
   }
 }

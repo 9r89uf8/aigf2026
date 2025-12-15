@@ -7,7 +7,7 @@ function normalizeUsername(u) {
   return u.trim().toLowerCase();
 }
 const USERNAME_RE = /^[a-z0-9._]{3,24}$/;
-const RESERVED = new Set(["admin", "support", "help", "about", "terms", "privacy"]);
+const RESERVED = new Set(["admin", "support", "help", "about", "terms", "privacy", "terminos"]);
 
 
 export const ensureCountry = mutation({
