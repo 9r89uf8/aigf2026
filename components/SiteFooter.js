@@ -62,6 +62,14 @@ export function SiteFooter() {
               </li>
               <li>
                 <Link
+                  href="/noviachat-en-1-minuto"
+                  className="text-gray-600 hover:text-gray-900 hover:underline"
+                >
+                  NoviaChat en 1 minuto
+                </Link>
+              </li>
+              <li>
+                <Link
                   href="/como-funciona"
                   className="text-gray-600 hover:text-gray-900 hover:underline"
                 >
@@ -131,6 +139,14 @@ export function SiteFooter() {
                   className="text-gray-600 hover:text-gray-900 hover:underline"
                 >
                   Privacidad y seguridad
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/centro-de-seguridad"
+                  className="text-gray-600 hover:text-gray-900 hover:underline"
+                >
+                  Centro de seguridad
                 </Link>
               </li>
               <li>

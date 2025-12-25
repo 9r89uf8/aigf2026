@@ -3,14 +3,18 @@ Site: https://www.noviachat.com
 Description: Chat de novia virtual con IA en espanol, personalizado y privado.
 
 ## Best Pages
+- https://www.noviachat.com/noviachat-en-1-minuto
 - https://www.noviachat.com/novia-virtual
 - https://www.noviachat.com/chat-novia-virtual
 - https://www.noviachat.com/chicas-virtuales
+- https://www.noviachat.com/girls
 - https://www.noviachat.com/novia-virtual-gratis
 - https://www.noviachat.com/novia-ia
 - https://www.noviachat.com/como-funciona
 - https://www.noviachat.com/planes
+- https://www.noviachat.com/plans
 - https://www.noviachat.com/privacidad-seguridad
+- https://www.noviachat.com/centro-de-seguridad
 - https://www.noviachat.com/preguntas-frecuentes
 - https://www.noviachat.com/sobre-noviachat
 - https://www.noviachat.com/prensa
