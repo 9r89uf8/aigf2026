@@ -360,6 +360,36 @@ export default function ChicasIaPage() {
             </details>
           </div>
 
+          <div className="mt-10 rounded-2xl border border-gray-200 bg-white p-6">
+            <h3 className="text-lg font-semibold text-gray-900">Explora mas hubs</h3>
+            <div className="mt-3 flex flex-wrap gap-3">
+              <Link
+                href="/chicas-virtuales"
+                className="rounded-full border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+              >
+                Chicas virtuales
+              </Link>
+              <Link
+                href="/chat-novia-virtual"
+                className="rounded-full border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+              >
+                Chat novia virtual
+              </Link>
+              <Link
+                href="/novia-virtual-gratis"
+                className="rounded-full border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+              >
+                Novia virtual gratis
+              </Link>
+              <Link
+                href="/guias/que-es-una-novia-virtual"
+                className="rounded-full border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+              >
+                Guia principal
+              </Link>
+            </div>
+          </div>
+
           <div className="mt-10 rounded-2xl bg-gray-900 p-6 text-white">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
@@ -389,4 +419,3 @@ export default function ChicasIaPage() {
     </main>
   );
 }
-

@@ -89,6 +89,10 @@ export default function GirlsListingPage() {
             <Link href="/chicas-ia" className="font-semibold text-blue-600 hover:underline">
               Lee esta guía rápida
             </Link>
+            . ¿Buscas categorias por estilo?{" "}
+            <Link href="/chicas-virtuales" className="font-semibold text-blue-600 hover:underline">
+              Explora el directorio
+            </Link>
             . ¿Prefieres una experiencia tipo novia virtual?{" "}
             <Link href="/novia-virtual#preguntas-usuarios" className="font-semibold text-blue-600 hover:underline">
               Respuestas populares

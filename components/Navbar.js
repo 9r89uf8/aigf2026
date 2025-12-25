@@ -84,6 +84,14 @@ export function Navbar() {
     }
   };
 
+  const navLinks = [
+    { href: "/chicas-virtuales", label: "Chicas virtuales" },
+    { href: "/chat-novia-virtual", label: "Chat novia virtual" },
+    { href: "/novia-virtual", label: "Novia virtual" },
+    { href: "/planes", label: "Planes" },
+    { href: "/como-funciona", label: "Como funciona" },
+  ];
+
   return (
       <nav
           className="
@@ -106,6 +114,17 @@ export function Navbar() {
           NOVIACHAT
         </a>
 
+        <div className="hidden lg:flex flex-1 items-center justify-center gap-4 text-sm font-semibold text-gray-700">
+          {navLinks.map((link) => (
+            <a
+              key={link.href}
+              href={link.href}
+              className="rounded-full px-3 py-1.5 transition-colors hover:bg-gray-100 hover:text-gray-900"
+            >
+              {link.label}
+            </a>
+          ))}
+        </div>
 
         <div className="flex items-center">
           <AuthLoading>

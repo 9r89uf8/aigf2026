@@ -11,6 +11,7 @@ export default function robots() {
         userAgent: [
           'GPTBot',              // OpenAI ChatGPT
           'ChatGPT-User',        // OpenAI ChatGPT
+          'OAI-SearchBot',       // OpenAI Search
           'Google-Extended',     // Google Gemini/Bard
           'GoogleOther',         // Google AI products
           'ClaudeBot',           // Anthropic Claude

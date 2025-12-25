@@ -179,6 +179,7 @@ export default function NoviaVirtualPage() {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
       />
 
+        {/*here section starts*/}
       <section className="pt-16 pb-12 md:py-20">
         <div className="mx-auto flex max-w-6xl flex-col gap-12 px-4 md:flex-row md:items-center">
           <div className="w-full md:w-1/2">
@@ -231,7 +232,7 @@ export default function NoviaVirtualPage() {
           <div className="w-full md:w-1/2">
             <div className="overflow-hidden rounded-3xl border border-gray-200">
               <Image
-                src="/second.png"
+                src="/second.webp"
                 alt="Chica IA enviando mensajes como novia virtual"
                 width={900}
                 height={1100}
@@ -242,6 +243,7 @@ export default function NoviaVirtualPage() {
           </div>
         </div>
       </section>
+        {/*here section ends*/}
 
       <section className="border-t border-gray-200 py-16">
         <div className="mx-auto max-w-5xl px-4 text-center">
@@ -435,6 +437,60 @@ export default function NoviaVirtualPage() {
               <p>
                 Seguimos protocolos de autenticación seguros y almacenamos el contenido en infraestructura encriptada. Solo tú decides qué compartir y puedes borrar conversaciones cuando lo desees.
               </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="border-t border-gray-200 py-16">
+        <div className="mx-auto max-w-5xl px-4">
+          <h2 className="text-3xl font-bold md:text-4xl">Explora mas hubs</h2>
+          <div className="mt-5 flex flex-wrap gap-3">
+            <Link href="/chicas-virtuales" className="rounded-full border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50">
+              Chicas virtuales
+            </Link>
+            <Link href="/chat-novia-virtual" className="rounded-full border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50">
+              Chat novia virtual
+            </Link>
+            <Link href="/novia-virtual-gratis" className="rounded-full border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50">
+              Novia virtual gratis
+            </Link>
+            <Link href="/novia-ia" className="rounded-full border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50">
+              Novia IA
+            </Link>
+            <Link href="/como-funciona" className="rounded-full border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50">
+              Como funciona
+            </Link>
+          </div>
+
+          <div className="mt-10 grid gap-6 md:grid-cols-2">
+            <div>
+              <h3 className="text-xl font-semibold text-gray-900">Categorias recomendadas</h3>
+              <div className="mt-4 flex flex-wrap gap-3">
+                <Link href="/chicas-virtuales/romanticas" className="rounded-full bg-blue-50 px-4 py-2 text-sm font-semibold text-blue-700 hover:bg-blue-100">
+                  Romanticas
+                </Link>
+                <Link href="/chicas-virtuales/timidas" className="rounded-full bg-blue-50 px-4 py-2 text-sm font-semibold text-blue-700 hover:bg-blue-100">
+                  Timidas
+                </Link>
+                <Link href="/chicas-virtuales/coquetas" className="rounded-full bg-blue-50 px-4 py-2 text-sm font-semibold text-blue-700 hover:bg-blue-100">
+                  Coquetas
+                </Link>
+              </div>
+            </div>
+            <div>
+              <h3 className="text-xl font-semibold text-gray-900">Guias recomendadas</h3>
+              <div className="mt-4 space-y-2">
+                <Link href="/guias/que-es-una-novia-virtual" className="block text-sm font-semibold text-blue-700 hover:underline">
+                  Que es una novia virtual
+                </Link>
+                <Link href="/guias/chat-novia-virtual-consejos" className="block text-sm font-semibold text-blue-700 hover:underline">
+                  Consejos para conversar mejor
+                </Link>
+                <Link href="/guias/personalizar-novia-virtual" className="block text-sm font-semibold text-blue-700 hover:underline">
+                  Como personalizar tu novia virtual
+                </Link>
+              </div>
             </div>
           </div>
         </div>
