@@ -66,7 +66,42 @@ export default function RootLayout({ children }) {
               window.dataLayer = window.dataLayer || [];
               function gtag(){dataLayer.push(arguments);}
               gtag('js', new Date());
-              gtag('config', 'G-ENZST04463', { page_path: window.location.pathname });
+              var referrer = document.referrer || "";
+              var refHost = "";
+              try { refHost = new URL(referrer).hostname.toLowerCase(); } catch (e) {}
+
+              var url = new URL(window.location.href);
+              var params = url.searchParams;
+              var utmSource = (params.get("utm_source") || "").toLowerCase();
+              var utmMedium = (params.get("utm_medium") || "").toLowerCase();
+              var refParam = (params.get("ref") || params.get("source") || "").toLowerCase();
+
+              var isChatgptReferrer =
+                refHost === "chat.openai.com" ||
+                refHost === "chatgpt.com" ||
+                refHost.endsWith(".chatgpt.com");
+
+              var isChatgptParam =
+                utmSource === "chatgpt" ||
+                utmMedium === "chatgpt" ||
+                refParam === "chatgpt";
+
+              var isChatgpt = isChatgptReferrer || isChatgptParam;
+              var config = { page_path: window.location.pathname };
+              if (isChatgpt) {
+                config.campaign_source = "chatgpt";
+                config.campaign_medium = "referral";
+                config.campaign_name = "chatgpt";
+              }
+              gtag('config', 'G-ENZST04463', config);
+
+              if (isChatgpt) {
+                gtag('event', 'chatgpt_referral', {
+                  referrer: referrer,
+                  referrer_host: refHost,
+                  page_location: window.location.href,
+                });
+              }
             `}
             </Script>
             <Providers>
