@@ -21,10 +21,10 @@ Description: Chat de novia virtual con IA en espanol, personalizado y privado.
 
 ## Guides
 - https://www.noviachat.com/guias/que-es-una-novia-virtual
-- https://www.noviachat.com/guias/chat-novia-virtual-consejos
+- https://www.noviachat.com/guias/prompts-en-espanol-conversaciones-naturales
 - https://www.noviachat.com/guias/novia-virtual-gratis-que-incluye
-- https://www.noviachat.com/guias/ideas-de-conversacion
 - https://www.noviachat.com/guias/seguridad-privacidad-chats-ia
+- https://www.noviachat.com/guias/que-esperar-de-un-chat-de-compania
 - https://www.noviachat.com/guias/etiquetas-personalidades-novia-virtual
 
 ## Categories

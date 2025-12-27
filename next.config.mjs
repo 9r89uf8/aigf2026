@@ -24,6 +24,30 @@ const nextConfig = {
             { source: "/stories/:path*", headers: noindexHeaders },
         ];
     },
+    async redirects() {
+        return [
+            {
+                source: "/guias/chat-novia-virtual-consejos",
+                destination: "/guias/prompts-en-espanol-conversaciones-naturales",
+                permanent: true,
+            },
+            {
+                source: "/guias/ideas-de-conversacion",
+                destination: "/guias/prompts-en-espanol-conversaciones-naturales",
+                permanent: true,
+            },
+            {
+                source: "/guias/riesgos-de-chats-de-ia-y-como-protegerte",
+                destination: "/guias/seguridad-privacidad-chats-ia",
+                permanent: true,
+            },
+            {
+                source: "/guias/ia-y-soledad-guia-responsable",
+                destination: "/guias/que-esperar-de-un-chat-de-compania",
+                permanent: true,
+            },
+        ];
+    },
 };
 
 export default nextConfig;

@@ -484,8 +484,8 @@ export default function NoviaVirtualPage() {
                 <Link href="/guias/que-es-una-novia-virtual" className="block text-sm font-semibold text-blue-700 hover:underline">
                   Que es una novia virtual
                 </Link>
-                <Link href="/guias/chat-novia-virtual-consejos" className="block text-sm font-semibold text-blue-700 hover:underline">
-                  Consejos para conversar mejor
+                <Link href="/guias/prompts-en-espanol-conversaciones-naturales" className="block text-sm font-semibold text-blue-700 hover:underline">
+                  Prompts y consejos para conversar mejor
                 </Link>
                 <Link href="/guias/personalizar-novia-virtual" className="block text-sm font-semibold text-blue-700 hover:underline">
                   Como personalizar tu novia virtual

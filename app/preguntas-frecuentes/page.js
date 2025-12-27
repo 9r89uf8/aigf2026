@@ -93,7 +93,7 @@ const faqs = [
 
 const relatedGuides = [
   { href: "/guias/que-es-una-novia-virtual", label: "Que es una novia virtual" },
-  { href: "/guias/chat-novia-virtual-consejos", label: "Consejos de chat" },
+  { href: "/guias/prompts-en-espanol-conversaciones-naturales", label: "Prompts y consejos" },
   { href: "/guias/novia-virtual-gratis-que-incluye", label: "Que incluye gratis" },
   { href: "/guias/seguridad-privacidad-chats-ia", label: "Seguridad y privacidad" },
 ];

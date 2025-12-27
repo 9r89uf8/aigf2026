@@ -127,8 +127,14 @@ const relatedCategories = [
 ];
 
 const relatedGuides = [
-  { href: "/guias/chat-novia-virtual-consejos", label: "Consejos de conversacion" },
-  { href: "/guias/ideas-de-conversacion", label: "Ideas para romper el hielo" },
+  {
+    href: "/guias/prompts-en-espanol-conversaciones-naturales",
+    label: "Prompts y consejos",
+  },
+  {
+    href: "/guias/que-esperar-de-un-chat-de-compania",
+    label: "Que esperar de un chat de compania",
+  },
   { href: "/guias/novia-virtual-gratis-que-incluye", label: "Que incluye gratis" },
 ];
 

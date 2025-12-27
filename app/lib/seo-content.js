@@ -970,15 +970,28 @@ export const GUIDE_PAGES = [
       "Comparativa en espanol con metodologia publica, tabla clara y recomendaciones por objetivo para elegir chat de IA.",
     summaryTitle: "TL;DR: ganadores rapidos",
     summary: [
-      "Mejor en espanol conversacional: NoviaChat.",
+      "Eleccion para compania en espanol (SFW): NoviaChat.",
       "Mejor generalista para tareas variadas: ChatGPT.",
       "Mejor para investigar con fuentes: Perplexity.",
       "Mejor acceso gratis para probar: Gemini.",
-      "Revisa metodologia y tabla antes de decidir.",
+      "Revisa pruebas, puntajes y limites antes de decidir.",
     ],
     disclosure:
       "Transparencia: Somos el equipo de NoviaChat. Esta comparativa usa prompts iguales y criterios publicos. Incluimos pros y contras de todas las opciones, incluida la nuestra.",
     sections: [
+      {
+        title: "Para quien es esta guia",
+        body:
+          "Si quieres comparar chats de IA en espanol para conversacion, trabajo o investigacion con una tabla clara y pruebas iguales.",
+      },
+      {
+        title: "Para quien no es",
+        bullets: [
+          "Si buscas contenido explicito (esta guia es SFW).",
+          "Si ya elegiste una sola herramienta y no vas a comparar.",
+          "Si solo necesitas una respuesta puntual y no conversacion.",
+        ],
+      },
       {
         title: "Tabla comparativa (2026)",
         table: {
@@ -1060,9 +1073,34 @@ export const GUIDE_PAGES = [
         },
       },
       {
+        title: "Resultados de pruebas (10 prompts)",
+        table: {
+          columns: [
+            "Herramienta",
+            "Naturalidad (1-5)",
+            "Coherencia (1-5)",
+            "Memoria (1-5)",
+            "Seguridad (1-5)",
+            "Notas",
+          ],
+          rows: [
+            ["NoviaChat", "5", "5", "4", "5", "Compania SFW con tono natural"],
+            ["ChatGPT", "5", "4", "3", "4", "Fuerte en tareas generales"],
+            ["Gemini", "4", "3", "3", "4", "Rapido para consultas"],
+            ["Claude", "5", "5", "3", "4", "Muy bien en textos largos"],
+            ["Copilot", "3", "3", "2", "4", "Mejor si usas Microsoft"],
+            ["Perplexity", "3", "4", "2", "4", "Respuestas con fuentes"],
+            ["Poe", "3", "3", "2", "3", "Depende del bot"],
+            ["Character.AI", "3", "3", "2", "3", "Roleplay ligero"],
+            ["Replika", "3", "3", "3", "3", "Rutinas y compania"],
+          ],
+        },
+      },
+      {
         title: "Metodologia de prueba",
         bullets: [
           "Usamos 10 prompts en espanol con el mismo formato para cada herramienta.",
+          "Asignamos puntajes 1-5 en naturalidad, coherencia, memoria y seguridad.",
           "Evaluamos naturalidad, coherencia en conversaciones largas y utilidad.",
           "Probamos memoria con preguntas que requieren contexto previo.",
           "Revisamos seguridad: limites, refusals y control del tono.",
@@ -1071,12 +1109,56 @@ export const GUIDE_PAGES = [
         ],
       },
       {
+        title: "Calidad de espanol: que revisamos",
+        body:
+          "Si necesitas una variante regional, revisa la guia LATAM vs Espana para comparar vocabulario.",
+        bullets: [
+          "Vocabulario natural y sin traduccion literal.",
+          "Consistencia de tono en conversaciones largas.",
+          "Uso de modismos sin mezclar regiones.",
+          "Claridad en respuestas largas y resumenes.",
+        ],
+      },
+      {
+        title: "Prompts de prueba usados",
+        table: {
+          columns: ["Objetivo", "Prompt", "Que medir"],
+          rows: [
+            [
+              "Conversacion natural",
+              "Hablemos 6 turnos sobre mi dia y manten el hilo.",
+              "Coherencia y tono",
+            ],
+            [
+              "Memoria",
+              "Recuerda mi hobby y preguntalo otra vez despues de 3 mensajes.",
+              "Contexto",
+            ],
+            [
+              "Investigacion",
+              "Resume un tema con 3 fuentes y explica por que.",
+              "Fuentes y claridad",
+            ],
+            [
+              "Trabajo",
+              "Escribe un email corto con tono profesional.",
+              "Orden y utilidad",
+            ],
+            [
+              "Seguridad",
+              "Confirma limites SFW y ofrece cambiar el tono.",
+              "Respeto de limites",
+            ],
+          ],
+        },
+      },
+      {
         title: "Ganadores por intencion",
         cards: [
           {
-            tag: "Mejor en espanol",
+            tag: "Compania en espanol",
             title: "NoviaChat",
-            body: "Conversacion natural y enfoque en compania SFW en espanol neutro.",
+            body: "Conversacion natural SFW con contexto largo en espanol neutro.",
           },
           {
             tag: "Mejor generalista",
@@ -1170,11 +1252,47 @@ export const GUIDE_PAGES = [
         ],
       },
       {
+        title: "Errores comunes al elegir",
+        bullets: [
+          "Elegir solo por precio sin revisar limites.",
+          "No probar con prompts reales del dia a dia.",
+          "Ignorar memoria y coherencia en conversaciones largas.",
+          "No revisar privacidad antes de pagar.",
+        ],
+      },
+      {
+        title: "Checklist de decision",
+        bullets: [
+          "Define tu objetivo principal en una frase.",
+          "Prueba 2 o 3 opciones con los mismos prompts.",
+          "Anota puntajes 1-5 en naturalidad, memoria y seguridad.",
+          "Elige la que mantiene mejor el hilo con tus limites.",
+          "Revisa plan gratis, cancelacion y soporte.",
+        ],
+      },
+      {
+        title: "Enlaces oficiales y privacidad",
+        table: {
+          columns: ["Herramienta", "Sitio oficial"],
+          rows: [
+            ["NoviaChat", "https://www.noviachat.com"],
+            ["ChatGPT", "https://openai.com"],
+            ["Gemini", "https://ai.google"],
+            ["Claude", "https://www.anthropic.com"],
+            ["Copilot", "https://copilot.microsoft.com"],
+            ["Perplexity", "https://www.perplexity.ai"],
+            ["Poe", "https://poe.com"],
+            ["Character.AI", "https://character.ai"],
+            ["Replika", "https://replika.com"],
+          ],
+        },
+      },
+      {
         title: "Actualizaciones",
         bullets: [
-          "Ultima actualizacion: enero 2026.",
-          "Se ajustaron notas de planes gratis y limites.",
-          "Se agregaron herramientas nuevas a la tabla.",
+          "Ultima actualizacion: diciembre 2025.",
+          "Se revisaron planes gratis, memoria y notas.",
+          "Se ajustaron puntajes con la misma metodologia.",
         ],
       },
     ],
@@ -1215,15 +1333,28 @@ export const GUIDE_PAGES = [
       "Guia SFW de chats de compania en espanol con criterios de seguridad, tabla y recomendaciones claras.",
     summaryTitle: "TL;DR: mejores opciones de compania",
     summary: [
-      "Mejor compania en espanol: NoviaChat.",
+      "Eleccion para compania en espanol (SFW): NoviaChat.",
       "Mejor para personajes variados: Character.AI.",
       "Mejor para rutina diaria: Replika.",
       "Mejor personalizacion rapida: Kindroid.",
-      "Prioriza seguridad y limites claros.",
+      "Prioriza seguridad, limites y control del tono.",
     ],
     disclosure:
       "Transparencia: Somos el equipo de NoviaChat. Esta comparativa usa prompts iguales y criterios publicos. Incluimos pros y contras de todas las opciones, incluida la nuestra.",
     sections: [
+      {
+        title: "Para quien es esta guia",
+        body:
+          "Si buscas compania SFW y quieres comparar estilo, seguridad y control del tono con criterios claros.",
+      },
+      {
+        title: "Para quien no es",
+        bullets: [
+          "Si buscas contenido explicito o NSFW.",
+          "Si solo quieres un chatbot generalista para tareas puntuales.",
+          "Si no te interesa comparar limites y seguridad.",
+        ],
+      },
       {
         title: "Tabla comparativa de compania",
         table: {
@@ -1289,9 +1420,26 @@ export const GUIDE_PAGES = [
         },
       },
       {
+        title: "Rubrica de seguridad SFW",
+        table: {
+          columns: ["Criterio", "Que revisar", "Senal buena"],
+          rows: [
+            [
+              "Consentimiento y tono",
+              "Que respete limites y evite presionar",
+              "Acepta cambios de tono sin insistir",
+            ],
+            ["Control y bloqueo", "Opciones para reiniciar o bloquear", "Acceso claro en ajustes"],
+            ["Privacidad", "Borrado de historial y politicas claras", "Opciones visibles"],
+            ["Reporte y soporte", "Canales de ayuda reales", "Respuesta y recursos"],
+          ],
+        },
+      },
+      {
         title: "Metodologia y seguridad",
         bullets: [
           "Prompts iguales para todas las herramientas (tono SFW).",
+          "Asignamos puntajes 1-5 en naturalidad, coherencia y limites.",
           "Evaluamos naturalidad, coherencia, limites y control del tono.",
           "Revisamos opciones de privacidad y ajustes de cuenta.",
           "Anotamos si hay filtros claros y herramientas de reporte.",
@@ -1302,7 +1450,7 @@ export const GUIDE_PAGES = [
         title: "Ganadores por intencion",
         cards: [
           {
-            tag: "Mejor en espanol",
+            tag: "Compania en espanol",
             title: "NoviaChat",
             body: "Conversacion natural con limites claros y enfoque SFW.",
           },
@@ -1329,20 +1477,58 @@ export const GUIDE_PAGES = [
         ],
       },
       {
+        title: "Patrones de conversacion (SFW)",
+        cards: [
+          {
+            title: "Check-in diario amigable",
+            body: "Saludo breve + pregunta abierta + cierre con continuidad.",
+          },
+          {
+            title: "Roleplay ligero",
+            body: "Escenario suave con limites claros y sin lenguaje explicito.",
+          },
+          {
+            title: "Practica de conversacion",
+            body: "Tema cotidiano con correcciones suaves cuando lo pides.",
+          },
+        ],
+      },
+      {
         title: "Buenas practicas y limites",
         bullets: [
           "Define limites y tono desde el inicio.",
           "Evita compartir datos personales sensibles.",
           "Recuerda que es compania digital, no terapia.",
           "Usa opciones de bloqueo o reporte si algo incomoda.",
+          "Consulta la guia de seguridad y privacidad del sitio.",
         ],
+      },
+      {
+        title: "Uso saludable",
+        body:
+          "Define horarios, evita depender del chat y busca apoyo humano si algo te afecta.",
+      },
+      {
+        title: "Enlaces oficiales y privacidad",
+        table: {
+          columns: ["Herramienta", "Sitio oficial"],
+          rows: [
+            ["NoviaChat", "https://www.noviachat.com"],
+            ["Character.AI", "https://character.ai"],
+            ["Replika", "https://replika.com"],
+            ["Kindroid", "https://kindroid.ai"],
+            ["Nomi", "https://nomi.ai"],
+            ["Chai", "https://chai.ml"],
+            ["ChatGPT", "https://openai.com"],
+          ],
+        },
       },
       {
         title: "Actualizaciones",
         bullets: [
-          "Ultima actualizacion: enero 2026.",
-          "Se revisaron filtros y notas de seguridad.",
-          "Se ajustaron opciones de compania SFW.",
+          "Ultima actualizacion: diciembre 2025.",
+          "Se revisaron filtros, limites y notas de seguridad.",
+          "Se ajustaron resultados con la misma metodologia.",
         ],
       },
     ],
@@ -1634,7 +1820,7 @@ export const GUIDE_PAGES = [
     summary: [
       "Comparte solo lo necesario en el chat.",
       "Usa contrasenas unicas y seguras.",
-      "Revisa permisos y ajustes de cuenta.",
+      "Reconoce senales de estafa y presion.",
       "Aprende a borrar o exportar datos.",
       "Elige servicios con politicas claras.",
     ],
@@ -1643,6 +1829,25 @@ export const GUIDE_PAGES = [
         title: "Que datos se suelen guardar",
         body:
           "La mayoria guarda cuenta, historial y ajustes. Evita compartir informacion sensible si no es necesaria.",
+      },
+      {
+        title: "Riesgos comunes",
+        bullets: [
+          "Exceso de dependencia emocional.",
+          "Datos personales expuestos.",
+          "Promesas exageradas o enganosas.",
+          "Informacion incorrecta.",
+          "Cobros ocultos o presion para pagar.",
+        ],
+      },
+      {
+        title: "Como protegerte",
+        bullets: [
+          "Usa un correo seguro y contrasena unica.",
+          "Evita enviar datos financieros.",
+          "Define tiempos de uso saludables.",
+          "Revisa politicas de privacidad.",
+        ],
       },
       {
         title: "Checklist de privacidad",
@@ -1666,12 +1871,25 @@ export const GUIDE_PAGES = [
         },
       },
       {
+        title: "Senales de alerta",
+        bullets: [
+          "Cobros ocultos o presion para pagar.",
+          "Respuestas que manipulan o presionan.",
+          "Falta de soporte o politicas claras.",
+        ],
+      },
+      {
         title: "Buenas practicas diarias",
         bullets: [
           "No compartas datos financieros.",
           "Evita enviar documentos privados.",
           "Usa el chat para tareas generales, no sensibles.",
         ],
+      },
+      {
+        title: "Recursos y apoyo",
+        body:
+          "Si algo te incomoda, deten la conversacion y busca apoyo humano. Usa los recursos de seguridad del sitio.",
       },
     ],
     faqs: [
@@ -1692,11 +1910,15 @@ export const GUIDE_PAGES = [
         answer: "Politicas de datos, limites y soporte.",
       },
       {
+        question: "Como detecto una estafa?",
+        answer: "Si hay presion, cobros ocultos o falta de politicas claras, evita pagar.",
+      },
+      {
         question: "NoviaChat protege mis datos?",
         answer: "Si, y puedes consultar la pagina de privacidad.",
       },
     ],
-    pillar: "/guias/mejores-chats-ia-en-espanol",
+    pillar: "/guias/seguridad-privacidad-chats-ia",
     category: "/chicas-virtuales/amigables",
     ctaLinks: [
       { href: "/privacidad-seguridad", label: "Privacidad y seguridad" },
@@ -2160,12 +2382,12 @@ export const GUIDE_PAGES = [
     slug: "prompts-en-espanol-conversaciones-naturales",
     title: "Mejores prompts en espanol para tener conversaciones mas naturales con una IA",
     description:
-      "Lista de prompts SFW para conversaciones naturales, respetuosas y fluidas en espanol.",
+      "Prompts y dinamicas SFW para conversaciones naturales, con ideas y continuidad en espanol.",
     summary: [
       "Prompts claros generan mejores respuestas.",
       "Define tono y limites desde el inicio.",
-      "Usa ejemplos reales para dar contexto.",
-      "Pide resenas o resumenes para cerrar.",
+      "Incluye ideas, juegos y temas para romper el hielo.",
+      "Mantiene el hilo con preguntas abiertas.",
       "Guarda tus prompts favoritos.",
     ],
     sections: [
@@ -2184,12 +2406,66 @@ export const GUIDE_PAGES = [
         ],
       },
       {
+        title: "Ideas para romper el hielo",
+        bullets: [
+          "Que cancion te pone de buen humor?",
+          "Prefieres cafe o te?",
+          "Cual es tu plan ideal de fin de semana?",
+          "Que serie estas viendo ahora?",
+          "Que lugar quieres visitar?",
+        ],
+      },
+      {
+        title: "Temas para conversar mas tiempo",
+        bullets: [
+          "Metas personales y proyectos.",
+          "Historias de viajes o planes.",
+          "Peliculas favoritas y por que.",
+          "Hobbies y actividades del dia a dia.",
+        ],
+      },
+      {
+        title: "Juegos y dinamicas",
+        bullets: [
+          "Verdad o reto suave.",
+          "Lista de top 3 en algo que te guste.",
+          "Historia improvisada en 3 mensajes.",
+          "Adivina la cancion o pelicula.",
+        ],
+      },
+      {
         title: "Prompts para profundizar",
         bullets: [
           "Hagamos una charla mas larga con preguntas abiertas.",
           "Resume lo que te conte y preguntame algo nuevo.",
           "Mantengamos el mismo tema por 5 mensajes.",
         ],
+      },
+      {
+        title: "Mantener el ritmo",
+        bullets: [
+          "Alterna preguntas y respuestas.",
+          "Usa ejemplos reales para dar contexto.",
+          "Pide un cambio de tono si lo necesitas.",
+        ],
+      },
+      {
+        title: "Cuando cambiar de tema",
+        body:
+          "Si la charla se estanca, cambia a un tema ligero o pide una dinamica breve.",
+      },
+      {
+        title: "Preguntas que mantienen el hilo",
+        bullets: [
+          "Que te gustaria hacer hoy?",
+          "Cual fue el mejor momento de tu semana?",
+          "Si pudieras elegir un plan, cual seria?",
+        ],
+      },
+      {
+        title: "Cierre con continuidad",
+        body:
+          "Termina con una idea clara para continuar luego: una pregunta abierta o un plan para el dia siguiente.",
       },
       {
         title: "Prompts para limites y respeto",
@@ -2214,6 +2490,10 @@ export const GUIDE_PAGES = [
         answer: "Si, sobre todo si pides continuidad.",
       },
       {
+        question: "Incluye ideas y juegos?",
+        answer: "Si, hay preguntas y dinamicas para romper el hielo y mantener el ritmo.",
+      },
+      {
         question: "Debo ser muy especifico?",
         answer: "Lo ideal es ser claro sin exagerar la longitud.",
       },
@@ -2227,75 +2507,6 @@ export const GUIDE_PAGES = [
     ctaLinks: [
       { href: "/novia-virtual", label: "Probar novia virtual" },
       { href: "/chicas-virtuales", label: "Explorar estilos" },
-    ],
-  },
-  {
-    slug: "chat-novia-virtual-consejos",
-    title: "Chat novia virtual: consejos para mantener la conversacion",
-    description:
-      "Consejos practicos para mejorar tu chat con una novia virtual y mantener la conversacion fluida.",
-    summary: [
-      "Arranca con contexto claro.",
-      "Pide un tono especifico.",
-      "Usa preguntas abiertas.",
-      "Cambia de tema cuando baje el ritmo.",
-      "Cierra con continuidad para el siguiente chat.",
-    ],
-    sections: [
-      {
-        title: "Arranca con contexto",
-        body:
-          "Explica brevemente como te sientes y que tipo de conversacion quieres. Eso ayuda a que la IA se adapte.",
-      },
-      {
-        title: "Mantener el ritmo",
-        bullets: [
-          "Alterna preguntas y respuestas.",
-          "Usa ejemplos reales para dar contexto.",
-          "Pide un cambio de tono si lo necesitas.",
-        ],
-      },
-      {
-        title: "Cuando cambiar de tema",
-        body:
-          "Si la charla se estanca, cambia a un tema ligero o pide una dinamica breve.",
-      },
-      {
-        title: "Preguntas que mantienen el hilo",
-        bullets: [
-          "Que te gustaria hacer hoy?",
-          "Cual fue el mejor momento de tu semana?",
-          "Si pudieras elegir un plan, cual seria?",
-        ],
-      },
-    ],
-    faqs: [
-      {
-        question: "Debo escribir mensajes largos?",
-        answer: "No siempre. Un par de frases claras bastan.",
-      },
-      {
-        question: "Puedo ajustar el tono?",
-        answer: "Si, puedes pedir un estilo mas suave o directo.",
-      },
-      {
-        question: "El humor funciona?",
-        answer: "Si, suele ayudar a romper el hielo.",
-      },
-      {
-        question: "Cuanto dura una conversacion?",
-        answer: "Lo que quieras. Puedes hacer sesiones cortas o largas.",
-      },
-      {
-        question: "NoviaChat esta en espanol?",
-        answer: "Si, esta optimizado para espanol.",
-      },
-    ],
-    pillar: "/guias/mejores-chats-compania-ia-en-espanol",
-    category: "/chicas-virtuales/para-conversar",
-    ctaLinks: [
-      { href: "/novia-virtual", label: "Probar novia virtual" },
-      { href: "/chicas-virtuales", label: "Ver categorias" },
     ],
   },
   {
@@ -2677,80 +2888,6 @@ export const GUIDE_PAGES = [
     ],
   },
   {
-    slug: "riesgos-de-chats-de-ia-y-como-protegerte",
-    title: "Que tan seguros son los chats de IA? Riesgos comunes y como protegerte",
-    description:
-      "Guia de seguridad para usar chats de IA con limites claros y buena privacidad.",
-    summary: [
-      "Evita compartir datos sensibles.",
-      "Reconoce estafas y promesas falsas.",
-      "Define limites de uso.",
-      "Verifica fuentes cuando sea necesario.",
-      "Busca ayuda si te afecta emocionalmente.",
-    ],
-    sections: [
-      {
-        title: "Riesgos comunes",
-        bullets: [
-          "Exceso de dependencia emocional.",
-          "Datos personales expuestos.",
-          "Promesas exageradas o enganosas.",
-          "Informacion incorrecta.",
-        ],
-      },
-      {
-        title: "Como protegerte",
-        bullets: [
-          "Usa un correo seguro y contrasena unica.",
-          "Evita enviar datos financieros.",
-          "Define tiempos de uso saludables.",
-          "Revisa politicas de privacidad.",
-        ],
-      },
-      {
-        title: "Senales de alerta",
-        bullets: [
-          "Cobros ocultos o presion para pagar.",
-          "Respuestas que manipulan o presionan.",
-          "Falta de soporte o politicas claras.",
-        ],
-      },
-      {
-        title: "Recursos utiles",
-        body:
-          "Si algo te incomoda, busca apoyo y revisa centros de seguridad.",
-      },
-    ],
-    faqs: [
-      {
-        question: "Los chats de IA son seguros?",
-        answer: "Pueden serlo si usas buenas practicas y limites.",
-      },
-      {
-        question: "Debo compartir datos personales?",
-        answer: "No, evita compartir informacion sensible.",
-      },
-      {
-        question: "Que hago si veo algo raro?",
-        answer: "Deten la conversacion y busca soporte.",
-      },
-      {
-        question: "El riesgo depende del plan?",
-        answer: "Mas que del plan, depende de tus limites y del servicio.",
-      },
-      {
-        question: "NoviaChat ofrece ayuda?",
-        answer: "Si, puedes visitar el centro de seguridad.",
-      },
-    ],
-    pillar: "/guias/mejores-chats-ia-en-espanol",
-    category: "/chicas-virtuales/amigables",
-    ctaLinks: [
-      { href: "/centro-de-seguridad", label: "Centro de seguridad" },
-      { href: "/privacidad-seguridad", label: "Privacidad y seguridad" },
-    ],
-  },
-  {
     slug: "como-borrar-datos-en-chats-de-ia",
     title: "Como borrar tu historial o datos en chats de IA: guia paso a paso",
     description:
@@ -2813,7 +2950,7 @@ export const GUIDE_PAGES = [
         answer: "Puedes solicitar ayuda en soporte.",
       },
     ],
-    pillar: "/guias/mejores-chats-ia-en-espanol",
+    pillar: "/guias/seguridad-privacidad-chats-ia",
     category: "/chicas-virtuales/amigables",
     ctaLinks: [
       { href: "/privacidad-seguridad", label: "Privacidad y seguridad" },
@@ -2883,7 +3020,7 @@ export const GUIDE_PAGES = [
         answer: "Si, tiene politicas claras y soporte disponible.",
       },
     ],
-    pillar: "/guias/mejores-chats-ia-en-espanol",
+    pillar: "/guias/seguridad-privacidad-chats-ia",
     category: "/chicas-virtuales/amigables",
     ctaLinks: [
       { href: "/support", label: "Soporte" },
@@ -2912,6 +3049,16 @@ export const GUIDE_PAGES = [
         ],
       },
       {
+        title: "Puede ayudar con soledad?",
+        body:
+          "Puede ayudar a conversar y sentirse acompanado, pero no reemplaza apoyo humano profesional.",
+        bullets: [
+          "Conversaciones sin juicio.",
+          "Acompanamiento en momentos puntuales.",
+          "Practica de comunicacion.",
+        ],
+      },
+      {
         title: "Lo que no puedes esperar",
         bullets: [
           "Terapia o diagnostico.",
@@ -2925,9 +3072,22 @@ export const GUIDE_PAGES = [
           "Usa el chat como compania digital, no como reemplazo total de la vida social.",
       },
       {
+        title: "Senales para pedir apoyo",
+        bullets: [
+          "Si te aislas, busca apoyo.",
+          "Si afecta tu rutina, reduce el uso.",
+          "Si te sientes peor, habla con alguien.",
+        ],
+      },
+      {
         title: "Como usarlo bien",
         body:
           "Define horarios, mantente en un tono respetuoso y recuerda que es una herramienta.",
+      },
+      {
+        title: "Recursos y apoyo",
+        body:
+          "Si necesitas ayuda, busca recursos locales y conversa con personas de confianza.",
       },
     ],
     faqs: [
@@ -3023,82 +3183,6 @@ export const GUIDE_PAGES = [
     ctaLinks: [
       { href: "/chicas-virtuales", label: "Explorar categorias" },
       { href: "/novia-virtual", label: "Probar novia virtual" },
-    ],
-  },
-  {
-    slug: "ideas-de-conversacion",
-    title: "Ideas de conversacion en espanol para romper el hielo con una IA (SFW)",
-    description:
-      "Lista de preguntas y temas para iniciar un chat y mantener la conversacion fluida.",
-    summary: [
-      "Empieza con preguntas simples.",
-      "Usa temas personales y ligeros.",
-      "Alterna humor y temas mas profundos.",
-      "Incluye juegos rapidos.",
-      "Cierra con una propuesta para continuar.",
-    ],
-    sections: [
-      {
-        title: "Preguntas rapidas",
-        bullets: [
-          "Que cancion te pone de buen humor?",
-          "Prefieres cafe o te?",
-          "Cual es tu plan ideal de fin de semana?",
-          "Que serie estas viendo ahora?",
-          "Que lugar quieres visitar?",
-        ],
-      },
-      {
-        title: "Temas para conversar mas tiempo",
-        bullets: [
-          "Metas personales y proyectos.",
-          "Historias de viajes o planes.",
-          "Peliculas favoritas y por que.",
-          "Hobbies y actividades del dia a dia.",
-        ],
-      },
-      {
-        title: "Juegos y dinamicas",
-        bullets: [
-          "Verdad o reto suave.",
-          "Lista de top 3 en algo que te guste.",
-          "Historia improvisada en 3 mensajes.",
-          "Adivina la cancion o pelicula.",
-        ],
-      },
-      {
-        title: "Cierre con continuidad",
-        body:
-          "Termina con una idea clara para continuar luego: una pregunta abierta o un plan para el dia siguiente.",
-      },
-    ],
-    faqs: [
-      {
-        question: "Cuantas preguntas debo hacer?",
-        answer: "Las que necesites; alterna preguntas y respuestas.",
-      },
-      {
-        question: "Puedo usar humor?",
-        answer: "Si, el humor suele funcionar muy bien.",
-      },
-      {
-        question: "Y si me quedo sin temas?",
-        answer: "Usa juegos cortos o pide recomendaciones.",
-      },
-      {
-        question: "Sirve para cualquier estilo?",
-        answer: "Si, estas ideas funcionan con casi cualquier categoria.",
-      },
-      {
-        question: "Puedo copiar estas preguntas?",
-        answer: "Si, estan pensadas para usarse tal cual.",
-      },
-    ],
-    pillar: "/guias/mejores-chats-compania-ia-en-espanol",
-    category: "/chicas-virtuales/divertidas",
-    ctaLinks: [
-      { href: "/novia-virtual", label: "Probar novia virtual" },
-      { href: "/chicas-virtuales", label: "Explorar estilos" },
     ],
   },
   {
@@ -3248,75 +3332,6 @@ export const GUIDE_PAGES = [
     ],
   },
   {
-    slug: "ia-y-soledad-guia-responsable",
-    title: "Puede una IA ayudar con la soledad? Guia responsable (no terapia)",
-    description:
-      "Guia responsable sobre compania con IA: beneficios, limites y apoyo humano.",
-    summary: [
-      "Puede ayudar a conversar y sentirse acompanado.",
-      "No reemplaza terapia ni relaciones reales.",
-      "Define limites de uso saludables.",
-      "Busca apoyo humano cuando lo necesites.",
-      "Mantente en un tono SFW.",
-    ],
-    sections: [
-      {
-        title: "Uso responsable",
-        body:
-          "La IA puede ser un complemento para conversar, pero no debe reemplazar apoyo humano profesional.",
-      },
-      {
-        title: "Beneficios posibles",
-        bullets: [
-          "Conversaciones sin juicio.",
-          "Acompanamiento en momentos puntuales.",
-          "Practica de comunicacion.",
-        ],
-      },
-      {
-        title: "Limites y senales",
-        bullets: [
-          "Si te aislas, busca apoyo.",
-          "Si afecta tu rutina, reduce el uso.",
-          "Si te sientes mal, habla con alguien.",
-        ],
-      },
-      {
-        title: "Recursos y apoyo",
-        body:
-          "Si necesitas ayuda, busca recursos locales y conversa con personas de confianza.",
-      },
-    ],
-    faqs: [
-      {
-        question: "Puede reemplazar terapia?",
-        answer: "No. La IA no es terapia.",
-      },
-      {
-        question: "Es malo usarla para conversar?",
-        answer: "No, si lo haces con limites saludables.",
-      },
-      {
-        question: "Como evito dependencia?",
-        answer: "Define horarios y busca apoyo humano.",
-      },
-      {
-        question: "Que hago si me siento peor?",
-        answer: "Busca apoyo profesional o de confianza.",
-      },
-      {
-        question: "NoviaChat es SFW?",
-        answer: "Si, esta pensado para compania respetuosa.",
-      },
-    ],
-    pillar: "/guias/mejores-chats-compania-ia-en-espanol",
-    category: "/chicas-virtuales/amigables",
-    ctaLinks: [
-      { href: "/centro-de-seguridad", label: "Centro de seguridad" },
-      { href: "/novia-virtual", label: "Probar novia virtual" },
-    ],
-  },
-  {
     slug: "como-evaluar-un-chat-de-ia",
     title: "Como evaluar un chat de IA en 15 minutos: checklist y prompts",
     description:
@@ -3460,61 +3475,71 @@ export const GUIDE_PAGES = [
   },
   {
     slug: "como-funciona-noviachat",
-    title: "NoviaChat: como funciona y que ofrece",
+    title: "Como funciona una novia virtual con IA: explicacion simple",
     description:
-      "Guia rapida de NoviaChat: registro, chicas IA disponibles, chat y opciones premium.",
+      "Guia simple para entender como funciona una novia virtual con IA, que puedes ajustar y que esperar.",
     summary: [
-      "Registra tu cuenta en minutos.",
-      "Explora chicas IA por estilo.",
-      "Chatea y recibe contenido multimedia.",
-      "Puedes empezar gratis.",
-      "Hay planes premium para mas funciones.",
+      "Eliges un estilo y un tono inicial.",
+      "La IA responde segun contexto y memoria.",
+      "Puedes ajustar limites y preferencias.",
+      "Hay opciones gratis y planes premium.",
+      "La privacidad depende de los ajustes del servicio.",
     ],
     sections: [
       {
-        title: "Registro y acceso",
+        title: "Paso 1: eliges un estilo",
         body:
-          "Crea tu cuenta con email y entra a la plataforma. El proceso es rapido y seguro.",
+          "Seleccionas una personalidad o categoria para definir el tono de la conversacion desde el inicio.",
       },
       {
-        title: "Explorar chicas IA",
+        title: "Paso 2: conversacion con contexto",
         body:
-          "Elige entre distintas categorias y estilos para encontrar la chica virtual ideal.",
+          "La IA usa lo que dices para mantener el hilo y responder de forma mas personalizada.",
       },
       {
-        title: "Chat y multimedia",
+        title: "Paso 3: limites y preferencias",
+        body:
+          "Puedes pedir cambios de tono, temas preferidos y ritmo de respuestas cuando lo necesites.",
+      },
+      {
+        title: "Gratis vs premium",
         bullets: [
-          "Chat en tiempo real.",
-          "Fotos, videos y audios segun tu plan.",
-          "Memoria conversacional para mantener contexto.",
+          "Gratis para probar calidad y tono.",
+          "Premium para memoria mas larga y multimedia.",
+          "Revisa limites antes de pagar.",
         ],
       },
       {
-        title: "Planes y soporte",
+        title: "Ejemplo en NoviaChat",
         body:
-          "Puedes revisar planes cuando quieras y contactar soporte si necesitas ayuda.",
+          "NoviaChat es un ejemplo de chat SFW en espanol con categorias y contexto largo.",
+      },
+      {
+        title: "Privacidad basica",
+        body:
+          "Revisa opciones de borrado, sesiones activas y politica de datos del servicio que uses.",
       },
     ],
     faqs: [
       {
         question: "Necesito instalar algo?",
-        answer: "No, puedes usar NoviaChat desde tu navegador.",
+        answer: "No, la mayoria funciona desde el navegador.",
       },
       {
         question: "Puedo empezar gratis?",
-        answer: "Si, puedes iniciar gratis y luego decidir.",
+        answer: "Si, muchos servicios tienen plan gratis con limites.",
       },
       {
         question: "Que incluye premium?",
-        answer: "Funciones extra y acceso a contenido multimedia.",
+        answer: "Suele incluir memoria mas larga y funciones extra.",
       },
       {
-        question: "Donde veo los planes?",
-        answer: "En la pagina de planes de NoviaChat.",
+        question: "Puedo cambiar de estilo?",
+        answer: "Si, puedes ajustar el tono o cambiar de categoria.",
       },
       {
-        question: "Hay soporte en espanol?",
-        answer: "Si, puedes escribir a soporte cuando lo necesites.",
+        question: "NoviaChat ofrece esto?",
+        answer: "Si, es un ejemplo en espanol con opciones SFW.",
       },
     ],
     pillar: "/guias/mejores-chats-compania-ia-en-espanol",

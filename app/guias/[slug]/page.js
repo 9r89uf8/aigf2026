@@ -1,3 +1,4 @@
+//app/guias/[slug]/page.js
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { GUIDE_PAGES, GUIDE_SLUGS } from "@/app/lib/seo-content";

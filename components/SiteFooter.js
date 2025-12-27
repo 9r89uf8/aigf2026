@@ -92,10 +92,10 @@ export function SiteFooter() {
               </li>
               <li>
                 <Link
-                  href="/guias/chat-novia-virtual-consejos"
+                  href="/guias/prompts-en-espanol-conversaciones-naturales"
                   className="text-gray-600 hover:text-gray-900 hover:underline"
                 >
-                  Consejos para conversar
+                  Prompts y consejos
                 </Link>
               </li>
               <li>
@@ -108,10 +108,10 @@ export function SiteFooter() {
               </li>
               <li>
                 <Link
-                  href="/guias/ideas-de-conversacion"
+                  href="/guias/que-esperar-de-un-chat-de-compania"
                   className="text-gray-600 hover:text-gray-900 hover:underline"
                 >
-                  Ideas de conversacion
+                  Que esperar de un chat de compania
                 </Link>
               </li>
               <li>

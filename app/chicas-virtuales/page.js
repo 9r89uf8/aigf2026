@@ -83,8 +83,11 @@ const faqs = [
 const relatedGuides = [
   { href: "/guias/que-es-una-novia-virtual", label: "Que es una novia virtual" },
   { href: "/guias/etiquetas-personalidades-novia-virtual", label: "Guia de etiquetas" },
-  { href: "/guias/chat-novia-virtual-consejos", label: "Consejos para conversar" },
-  { href: "/guias/ideas-de-conversacion", label: "Ideas de conversacion" },
+  { href: "/guias/prompts-en-espanol-conversaciones-naturales", label: "Prompts y consejos" },
+  {
+    href: "/guias/que-esperar-de-un-chat-de-compania",
+    label: "Que esperar de un chat de compania",
+  },
 ];
 
 const relatedPillars = [
