@@ -61,6 +61,9 @@ export default async function GuiaPage({ params }) {
   const relatedGuides = GUIDE_PAGES.filter(
     (item) => item.slug !== guide.slug && item.pillar === guide.pillar
   ).slice(0, 3);
+  const summaryTitle = guide.summaryTitle ?? "Resumen en 5 puntos";
+  const ctaLinks = guide.ctaLinks ?? [];
+  const isSelfPillar = guide.pillar === `/guias/${guide.slug}`;
 
   return (
     <main className="font-sans bg-white text-gray-900">
@@ -71,6 +74,11 @@ export default async function GuiaPage({ params }) {
           </div>
           <h1 className="text-4xl font-bold tracking-tight md:text-5xl">{guide.title}</h1>
           <p className="mt-4 text-lg text-gray-700">{guide.description}</p>
+          {guide.disclosure ? (
+            <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+              {guide.disclosure}
+            </div>
+          ) : null}
           <div className="mt-6 flex flex-col gap-3 sm:flex-row">
             <Link
               href="/signin"
@@ -78,24 +86,26 @@ export default async function GuiaPage({ params }) {
             >
               Empezar gratis
             </Link>
-            <Link
-              href={guide.pillar}
-              className="inline-flex items-center justify-center rounded-xl border border-gray-300 bg-white px-6 py-3 text-sm font-semibold text-gray-900 hover:bg-gray-50"
-            >
-              Ver hub relacionado
-            </Link>
+            {!isSelfPillar ? (
+              <Link
+                href={guide.pillar}
+                className="inline-flex items-center justify-center rounded-xl border border-gray-300 bg-white px-6 py-3 text-sm font-semibold text-gray-900 hover:bg-gray-50"
+              >
+                Ver hub relacionado
+              </Link>
+            ) : null}
           </div>
         </div>
       </section>
 
       <section className="py-10">
         <div className="mx-auto max-w-5xl px-4">
-          <h2 className="text-2xl font-semibold">Resumen en 5 puntos</h2>
+          <h2 className="text-2xl font-semibold">{summaryTitle}</h2>
           <ul className="mt-4 space-y-3 text-gray-700">
             {guide.summary.map((point) => (
               <li key={point} className="flex gap-3">
                 <span className="mt-1 inline-flex h-5 w-5 items-center justify-center rounded-full bg-blue-600 text-xs font-semibold text-white">
-
+                  o
                 </span>
                 <span>{point}</span>
               </li>
@@ -110,12 +120,60 @@ export default async function GuiaPage({ params }) {
             <div key={section.title} className="rounded-2xl border border-gray-200 bg-white p-6">
               <h2 className="text-2xl font-semibold">{section.title}</h2>
               {section.body ? <p className="mt-3 text-gray-700">{section.body}</p> : null}
+              {section.table ? (
+                <div className="mt-4 overflow-x-auto">
+                  <table className="min-w-full border-collapse text-left text-sm">
+                    <thead>
+                      <tr className="border-b border-gray-200 text-xs uppercase tracking-wide text-gray-500">
+                        {section.table.columns.map((column) => (
+                          <th key={column} className="px-3 py-2 font-semibold">
+                            {column}
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {section.table.rows.map((row, rowIndex) => (
+                        <tr key={`${section.title}-${rowIndex}`} className="border-b border-gray-100">
+                          {row.map((cell, cellIndex) => (
+                            <td key={`${section.title}-${rowIndex}-${cellIndex}`} className="px-3 py-3">
+                              {cell}
+                            </td>
+                          ))}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : null}
               {section.bullets ? (
                 <ul className="mt-4 list-disc space-y-2 pl-5 text-gray-700">
                   {section.bullets.map((bullet) => (
                     <li key={bullet}>{bullet}</li>
                   ))}
                 </ul>
+              ) : null}
+              {section.cards ? (
+                <div className="mt-4 grid gap-4 md:grid-cols-2">
+                  {section.cards.map((card) => (
+                    <article key={card.title} className="rounded-2xl border border-gray-200 bg-white p-5">
+                      {card.tag ? (
+                        <div className="mb-2 inline-flex items-center rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700">
+                          {card.tag}
+                        </div>
+                      ) : null}
+                      <h3 className="text-lg font-semibold text-gray-900">{card.title}</h3>
+                      {card.body ? <p className="mt-2 text-sm text-gray-700">{card.body}</p> : null}
+                      {card.bullets ? (
+                        <ul className="mt-3 list-disc space-y-2 pl-5 text-sm text-gray-700">
+                          {card.bullets.map((bullet) => (
+                            <li key={bullet}>{bullet}</li>
+                          ))}
+                        </ul>
+                      ) : null}
+                    </article>
+                  ))}
+                </div>
               ) : null}
             </div>
           ))}
@@ -142,12 +200,14 @@ export default async function GuiaPage({ params }) {
         <div className="mx-auto max-w-5xl px-4">
           <h2 className="text-2xl font-semibold">Explora mas hubs</h2>
           <div className="mt-4 flex flex-wrap gap-3">
-            <Link
-              href={guide.pillar}
-              className="rounded-full border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50"
-            >
-              Hub principal
-            </Link>
+            {!isSelfPillar ? (
+              <Link
+                href={guide.pillar}
+                className="rounded-full border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+              >
+                Hub principal
+              </Link>
+            ) : null}
             <Link
               href={guide.category}
               className="rounded-full border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50"
@@ -161,6 +221,23 @@ export default async function GuiaPage({ params }) {
               Directorio de chicas virtuales
             </Link>
           </div>
+
+          {ctaLinks.length > 0 ? (
+            <div className="mt-8">
+              <h3 className="text-lg font-semibold">Recursos clave</h3>
+              <div className="mt-3 flex flex-wrap gap-3">
+                {ctaLinks.map((link) => (
+                  <Link
+                    key={link.href}
+                    href={link.href}
+                    className="rounded-full bg-blue-50 px-4 py-2 text-sm font-semibold text-blue-700 hover:bg-blue-100"
+                  >
+                    {link.label}
+                  </Link>
+                ))}
+              </div>
+            </div>
+          ) : null}
 
           {relatedGuides.length > 0 ? (
             <div className="mt-8">
