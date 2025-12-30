@@ -85,11 +85,10 @@ export function Navbar() {
   };
 
   const navLinks = [
-    { href: "/chicas-virtuales", label: "Chicas virtuales" },
-    { href: "/chat-novia-virtual", label: "Chat novia virtual" },
-    { href: "/novia-virtual", label: "Novia virtual" },
-    { href: "/planes", label: "Planes" },
-    { href: "/como-funciona", label: "Como funciona" },
+    { href: "/chicas", label: "Chicas virtuales" },
+    { href: "/chat", label: "Mensajes" },
+    { href: "/account", label: "Mi cuenta" },
+    { href: "/plans", label: "Planes" }
   ];
 
   return (
@@ -105,7 +104,7 @@ export function Navbar() {
       >
 
         <a
-            href="/"
+            href="/chat"
             className="
     font-semibold text-lg text-gray-900 tracking-tight leading-none
     supports-[line-height:1cap]:leading-[1cap]

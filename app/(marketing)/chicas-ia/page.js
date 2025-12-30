@@ -177,7 +177,7 @@ export default function ChicasIaPage() {
 
             <div className="mt-6 flex flex-col gap-3 sm:flex-row">
               <Link
-                href="/girls"
+                href="/chicas"
                 className="inline-flex items-center justify-center rounded-xl bg-gray-900 px-5 py-3 text-sm font-semibold text-white hover:bg-black"
               >
                 Explorar chicas IA
@@ -261,7 +261,7 @@ export default function ChicasIaPage() {
                     2
                   </span>
                   <span>
-                    <Link href="/girls" className="font-semibold text-blue-700 hover:underline">
+                    <Link href="/chicas" className="font-semibold text-blue-700 hover:underline">
                       Explora las chicas IA
                     </Link>{" "}
                     y elige la que te guste.
@@ -406,7 +406,7 @@ export default function ChicasIaPage() {
                   Empezar gratis
                 </Link>
                 <Link
-                  href="/girls"
+                  href="/chicas"
                   className="inline-flex items-center justify-center rounded-xl border border-white/20 px-5 py-3 text-sm font-semibold text-white hover:bg-white/10"
                 >
                   Ver chicas IA

@@ -18,7 +18,9 @@ const nextConfig = {
             { source: "/chat/:path*", headers: noindexHeaders },
             { source: "/checkout/:path*", headers: noindexHeaders },
             { source: "/dashboard/:path*", headers: noindexHeaders },
-            { source: "/girls/:id", headers: noindexHeaders },
+            { source: "/chicas", headers: noindexHeaders },
+            { source: "/chicas/:path*", headers: noindexHeaders },
+            { source: "/plans", headers: noindexHeaders },
             { source: "/signin", headers: noindexHeaders },
             { source: "/reset-password", headers: noindexHeaders },
             { source: "/stories/:path*", headers: noindexHeaders },
@@ -26,6 +28,16 @@ const nextConfig = {
     },
     async redirects() {
         return [
+            {
+                source: "/girls",
+                destination: "/chicas",
+                permanent: true,
+            },
+            {
+                source: "/girls/:path*",
+                destination: "/chicas/:path*",
+                permanent: true,
+            },
             {
                 source: "/guias/chat-novia-virtual-consejos",
                 destination: "/guias/prompts-en-espanol-conversaciones-naturales",

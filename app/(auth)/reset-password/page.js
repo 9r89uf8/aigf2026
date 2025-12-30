@@ -4,7 +4,6 @@ import { useAuthActions } from "@convex-dev/auth/react";
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAction } from "convex/react";
-import Script from "next/script"; // loads Turnstile if not already global
 import { api } from "../../../convex/_generated/api";
 
 export default function ResetPasswordPage() {
@@ -113,9 +112,6 @@ export default function ResetPasswordPage() {
 
   return (
       <main className="min-h-dvh w-full overflow-x-hidden">
-        {/* If you already load this in your root layout, you can remove this Script tag here */}
-        <Script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer />
-
         <div className="mx-auto w-full max-w-sm px-4 sm:px-6 mt-20 pb-12">
           <h1 className="text-2xl font-semibold mb-6 text-center">Restablecer tu contraseña</h1>
 

@@ -28,7 +28,7 @@ export default function StartChatButton({
     const handleClick = async () => {
         // Premium-only flow: unregistered users go straight to /plans
         if (premiumOnly && !isAuthenticated) {
-          const ret = pathname || "/girls";
+          const ret = pathname || "/chicas";
           router.push(`/plans?returnTo=${encodeURIComponent(ret)}&girl=${girlId}`);
           return;
         }
@@ -38,7 +38,7 @@ export default function StartChatButton({
             try {
                 const fresh = await refreshPremium({});
                 if (!fresh?.active) {
-                    const ret = pathname || "/girls";
+                    const ret = pathname || "/chicas";
                     router.push(`/plans?returnTo=${encodeURIComponent(ret)}&girl=${girlId}`);
                     return;
                 }
@@ -50,7 +50,7 @@ export default function StartChatButton({
         // Otherwise proceed (still requires auth for any chat)
         if (!isAuthenticated) {
             // Non-premium girl path can still require sign-in
-            router.push(`/signin?returnTo=${encodeURIComponent(pathname || "/girls")}`);
+            router.push(`/signin?returnTo=${encodeURIComponent(pathname || "/chicas")}`);
             return;
         }
 
@@ -60,7 +60,7 @@ export default function StartChatButton({
         } catch (err) {
             // Server-side guard (in case UI was bypassed)
             if (String(err?.message || "").includes("PREMIUM_REQUIRED")) {
-                const ret = pathname || "/girls";
+                const ret = pathname || "/chicas";
                 router.push(`/plans?returnTo=${encodeURIComponent(ret)}&girl=${girlId}`);
                 return;
             }

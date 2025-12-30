@@ -30,7 +30,7 @@ export function BottomNav() {
     // Hide on individual chat pages (e.g., /chat/[conversationId])
     if (pathname.startsWith("/chat/")) return null;
 
-    const isGirls = pathname.startsWith("/girls");
+    const isGirls = pathname.startsWith("/chicas");
     const isChat = pathname.startsWith("/chat");
     const isAccount = pathname.startsWith("/account");
 
@@ -53,8 +53,8 @@ export function BottomNav() {
           "
                     style={{ paddingBottom: "max(0px, env(safe-area-inset-bottom))" }}
                 >
-                    <Item href="/girls" active={isGirls}>
-                        {/* Existing icon for /girls */}
+                    <Item href="/chicas" active={isGirls}>
+                        {/* Existing icon for /chicas */}
                         <svg
                             viewBox="0 0 24 24"
                             className="h-6 w-6"

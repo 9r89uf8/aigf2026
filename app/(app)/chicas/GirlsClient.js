@@ -1,5 +1,5 @@
 "use client";
-// app/girls/GirlsClient.js
+// app/chicas/GirlsClient.js
 import { useQuery, useAction } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { useState, useEffect } from "react";
@@ -138,7 +138,7 @@ function GirlCard({ girl, avatarUrl, viewerPremium }) {
         {/* Avatar with gradient ring that opens the story viewer */}
         <div className="relative mx-auto mb-4 flex justify-center">
           <AvatarWithStoryRing
-            href={`/stories/${girl._id}?returnTo=/girls`}
+            href={`/stories/${girl._id}?returnTo=/chicas`}
             src={avatarUrl}
             name={girl.name}
             hasStory={girl.hasStory}
@@ -191,7 +191,7 @@ function GirlCard({ girl, avatarUrl, viewerPremium }) {
             viewerPremium={viewerPremium}
           />
           <Link
-            href={`/girls/${girl._id}`}
+            href={`/chicas/${girl._id}`}
             className="flex-1 px-4 py-2 bg-white/20 backdrop-blur-sm text-white font-semibold text-center rounded-lg hover:bg-white/30 transition-all shadow-md hover:shadow-lg border border-white/30"
           >
             Ver Perfil

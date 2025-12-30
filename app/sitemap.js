@@ -20,7 +20,6 @@ export default function sitemap() {
     { url: `${baseUrl}/chicas-ia`, changeFrequency: "monthly", priority: 0.6 },
     { url: `${baseUrl}/sobre-noviachat`, changeFrequency: "monthly", priority: 0.5 },
     { url: `${baseUrl}/prensa`, changeFrequency: "monthly", priority: 0.4 },
-    { url: `${baseUrl}/girls`, changeFrequency: "weekly", priority: 0.4 },
     { url: `${baseUrl}/support`, changeFrequency: "monthly", priority: 0.3 },
     { url: `${baseUrl}/privacy`, changeFrequency: "monthly", priority: 0.3 },
     { url: `${baseUrl}/terminos`, changeFrequency: "monthly", priority: 0.3 },

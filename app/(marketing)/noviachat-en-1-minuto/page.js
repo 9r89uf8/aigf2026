@@ -110,7 +110,7 @@ export default async function NoviaChatEnUnMinutoPage() {
           </p>
           <div className="mt-6 flex flex-col gap-3 sm:flex-row">
             <Link
-              href="/girls"
+              href="/chicas"
               className="inline-flex items-center justify-center rounded-xl bg-blue-600 px-6 py-3 text-sm font-semibold text-white hover:bg-blue-700"
             >
               Ver catalogo
@@ -228,7 +228,7 @@ export default async function NoviaChatEnUnMinutoPage() {
               </p>
             </div>
             <Link
-              href="/girls"
+              href="/chicas"
               className="inline-flex items-center justify-center rounded-xl border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-900 hover:bg-gray-50"
             >
               Ver catalogo completo
@@ -237,8 +237,8 @@ export default async function NoviaChatEnUnMinutoPage() {
           {previewGirls.length === 0 ? (
             <div className="mt-6 rounded-2xl border border-gray-200 bg-white p-5 text-sm text-gray-700">
               El catalogo publico no esta disponible ahora mismo. Visita{" "}
-              <Link href="/girls" className="font-semibold text-blue-600 hover:underline">
-                /girls
+              <Link href="/chicas" className="font-semibold text-blue-600 hover:underline">
+                /chicas
               </Link>{" "}
               para intentarlo de nuevo.
             </div>
@@ -262,7 +262,7 @@ export default async function NoviaChatEnUnMinutoPage() {
                     </p>
                   )}
                   <Link
-                    href={`/girls/${girl._id}`}
+                    href={`/chicas/${girl._id}`}
                     className="mt-4 inline-flex text-sm font-semibold text-blue-600 hover:underline"
                   >
                     Ver perfil

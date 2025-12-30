@@ -222,7 +222,7 @@ export default async function CategoriaPage({ params }) {
               Empezar gratis
             </Link>
             <Link
-              href="/girls"
+              href="/chicas"
               className="inline-flex items-center justify-center rounded-xl border border-white/60 px-6 py-3 text-sm font-semibold text-white"
             >
               Ver perfiles

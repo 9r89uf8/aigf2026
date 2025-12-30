@@ -4,11 +4,13 @@
 import { useEffect, useRef, useState } from "react";
 import { useAuthActions } from "@convex-dev/auth/react";
 import { useAction, useMutation, useConvexAuth } from "convex/react";
+import { useRouter } from "next/navigation";
 import { api } from "../../../convex/_generated/api";
 
 export default function SignInPage() {
   const { signIn } = useAuthActions();
   const { isAuthenticated } = useConvexAuth();
+  const router = useRouter();
   const [flow, setFlow] = useState("signUp");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
@@ -53,6 +55,11 @@ export default function SignInPage() {
       }
     })();
   }, [isAuthenticated, countryGuess, ensureCountry]);
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    router.replace("/chat");
+  }, [isAuthenticated, router]);
 
   // Turnstile lifecycle with retry logic
   useEffect(() => {

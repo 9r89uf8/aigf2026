@@ -185,7 +185,7 @@ export default function ChatHomePage() {
                 <p className="text-[19px]">Aún no hay conversaciones</p>
                 <p className="text-base mt-1">Comienza a chatear con tus compañeras de IA favoritas</p>
                 <Link
-                    href="/girls"
+                    href="/chicas"
                     className="inline-flex items-center gap-2 mt-4 px-4 py-2 rounded-full bg-black text-white text-[19px]"
                 >
                   Buscar compañeras

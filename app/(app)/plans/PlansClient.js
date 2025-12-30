@@ -83,10 +83,11 @@ export default function PlansClient({ initialPlans = [] }) {
     );
   }
 
-  const explain =
-    isLoggedIn && hasCountry && selectedCurrency && PUBLIC_CODES.has(selectedCurrency)
+  const explain = isLoggedIn
+    ? hasCountry && selectedCurrency && PUBLIC_CODES.has(selectedCurrency)
       ? `Precios mostrados para ${COUNTRY_BY_CURRENCY[selectedCurrency]}.`
-      : "No has iniciado sesion — mostrando precios para Mexico, Espana y Argentina.";
+      : "Tu pais no esta configurado — mostrando precios para Mexico, Espana y Argentina."
+    : "No has iniciado sesion — mostrando precios para Mexico, Espana y Argentina.";
 
   return (
     <main className="mx-auto max-w-screen-md p-6 space-y-6">
@@ -197,20 +198,20 @@ export default function PlansClient({ initialPlans = [] }) {
                   )}
 
                   {/* Button text:
-                      - "Buy Now" if logged in AND has country (regardless of which country)
+                      - "Buy Now" if logged in
                       - "Check Price" otherwise
                   */}
                   <button
                     className="w-full bg-blue-600 text-white py-3 px-4 rounded-md font-medium hover:bg-blue-700 transition-colors"
                     onClick={() => {
-                      if (isLoggedIn && hasCountry) {
+                      if (isLoggedIn) {
                         buy(plan.productId);
                       } else {
                         router.push("/signin?next=/plans");
                       }
                     }}
                   >
-                    {isLoggedIn && hasCountry ? "Comprar Ahora" : "Ver Precio"}
+                    {isLoggedIn ? "Comprar Ahora" : "Ver Precio"}
                   </button>
                 </div>
               </div>

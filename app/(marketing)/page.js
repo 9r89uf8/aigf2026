@@ -1,10 +1,10 @@
 //app/page.js
 import Link from "next/link";
 import Image from "next/image";
-import StoryAvatarButton from "../components/home/StoryAvatarButton";
-import heroImage from "../public/second.webp";
-import avatarImage from "../public/first.webp";
-import storyImage from "../public/third.webp";
+import StoryAvatarButton from "@/components/home/StoryAvatarButton";
+import heroImage from "@/public/second.webp";
+import avatarImage from "@/public/first.webp";
+import storyImage from "@/public/third.webp";
 
 export const metadata = {
   title: { absolute: "Novia Virtual Gratis | Chicas AI y Compañera IA - NoviaChat" },
@@ -281,7 +281,7 @@ export default function Home() {
                   Comenzar Gratis
                 </Link>
                 <Link
-                  href="/girls"
+                  href="/chicas"
                   className="px-8 py-4 bg-white border-2 border-gray-300 text-gray-900 text-lg font-bold rounded-full hover:bg-gray-50 transition-all duration-300 text-center"
                 >
                   Conoce Nuestras Chicas
@@ -339,13 +339,13 @@ export default function Home() {
                       {/* CTA Buttons */}
                       <div className="flex items-center justify-center gap-3">
                         <Link
-                          href="/girls/k974t5vzammwgg6b986fsx65hn7s55eg"
+                          href="/chicas/k974t5vzammwgg6b986fsx65hn7s55eg"
                           className="px-6 py-3 bg-blue-500 text-white font-bold rounded-full hover:bg-blue-600 transition-all duration-300 transform hover:scale-105 shadow-lg"
                         >
                           Chatear
                         </Link>
                         <Link
-                          href="/girls"
+                          href="/chicas"
                           className="px-6 py-3 bg-white text-gray-900 font-bold rounded-full hover:bg-gray-100 transition-all duration-300 transform hover:scale-105 shadow-lg"
                         >
                           Ver Más Chicas

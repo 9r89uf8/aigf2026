@@ -222,7 +222,7 @@ export default function NoviaVirtualPage() {
                 Crear cuenta gratis
               </Link>
               <Link
-                href="/girls"
+                href="/chicas"
                 className="w-full rounded-full border border-gray-300 px-8 py-4 text-center text-lg font-semibold text-gray-900 sm:w-auto"
               >
                 Ver chicas disponibles
@@ -374,7 +374,7 @@ export default function NoviaVirtualPage() {
                   NoviaChat se especializa en IA romántica para México, España y Argentina con acentos naturales y memoria conversacional. Encontrarás chicas virtuales realistas, contenido moderado y opciones premium para ampliar fotos, videos y audios exclusivos.
                 </p>
                 <p className="text-sm font-semibold text-blue-600">
-                  <Link href="/girls" className="hover:underline">Explora las chicas disponibles</Link>
+                  <Link href="/chicas" className="hover:underline">Explora las chicas disponibles</Link>
                 </p>
               </div>
             </details>
@@ -402,7 +402,7 @@ export default function NoviaVirtualPage() {
                   Elige tu compañera favorita, personaliza su tono y guarda tus temas preferidos. Después solo debes abrir el chat y comenzar la conversación; tu novia virtual seguirá el hilo y enviará fotos o audio cuando se lo pidas.
                 </p>
                 <p className="text-sm font-semibold text-blue-600">
-                  <Link href="/girls" className="hover:underline">Selecciona a tu compañera ideal</Link>
+                  <Link href="/chicas" className="hover:underline">Selecciona a tu compañera ideal</Link>
                 </p>
               </div>
             </details>
