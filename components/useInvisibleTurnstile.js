@@ -8,7 +8,7 @@ const SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
 let scriptLoadPromise;
 
 /** Load the Turnstile API exactly once (works even if layout already added it). */
-function loadTurnstileScriptOnce() {
+export function loadTurnstileScriptOnce() {
   if (typeof window === "undefined") return Promise.resolve();
   if (window.turnstile) return Promise.resolve();
 

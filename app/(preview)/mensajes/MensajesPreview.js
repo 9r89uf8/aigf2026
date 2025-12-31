@@ -35,16 +35,16 @@ export default function MensajesPreview() {
                   className="h-12 w-12 rounded-full object-cover"
                 />
                 <div>
-                  <p className="text-lg font-semibold text-gray-900">Andrea</p>
-                  <p className="text-xs text-gray-500">18 años - Activa hace 5 minutos</p>
+                  <p className="text-[25px] font-semibold text-gray-900">Andrea</p>
+                  <p className="text-[17px] text-gray-500">18 años - Activa hace 5 minutos</p>
                 </div>
               </div>
               <div className="mt-3 rounded-xl bg-gray-50 px-3 py-2">
-                <p className="mt-1 text-sm text-gray-700">Ando aburrida 😘</p>
+                <p className="mt-1 text-[20px] text-gray-700">Ando aburrida 😘</p>
               </div>
               <Link
                 href="/chicas/k974t5vzammwgg6b986fsx65hn7s55eg"
-                className="mt-4 inline-flex w-full items-center justify-center px-6 py-3 bg-blue-500 text-white font-bold rounded-full hover:bg-blue-600 transition-all duration-300 transform hover:scale-105 shadow-lg"
+                className="mt-4 inline-flex w-full items-center justify-center px-6 py-3 bg-blue-500 text-[22px] text-white font-bold rounded-full hover:bg-blue-600 transition-all duration-300 transform hover:scale-105 shadow-lg"
               >
                 Ver perfil
               </Link>
@@ -82,7 +82,7 @@ export default function MensajesPreview() {
 
             <div className="flex-1 min-w-0">
               <input
-                className="w-full px-4 py-2 border border-gray-300 rounded-full text-[15px] leading-tight text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full px-4 py-2 border border-gray-300 rounded-full text-[21px] leading-tight text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
                 placeholder="Escribe un mensaje..."
                 value={draft}
                 onChange={(event) => setDraft(event.target.value)}
@@ -127,11 +127,11 @@ export default function MensajesPreview() {
           >
             <div className="flex items-start justify-between gap-4">
               <div>
-                <h2 id="auth-prompt-title" className="text-lg font-semibold text-gray-900">
-                  Inicia sesion para enviar mensajes
+                <h2 id="auth-prompt-title" className="text-[25px] font-semibold text-gray-900">
+                  Inicia sesión o crea tu cuenta
                 </h2>
-                <p className="mt-2 text-sm text-gray-600">
-                  Crea tu cuenta gratis o inicia sesion para desbloquear el chat completo.
+                <p className="mt-2 text-[20px] text-gray-600">
+                  Es completamente gratis y anónimo.
                 </p>
               </div>
               <button
@@ -148,20 +148,17 @@ export default function MensajesPreview() {
             <div className="mt-5 flex flex-col gap-2 sm:flex-row">
               <Link
                 href="/signin"
-                className="inline-flex flex-1 items-center justify-center rounded-full bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
+                className="inline-flex flex-1 items-center justify-center rounded-full bg-blue-600 px-4 py-2 text-[20px] font-semibold text-white hover:bg-blue-700"
               >
-                Iniciar sesion
+                Iniciar sesión
               </Link>
               <Link
                 href="/signin"
-                className="inline-flex flex-1 items-center justify-center rounded-full border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-900 hover:bg-gray-50"
+                className="inline-flex flex-1 items-center justify-center rounded-full border border-gray-300 bg-white px-4 py-2 text-[20px] font-semibold text-gray-900 hover:bg-gray-50"
               >
                 Crear cuenta
               </Link>
             </div>
-            <p className="mt-4 text-xs text-gray-500">
-              Podras enviar tu mensaje despues de iniciar sesion.
-            </p>
           </div>
         </div>
       )}

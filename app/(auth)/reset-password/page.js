@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAction } from "convex/react";
 import { api } from "../../../convex/_generated/api";
+import { loadTurnstileScriptOnce } from "@/components/useInvisibleTurnstile";
 
 export default function ResetPasswordPage() {
   const { signIn } = useAuthActions();
@@ -19,7 +20,6 @@ export default function ResetPasswordPage() {
   const [tsSize, setTsSize] = useState("normal"); // "normal" | "compact"
   const tsRef = useRef(null);        // container to render into
   const widgetId = useRef(null);     // track widget instance id
-  const retryTimeouts = useRef([]);  // store retry timers for cleanup
 
   // Pick compact on very small screens (e.g., Galaxy S8 @ 360px)
   useEffect(() => {
@@ -33,10 +33,12 @@ export default function ResetPasswordPage() {
     const el = tsRef.current;
     if (!el || typeof window === "undefined") return;
 
-    const tryRender = () => {
-      if (!window.turnstile) return false;
-      if (widgetId.current !== null) return true; // already rendered
+    let cancelled = false;
+
+    const renderWidget = async () => {
       try {
+        await loadTurnstileScriptOnce();
+        if (cancelled || widgetId.current !== null || !window.turnstile) return;
         widgetId.current = window.turnstile.render(el, {
           sitekey: process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY,
           action: "reset",
@@ -44,24 +46,16 @@ export default function ResetPasswordPage() {
           "refresh-expired": "auto",
           size: tsSize, // "normal" or "compact"
         });
-        return true;
       } catch {
-        return false;
+        // ignore; verification will fail and surface a generic error
       }
     };
 
-    // attempt immediately, then retry a few times while the script boots
-    if (!tryRender()) {
-      [100, 250, 500, 1000, 2000].forEach((ms) => {
-        const t = setTimeout(tryRender, ms);
-        retryTimeouts.current.push(t);
-      });
-    }
+    renderWidget();
 
     // cleanup on step change/unmount
     return () => {
-      retryTimeouts.current.forEach(clearTimeout);
-      retryTimeouts.current = [];
+      cancelled = true;
       if (widgetId.current !== null) {
         try { window.turnstile?.remove(widgetId.current); } catch {}
         widgetId.current = null;

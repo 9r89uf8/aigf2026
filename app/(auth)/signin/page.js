@@ -6,6 +6,7 @@ import { useAuthActions } from "@convex-dev/auth/react";
 import { useAction, useMutation, useConvexAuth } from "convex/react";
 import { useRouter } from "next/navigation";
 import { api } from "../../../convex/_generated/api";
+import { loadTurnstileScriptOnce } from "@/components/useInvisibleTurnstile";
 
 export default function SignInPage() {
   const { signIn } = useAuthActions();
@@ -61,16 +62,17 @@ export default function SignInPage() {
     router.replace("/chat");
   }, [isAuthenticated, router]);
 
-  // Turnstile lifecycle with retry logic
+  // Turnstile lifecycle with reliable script readiness
   useEffect(() => {
     const el = tsRef.current;
     if (!el || typeof window === "undefined") return;
 
-    const timeouts = [];
-    const tryRender = () => {
-      if (!window.turnstile) return false;
-      if (widgetId.current !== null) return true;
+    let cancelled = false;
+
+    const renderWidget = async () => {
       try {
+        await loadTurnstileScriptOnce();
+        if (cancelled || widgetId.current !== null || !window.turnstile) return;
         widgetId.current = window.turnstile.render(el, {
           sitekey: process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY,
           action: flow,
@@ -78,20 +80,15 @@ export default function SignInPage() {
           "refresh-expired": "auto",
           size: tsSize, // NEW
         });
-        return true;
       } catch {
-        return false;
+        // ignore; verification will fail and surface a generic error
       }
     };
 
-    if (!tryRender()) {
-      [100, 250, 500, 1000, 2000].forEach((delay) => {
-        timeouts.push(setTimeout(() => { tryRender(); }, delay));
-      });
-    }
+    renderWidget();
 
     return () => {
-      timeouts.forEach(clearTimeout);
+      cancelled = true;
       if (widgetId.current !== null) {
         try { window.turnstile?.remove(widgetId.current); } catch {}
         widgetId.current = null;
