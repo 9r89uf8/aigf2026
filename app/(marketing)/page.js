@@ -339,7 +339,7 @@ export default function Home() {
                       {/* CTA Buttons */}
                       <div className="flex items-center justify-center gap-3">
                         <Link
-                          href="/chicas/k974t5vzammwgg6b986fsx65hn7s55eg"
+                          href="/mensajes"
                           className="px-6 py-3 bg-blue-500 text-white font-bold rounded-full hover:bg-blue-600 transition-all duration-300 transform hover:scale-105 shadow-lg"
                         >
                           Chatear

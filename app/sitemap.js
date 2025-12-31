@@ -8,6 +8,7 @@ export default function sitemap() {
     { url: baseUrl, changeFrequency: "daily", priority: 1 },
     { url: `${baseUrl}/novia-virtual`, changeFrequency: "weekly", priority: 0.9 },
     { url: `${baseUrl}/chat-novia-virtual`, changeFrequency: "weekly", priority: 0.9 },
+    { url: `${baseUrl}/mensajes`, changeFrequency: "weekly", priority: 0.8 },
     { url: `${baseUrl}/chicas-virtuales`, changeFrequency: "weekly", priority: 0.9 },
     { url: `${baseUrl}/novia-virtual-gratis`, changeFrequency: "weekly", priority: 0.8 },
     { url: `${baseUrl}/novia-ia`, changeFrequency: "weekly", priority: 0.8 },
