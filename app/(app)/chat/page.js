@@ -183,12 +183,11 @@ export default function ChatHomePage() {
           {threads.length === 0 ? (
               <div className="text-center py-16 text-gray-500">
                 <p className="text-[19px]">Aún no hay conversaciones</p>
-                <p className="text-base mt-1">Comienza a chatear con tus compañeras de IA favoritas</p>
                 <Link
                     href="/chicas"
                     className="inline-flex items-center gap-2 mt-4 px-4 py-2 rounded-full bg-black text-white text-[19px]"
                 >
-                  Buscar compañeras
+                  Buscar
                   <svg viewBox="0 0 24 24" className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="1.8">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
                   </svg>

@@ -13,6 +13,7 @@ export default function GirlsClient({ initialGirls = [] }) {
   const isLoading = girlsQuery === undefined && initialGirls.length === 0;
   const signViewBatch = useAction(api.cdn.signViewBatch);
   const [avatarUrls, setAvatarUrls] = useState({});
+  const [searchQuery, setSearchQuery] = useState("");
   const premiumStatus = useQuery(api.payments.getPremiumStatus);
   const viewerPremium = !!premiumStatus?.active;
 
@@ -78,48 +79,56 @@ export default function GirlsClient({ initialGirls = [] }) {
     );
   }
 
+  const normalizedQuery = searchQuery.trim().toLowerCase();
+  const filteredGirls = normalizedQuery
+    ? girls.filter((girl) => {
+        const name = (girl.name ?? "").toLowerCase();
+        const username = (girl.username ?? "").toLowerCase();
+        return name.includes(normalizedQuery) || username.includes(normalizedQuery);
+      })
+    : girls;
+  const showNoResults = normalizedQuery.length > 0 && filteredGirls.length === 0;
+
   return (
     <div className="pb-[60px] min-h-screen">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        {/* Hero Section */}
-        <div className="text-center mb-12">
-          <h5 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
-            Companeras de IA
-          </h5>
-          <p className="mx-auto max-w-2xl text-base text-gray-600">
-            Quieres entender que son las chicas IA antes de elegir?{" "}
-            <Link href="/chicas-ia" className="font-semibold text-blue-600 hover:underline">
-              Lee esta guia rapida
-            </Link>
-            . Buscas categorias por estilo?{" "}
-            <Link
-              href="/chicas-virtuales"
-              className="font-semibold text-blue-600 hover:underline"
-            >
-              Explora el directorio
-            </Link>
-            . Prefieres una experiencia tipo novia virtual?{" "}
-            <Link
-              href="/novia-virtual#preguntas-usuarios"
-              className="font-semibold text-blue-600 hover:underline"
-            >
-              Respuestas populares
-            </Link>
-            .
-          </p>
+        {/* Search */}
+        <div className="mb-10 flex justify-center">
+          <div className="w-full max-w-xl">
+            <label htmlFor="girls-search" className="sr-only">
+              Buscar chicas
+            </label>
+            <input
+              id="girls-search"
+              type="search"
+              value={searchQuery}
+              onChange={(event) => setSearchQuery(event.target.value)}
+              placeholder="Busca por nombre o usuario"
+              className="w-full rounded-full border border-gray-200 bg-white px-5 py-3 text-base text-gray-900 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+            />
+          </div>
         </div>
 
         {/* Girls Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {girls.map((girl) => (
-            <GirlCard
-              key={girl._id}
-              girl={girl}
-              avatarUrl={girl.avatarKey ? avatarUrls[girl.avatarKey] : null}
-              viewerPremium={viewerPremium}
-            />
-          ))}
-        </div>
+        {showNoResults ? (
+          <div className="text-center text-gray-600 py-12">
+            <h2 className="text-xl font-semibold text-gray-900 mb-2">
+              No hay resultados
+            </h2>
+            <p>Prueba con otro nombre o usuario.</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {filteredGirls.map((girl) => (
+              <GirlCard
+                key={girl._id}
+                girl={girl}
+                avatarUrl={girl.avatarKey ? avatarUrls[girl.avatarKey] : null}
+                viewerPremium={viewerPremium}
+              />
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
@@ -127,7 +136,7 @@ export default function GirlsClient({ initialGirls = [] }) {
 
 function GirlCard({ girl, avatarUrl, viewerPremium }) {
   return (
-    <div className="relative bg-gradient-to-br from-indigo-600 via-amber-500 to-cyan-400 rounded-lg shadow-lg hover:shadow-xl transition-all overflow-hidden group hover:scale-[1.02] duration-300">
+    <div className="relative bg-gradient-to-br from-slate-900 via-slate-800 to-slate-700 rounded-lg shadow-lg hover:shadow-xl transition-all overflow-hidden group hover:scale-[1.02] duration-300">
       {/* Premium chip (only for non-premium viewers) */}
       {girl.premiumOnly && !viewerPremium && (
         <div className="absolute top-3 right-3 inline-flex items-center gap-1 px-2 py-1 rounded-full bg-yellow-300/90 text-gray-900 text-xs font-semibold shadow">
@@ -147,7 +156,7 @@ function GirlCard({ girl, avatarUrl, viewerPremium }) {
         </div>
 
         {/* Name */}
-        <h2 className="text-xl font-bold text-white text-center mb-2">{girl.name}</h2>
+        <h2 className="text-xl font-bold text-white text-center mb-2">{girl.username}</h2>
 
         {/* Bio */}
         {girl.bio && (

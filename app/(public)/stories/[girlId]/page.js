@@ -79,13 +79,13 @@ export default function StoryViewerPage() {
     return (
         <div className="min-h-screen flex items-center justify-center bg-black">
           <div className="text-center text-white">
-            <h1 className="text-2xl font-bold mb-2">No Stories</h1>
-            <p className="text-gray-400">{girl.name} hasn't posted any stories yet.</p>
+            {/*<h1 className="text-2xl font-bold mb-2">No Stories</h1>*/}
+            <p className="text-gray-400">{girl.name} no tiene historias.</p>
             <button
                 onClick={() => router.push(returnTo)}
                 className="mt-4 px-4 py-2 bg-white text-black rounded-md hover:bg-gray-200 transition-colors"
             >
-              Go Back
+              Volver
             </button>
           </div>
         </div>

@@ -63,9 +63,21 @@ export default function ProfileHero({ girl, backgroundUrl, avatarUrl, onAvatarCl
           {/* Name, Bio, and CTA */}
           <div className="mt-4 mb-6">
             <div className="flex-1">
-              <h1 className="text-3xl md:text-4xl font-bold text-gray-900">
-                {girl.name}
-              </h1>
+              <div className="flex flex-col gap-2">
+                <span className="inline-flex items-center gap-1.5 self-start rounded-full border border-blue-200 bg-blue-50/90 px-2.5 py-1 text-xs font-semibold text-blue-700 shadow-sm">
+                  <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                    <path
+                      fillRule="evenodd"
+                      d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.707a1 1 0 00-1.414-1.414L9 10.172 7.707 8.879a1 1 0 10-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                  Perfil verificado
+                </span>
+                <h1 className="text-3xl md:text-4xl font-bold text-gray-900">
+                  {girl.name}
+                </h1>
+              </div>
               {girl.bio && (
                 <p className="mt-2 text-gray-600 text-base md:text-lg max-w-2xl">
                   {girl.bio}
