@@ -12,7 +12,34 @@ import { currencyForCountry, formatMoney } from "@/app/lib/currency";
 import ReplyToBadge from "@/components/chat/ReplyToBadge";
 
 
-function TypingBubble({ avatarUrl, girlName }) {
+function GirlAvatar({ avatarUrl, girlName, sizeClass = "w-7 h-7", onClick }) {
+  const content = avatarUrl ? (
+    <img
+      src={avatarUrl}
+      alt={girlName || "Perfil"}
+      className={`${sizeClass} rounded-full object-cover`}
+    />
+  ) : (
+    <div className={`${sizeClass} rounded-full bg-gradient-to-br from-purple-400 to-pink-400`} />
+  );
+
+  if (onClick) {
+    return (
+      <button
+        type="button"
+        onClick={onClick}
+        className="flex-shrink-0"
+        aria-label={`Ver perfil de ${girlName || "ella"}`}
+      >
+        {content}
+      </button>
+    );
+  }
+
+  return <div className="flex-shrink-0">{content}</div>;
+}
+
+function TypingBubble({ avatarUrl, girlName, onAvatarClick }) {
   return (
     <div
       role="status"
@@ -20,15 +47,7 @@ function TypingBubble({ avatarUrl, girlName }) {
       aria-label={`${girlName || "Asistente"} está escribiendo`}
       className="flex items-end gap-2"
     >
-      {avatarUrl ? (
-        <img
-          src={avatarUrl}
-          alt={girlName || "Perfil"}
-          className="w-7 h-7 rounded-full object-cover flex-shrink-0"
-        />
-      ) : (
-        <div className="w-7 h-7 rounded-full bg-gradient-to-br from-purple-400 to-pink-400 flex-shrink-0" />
-      )}
+      <GirlAvatar avatarUrl={avatarUrl} girlName={girlName} onClick={onAvatarClick} />
 
       <div className="bg-gray-100 text-gray-900 rounded-3xl px-3 py-2">
         <div className="flex items-center gap-1.5">
@@ -60,18 +79,10 @@ function TypingBubble({ avatarUrl, girlName }) {
   );
 }
 
-function MediaStatusIndicator({ avatarUrl, girlName, status }) {
+function MediaStatusIndicator({ avatarUrl, girlName, status, onAvatarClick }) {
   return (
     <div className="flex items-end gap-2">
-      {avatarUrl ? (
-        <img
-          src={avatarUrl}
-          alt={girlName || "Perfil"}
-          className="w-7 h-7 rounded-full object-cover flex-shrink-0"
-        />
-      ) : (
-        <div className="w-7 h-7 rounded-full bg-gradient-to-br from-purple-400 to-pink-400 flex-shrink-0" />
-      )}
+      <GirlAvatar avatarUrl={avatarUrl} girlName={girlName} onClick={onAvatarClick} />
       <div className="flex items-center gap-1.5">
         <span className="text-[15px] text-gray-500 italic">{status}</span>
       </div>
@@ -112,6 +123,12 @@ export default function ConversationPage() {
   const [isAtBottom, setIsAtBottom] = useState(true); // track whether user is pinned at bottom
   const lastMsgIdRef = useRef(null);         // detect real new messages
   const didInitialScrollRef = useRef(false); // avoid re-scrolling on every reactive update
+
+  const handleGirlAvatarClick = () => {
+    if (data?.girlId) {
+      router.push(`/chicas/${data.girlId}`);
+    }
+  };
 
   const {
     ready: turnstileReady,
@@ -446,15 +463,12 @@ export default function ConversationPage() {
         </button>
 
         <div className="flex items-center gap-3 flex-1 ml-3">
-          {avatarUrl ? (
-            <img
-              src={avatarUrl}
-              alt={data?.girlName || "Perfil"}
-              className="w-9 h-9 rounded-full object-cover"
-            />
-          ) : (
-            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-purple-400 to-pink-400" />
-          )}
+          <GirlAvatar
+            avatarUrl={avatarUrl}
+            girlName={data?.girlName}
+            sizeClass="w-9 h-9"
+            onClick={data?.girlId ? handleGirlAvatarClick : null}
+          />
           <span className="font-semibold text-xl">{data?.girlName || "Chat"}</span>
         </div>
 
@@ -495,15 +509,11 @@ export default function ConversationPage() {
             return (
               <div key={m.id} className={`flex items-end gap-2 group ${mine ? "flex-row-reverse" : "flex-row"}`}>
                 {!mine && (
-                  avatarUrl ? (
-                    <img
-                      src={avatarUrl}
-                      alt={data?.girlName || ""}
-                      className="w-7 h-7 rounded-full object-cover flex-shrink-0"
-                    />
-                  ) : (
-                    <div className="w-7 h-7 rounded-full bg-gradient-to-br from-purple-400 to-pink-400 flex-shrink-0" />
-                  )
+                  <GirlAvatar
+                    avatarUrl={avatarUrl}
+                    girlName={data?.girlName}
+                    onClick={data?.girlId ? handleGirlAvatarClick : null}
+                  />
                 )}
                 <div className={`flex flex-col ${mine ? "items-end" : "items-start"} max-w-[70%]`}>
                   {!mine && <ReplyToBadge rt={m.replyTo} />}
@@ -547,15 +557,11 @@ export default function ConversationPage() {
             return (
               <div key={m.id} className={`flex items-end gap-2 group ${mine ? "flex-row-reverse" : "flex-row"}`}>
                 {!mine && (
-                  avatarUrl ? (
-                    <img
-                      src={avatarUrl}
-                      alt={data?.girlName || ""}
-                      className="w-7 h-7 rounded-full object-cover flex-shrink-0"
-                    />
-                  ) : (
-                    <div className="w-7 h-7 rounded-full bg-gradient-to-br from-purple-400 to-pink-400 flex-shrink-0" />
-                  )
+                  <GirlAvatar
+                    avatarUrl={avatarUrl}
+                    girlName={data?.girlName}
+                    onClick={data?.girlId ? handleGirlAvatarClick : null}
+                  />
                 )}
                 <div className={`flex flex-col ${mine ? "items-end" : "items-start"} max-w-[70%]`}>
                   {!mine && <ReplyToBadge rt={m.replyTo} />}
@@ -601,15 +607,11 @@ export default function ConversationPage() {
           return (
             <div key={m.id} className={`flex items-end gap-2 group ${mine ? "flex-row-reverse" : "flex-row"}`}>
               {!mine && (
-                avatarUrl ? (
-                  <img
-                    src={avatarUrl}
-                    alt={data?.girlName || ""}
-                    className="w-7 h-7 rounded-full object-cover flex-shrink-0"
-                  />
-                ) : (
-                  <div className="w-7 h-7 rounded-full bg-gradient-to-br from-purple-400 to-pink-400 flex-shrink-0" />
-                )
+                <GirlAvatar
+                  avatarUrl={avatarUrl}
+                  girlName={data?.girlName}
+                  onClick={data?.girlId ? handleGirlAvatarClick : null}
+                />
               )}
               <div className={`flex flex-col ${mine ? "items-end" : "items-start"} max-w-[70%]`}>
                 {!mine && <ReplyToBadge rt={m.replyTo} />}
@@ -671,7 +673,11 @@ export default function ConversationPage() {
         {isAiTyping && typingMode === "text" && (
           <div className="flex items-end gap-2">
             <div className="flex flex-col items-start max-w-[70%]">
-              <TypingBubble avatarUrl={avatarUrl} girlName={data?.girlName} />
+              <TypingBubble
+                avatarUrl={avatarUrl}
+                girlName={data?.girlName}
+                onAvatarClick={data?.girlId ? handleGirlAvatarClick : null}
+              />
               <div className="flex items-center gap-1.5 mt-1 px-2">
                 <span className="text-[15px] text-gray-400">escribiendo…</span>
               </div>
@@ -683,6 +689,7 @@ export default function ConversationPage() {
             avatarUrl={avatarUrl}
             girlName={data?.girlName}
             status="grabando una nota de voz…"
+            onAvatarClick={data?.girlId ? handleGirlAvatarClick : null}
           />
         )}
         {isAiTyping && typingMode === "image" && (
@@ -690,6 +697,7 @@ export default function ConversationPage() {
             avatarUrl={avatarUrl}
             girlName={data?.girlName}
             status="eligiendo una foto…"
+            onAvatarClick={data?.girlId ? handleGirlAvatarClick : null}
           />
         )}
         {isAiTyping && typingMode === "video" && (
@@ -697,6 +705,7 @@ export default function ConversationPage() {
             avatarUrl={avatarUrl}
             girlName={data?.girlName}
             status="preparando un video…"
+            onAvatarClick={data?.girlId ? handleGirlAvatarClick : null}
           />
         )}
         <div ref={bottomRef} aria-hidden style={{ height: 1 }} />
