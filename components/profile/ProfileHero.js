@@ -104,13 +104,19 @@ export default function ProfileHero({ girl, backgroundUrl, avatarUrl, onAvatarCl
                 <div className="mt-4 flex flex-wrap gap-x-6 gap-y-2 text-sm text-gray-600">
                   {girl.currentLocation && (
                     <div className="flex items-center gap-2">
-                      <span className="text-gray-500">Vive en</span>
+                      <span className="text-gray-500" aria-hidden="true">
+                        📍
+                      </span>
+                      <span className="sr-only">Vive en</span>
                       <span className="font-medium text-gray-800">{girl.currentLocation}</span>
                     </div>
                   )}
                   {girl.school && (
                     <div className="flex items-center gap-2">
-                      <span className="text-gray-500">Escuela</span>
+                      <span className="text-gray-500" aria-hidden="true">
+                        🎓
+                      </span>
+                      <span className="sr-only">Escuela</span>
                       <span className="font-medium text-gray-800">{girl.school}</span>
                     </div>
                   )}

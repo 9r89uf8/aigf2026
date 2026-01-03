@@ -62,8 +62,10 @@ export default function GirlProfilePage() {
     return (
         <div className="min-h-screen flex items-center justify-center">
           <div className="text-center">
-            <h1 className="text-2xl font-bold text-gray-900 mb-2">Perfil No Encontrado</h1>
-            <p className="text-gray-600">Este perfil no existe o no está disponible.</p>
+            <h1 className="text-[1.95rem] font-bold text-gray-900 mb-2">Perfil No Encontrado</h1>
+            <p className="text-[1.3rem] text-gray-600">
+              Este perfil no existe o no está disponible.
+            </p>
           </div>
         </div>
     );
@@ -173,7 +175,7 @@ export default function GirlProfilePage() {
           {/* Stories Strip */}
           {stories.length > 0 && (
               <div className="mb-8">
-                <h2 className="text-lg font-semibold text-gray-900 mb-3">Historias</h2>
+                <h2 className="text-[1.46rem] font-semibold text-gray-900 mb-3">Historias</h2>
                 <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
                   {stories.map((story) => (
                       <StoryChip
@@ -193,7 +195,7 @@ export default function GirlProfilePage() {
               <nav className="-mb-px flex gap-8">
                 <button
                     onClick={() => setActiveTab("gallery")}
-                    className={`py-3 px-1 border-b-2 font-medium text-sm transition-colors ${
+                    className={`py-3 px-1 border-b-2 font-medium text-[1.14rem] transition-colors ${
                         activeTab === "gallery"
                             ? "border-purple-600 text-purple-600"
                             : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
@@ -203,7 +205,7 @@ export default function GirlProfilePage() {
                 </button>
                 <button
                     onClick={() => setActiveTab("posts")}
-                    className={`py-3 px-1 border-b-2 font-medium text-sm transition-colors ${
+                    className={`py-3 px-1 border-b-2 font-medium text-[1.14rem] transition-colors ${
                         activeTab === "posts"
                             ? "border-purple-600 text-purple-600"
                             : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
@@ -220,7 +222,9 @@ export default function GirlProfilePage() {
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {gallery.length === 0 ? (
                     <div className="col-span-full text-center py-12">
-                      <p className="text-gray-500">Aún no hay elementos en la galería.</p>
+                      <p className="text-[1.3rem] text-gray-500">
+                        Aún no hay elementos en la galería.
+                      </p>
                     </div>
                 ) : (
                     gallery.map((item) => {
@@ -249,7 +253,7 @@ export default function GirlProfilePage() {
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {posts.length === 0 ? (
                     <div className="col-span-full text-center py-12">
-                      <p className="text-gray-500">Aún no hay publicaciones.</p>
+                      <p className="text-[1.3rem] text-gray-500">Aún no hay publicaciones.</p>
                     </div>
                 ) : (
                     posts.map((item) => {
@@ -303,7 +307,7 @@ export default function GirlProfilePage() {
                 <button
                     type="button"
                     onClick={handleMediaClose}
-                    className="absolute top-3 right-12 rounded-full bg-black/70 px-8 py-1 text-white text-sm font-semibold hover:bg-black/80 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/80"
+                    className="absolute top-3 right-12 rounded-full bg-black/70 px-8 py-1 text-white text-[1.14rem] font-semibold hover:bg-black/80 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/80"
                     aria-label="Close image preview"
                 >
                   Cerrar
