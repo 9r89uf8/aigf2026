@@ -38,7 +38,7 @@ export default function ProfileHero({ girl, backgroundUrl, avatarUrl, onAvatarCl
       <div className="relative px-4 md:px-6 -mt-16">
         <div className="max-w-5xl mx-auto">
           {/* Avatar */}
-          <div className="relative inline-block">
+          <div className="inline-flex flex-col items-start gap-2">
             {avatarUrl ? (
               onAvatarClick ? (
                 <button
@@ -68,12 +68,12 @@ export default function ProfileHero({ girl, backgroundUrl, avatarUrl, onAvatarCl
               </div>
             )}
             {statusActive && (
-              <div className="absolute -bottom-2 right-[-146px] z-10 max-w-[160px] rounded-2xl border border-black/80 bg-white px-3 py-2 text-black shadow-md">
-                <span className="block line-clamp-2 text-[1.05rem] leading-snug">
+              <div className="inline-flex flex-col items-start rounded-full bg-white px-3 py-1 text-black shadow-sm">
+                <span className="block max-w-[240px] line-clamp-1 text-[1.05rem] leading-snug">
                   {girl.statusText}
                 </span>
                 {statusTime && (
-                  <span className="mt-0.5 block text-[0.75rem] text-gray-600">
+                  <span className="mt-0.5 text-[0.75rem] text-gray-600">
                     {statusTime}
                   </span>
                 )}
@@ -85,25 +85,22 @@ export default function ProfileHero({ girl, backgroundUrl, avatarUrl, onAvatarCl
           <div className="mt-4 mb-6">
             <div className="flex-1">
               <div className="flex flex-col gap-2">
-                <span className="inline-flex items-center gap-1.5 self-start rounded-full border border-blue-200 bg-blue-50/90 px-2.5 py-1 text-xs font-semibold text-blue-700 shadow-sm">
-                  <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                    <path
-                      fillRule="evenodd"
-                      d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.707a1 1 0 00-1.414-1.414L9 10.172 7.707 8.879a1 1 0 10-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
-                  Perfil verificado
-                </span>
-                <h1 className="text-3xl md:text-4xl font-bold text-gray-900">
-                  {girl.name}
-                </h1>
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="inline-flex items-center text-blue-600" aria-hidden="true">
+                    <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                      <path
+                        fillRule="evenodd"
+                        d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.707a1 1 0 00-1.414-1.414L9 10.172 7.707 8.879a1 1 0 10-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                        clipRule="evenodd"
+                      />
+                    </svg>
+                  </span>
+                  <span className="sr-only">Perfil verificado</span>
+                  <h1 className="text-3xl md:text-4xl font-bold text-gray-900">
+                    {girl.name}
+                  </h1>
+                </div>
               </div>
-              {girl.bio && (
-                <p className="mt-2 text-gray-600 text-base md:text-lg max-w-2xl">
-                  {girl.bio}
-                </p>
-              )}
               {hasDetails && (
                 <div className="mt-4 flex flex-wrap gap-x-6 gap-y-2 text-sm text-gray-600">
                   {girl.currentLocation && (
