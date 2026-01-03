@@ -113,7 +113,12 @@ export default function ConversationPage() {
   const lastMsgIdRef = useRef(null);         // detect real new messages
   const didInitialScrollRef = useRef(false); // avoid re-scrolling on every reactive update
 
-  const { ready: turnstileReady, getToken } = useInvisibleTurnstile();
+  const {
+    ready: turnstileReady,
+    error: turnstileError,
+    retry: retryTurnstile,
+    getToken,
+  } = useInvisibleTurnstile();
 
   // ---- Stable refs to avoid Strict Mode double-execute overlaps ----
   const permitRef = useRef(permit);
@@ -758,7 +763,22 @@ export default function ConversationPage() {
           style={{ paddingBottom: "max(env(safe-area-inset-bottom), 20px)" }}
       >
         {!turnstileReady && (
-            <div className="text-base text-gray-500 mb-2">Preparando seguridad…</div>
+            <div className="mb-2 flex flex-wrap items-center gap-2 text-base text-gray-500">
+              <span>
+                {turnstileError
+                  ? "No se pudo cargar la verificacion de seguridad."
+                  : "Preparando seguridad..."}
+              </span>
+              {turnstileError && (
+                <button
+                  type="button"
+                  onClick={retryTurnstile}
+                  className="text-blue-600 hover:text-blue-700 underline"
+                >
+                  Reintentar
+                </button>
+              )}
+            </div>
         )}
 
         <div className="flex items-center gap-1.5 sm:gap-2">

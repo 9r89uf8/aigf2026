@@ -3,39 +3,74 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 const SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
+const SCRIPT_SRC =
+  "https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit";
+const SCRIPT_SELECTOR =
+  'script[src^="https://challenges.cloudflare.com/turnstile/v0/api.js"]';
+const LOAD_TIMEOUT_MS = 8000;
 
 // Ensure we load the Turnstile script at most once
 let scriptLoadPromise;
 
 /** Load the Turnstile API exactly once (works even if layout already added it). */
-export function loadTurnstileScriptOnce() {
+export function loadTurnstileScriptOnce({
+  forceReload = false,
+  timeoutMs,
+} = {}) {
   if (typeof window === "undefined") return Promise.resolve();
   if (window.turnstile) return Promise.resolve();
 
-  // If another part of the app already added the script, just wait for it
-  const existing = document.querySelector(
-      'script[src^="https://challenges.cloudflare.com/turnstile/v0/api.js"]'
-  );
-  if (existing) {
-    return new Promise((resolve) => {
-      const check = () =>
-          window.turnstile ? resolve() : setTimeout(check, 30);
-      check();
+  if (forceReload) {
+    scriptLoadPromise = null;
+    document.querySelectorAll(SCRIPT_SELECTOR).forEach((node) => {
+      node.parentElement?.removeChild(node);
     });
   }
 
-  if (!scriptLoadPromise) {
-    scriptLoadPromise = new Promise((resolve, reject) => {
+  if (scriptLoadPromise) return scriptLoadPromise;
+
+  const promise = new Promise((resolve, reject) => {
+    let settled = false;
+    const finish = (err) => {
+      if (settled) return;
+      settled = true;
+      err ? reject(err) : resolve();
+    };
+
+    const start = Date.now();
+    const tick = () => {
+      if (settled) return;
+      if (window.turnstile) return finish();
+      if (typeof timeoutMs === "number" && Date.now() - start >= timeoutMs) {
+        return finish(new Error("Turnstile script load timed out"));
+      }
+      setTimeout(tick, 50);
+    };
+
+    const existing = document.querySelector(SCRIPT_SELECTOR);
+    if (!existing) {
       const s = document.createElement("script");
-      // Explicit mode since we call turnstile.render() ourselves
-      s.src = "https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit";
+      s.src = forceReload ? `${SCRIPT_SRC}&cb=${Date.now()}` : SCRIPT_SRC;
       s.async = true;
       s.defer = true;
-      s.onload = () => resolve();
-      s.onerror = (e) => reject(e);
+      s.dataset.turnstileScript = "1";
+      s.onload = () => {
+        if (window.turnstile) finish();
+      };
+      s.onerror = () => finish(new Error("Turnstile script failed to load"));
       document.head.appendChild(s);
-    });
-  }
+    }
+
+    tick();
+  });
+
+  scriptLoadPromise = promise.catch((err) => {
+    if (scriptLoadPromise === promise) {
+      scriptLoadPromise = null;
+    }
+    throw err;
+  });
+
   return scriptLoadPromise;
 }
 
@@ -50,6 +85,8 @@ export function useInvisibleTurnstile() {
   const containerRef = useRef(null);
   const widgetIdRef = useRef(null);
   const [ready, setReady] = useState(false);
+  const [error, setError] = useState(null);
+  const [reloadKey, setReloadKey] = useState(0);
 
   // Single-flight promise so overlapping callers share the same execution
   const inFlightRef = useRef(null);
@@ -59,7 +96,12 @@ export function useInvisibleTurnstile() {
 
     (async () => {
       try {
-        await loadTurnstileScriptOnce();
+        setReady(false);
+        setError(null);
+        await loadTurnstileScriptOnce({
+          forceReload: reloadKey > 0,
+          timeoutMs: LOAD_TIMEOUT_MS,
+        });
         if (unmounted) return;
 
         // Create an off-screen container once
@@ -71,6 +113,11 @@ export function useInvisibleTurnstile() {
           el.style.height = "0";
           document.body.appendChild(el);
           containerRef.current = el;
+        }
+
+        if (reloadKey > 0 && widgetIdRef.current) {
+          try { window.turnstile?.remove(widgetIdRef.current); } catch {}
+          widgetIdRef.current = null;
         }
 
         // Render exactly once
@@ -92,6 +139,8 @@ export function useInvisibleTurnstile() {
 
         setReady(true);
       } catch (e) {
+        if (unmounted) return;
+        setError("Turnstile failed to load");
         console.error("Turnstile script failed to load", e);
       }
     })();
@@ -108,6 +157,10 @@ export function useInvisibleTurnstile() {
       //   containerRef.current = null;
       // }
     };
+  }, [reloadKey]);
+
+  const retry = useCallback(() => {
+    setReloadKey((k) => k + 1);
   }, []);
 
   const getToken = useCallback(async () => {
@@ -148,5 +201,5 @@ export function useInvisibleTurnstile() {
     return inFlightRef.current;
   }, [ready]);
 
-  return { ready, getToken };
+  return { ready, error, retry, getToken };
 }
