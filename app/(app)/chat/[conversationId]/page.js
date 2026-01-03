@@ -135,6 +135,7 @@ export default function ConversationPage() {
 
   // Serialize turnstile execute() calls
   const tokenInFlightRef = useRef(null);
+  const permitInFlightRef = useRef(null);
   async function acquireToken() {
     if (tokenInFlightRef.current) return tokenInFlightRef.current;
     tokenInFlightRef.current = (async () => {
@@ -145,6 +146,19 @@ export default function ConversationPage() {
       }
     })();
     return tokenInFlightRef.current;
+  }
+
+  async function mintPermitOnce() {
+    if (permitInFlightRef.current) return permitInFlightRef.current;
+    permitInFlightRef.current = (async () => {
+      const token = await acquireToken();
+      return await mintPermitRef.current({ token, scope: "chat_send" });
+    })();
+    try {
+      return await permitInFlightRef.current;
+    } finally {
+      permitInFlightRef.current = null;
+    }
   }
 
   // Smart typing indicator with mode (text/audio/image/video)
@@ -344,10 +358,9 @@ export default function ConversationPage() {
       if (!turnstileReady || permitRef.current || prefetchAttemptedRef.current) return;
       prefetchAttemptedRef.current = true;
       try {
-        const token = await acquireToken();
+        const p = await mintPermitOnce();
         if (cancelled) return;
-        const p = await mintPermitRef.current({ token, scope: "chat_send" });
-        if (cancelled) return;
+        permitRef.current = p;
         setPermit(p);
       } catch (e) {
         console.warn("Permit prefetch failed", e);
@@ -364,8 +377,8 @@ export default function ConversationPage() {
   async function ensurePermit() {
     const current = permitRef.current ?? permit;
     if (permitValid(current)) return current;
-    const token = await acquireToken();
-    const p = await mintPermitRef.current({ token, scope: "chat_send" });
+    const p = await mintPermitOnce();
+    permitRef.current = p;
     setPermit(p);
     return p;
   }
@@ -378,17 +391,22 @@ export default function ConversationPage() {
       const p = await ensurePermit();
       await send({ conversationId, text, permitId: p.permitId });
       // Optimistically decrement local permit count
-      setPermit({ ...p, usesLeft: Math.max(0, p.usesLeft - 1) });
+      const nextPermit = { ...p, usesLeft: Math.max(0, p.usesLeft - 1) };
+      permitRef.current = nextPermit;
+      setPermit(nextPermit);
       setText("");
     } catch (err) {
       // If permit failed server-side, clear and retry once
       const msg = (err && err.message) || "Could not send message";
       if (msg.includes("Security check failed")) {
+        permitRef.current = null;
         setPermit(null);
         try {
           const p = await ensurePermit();
           await send({ conversationId, text, permitId: p.permitId });
-          setPermit({ ...p, usesLeft: Math.max(0, p.usesLeft - 1) });
+          const nextPermit = { ...p, usesLeft: Math.max(0, p.usesLeft - 1) };
+          permitRef.current = nextPermit;
+          setPermit(nextPermit);
           setText("");
         } catch (err2) {
           alert((err2 && err2.message) || msg);
