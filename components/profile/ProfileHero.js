@@ -68,7 +68,7 @@ export default function ProfileHero({ girl, backgroundUrl, avatarUrl, onAvatarCl
               </div>
             )}
             {statusActive && (
-              <div className="inline-flex flex-col items-start rounded-full bg-white px-3 py-1 text-black shadow-sm">
+              <div className="inline-flex select-none flex-col items-start rounded-full bg-white px-3 py-1 text-black shadow-sm">
                 <span className="block max-w-[240px] line-clamp-1 text-[1.05rem] leading-snug">
                   {girl.statusText}
                 </span>
@@ -109,7 +109,7 @@ export default function ProfileHero({ girl, backgroundUrl, avatarUrl, onAvatarCl
                         📍
                       </span>
                       <span className="sr-only">Vive en</span>
-                      <span className="font-medium text-[1.14rem] text-gray-800">
+                      <span className="select-none font-medium text-[1.14rem] text-gray-800">
                         {girl.currentLocation}
                       </span>
                     </div>
@@ -120,7 +120,7 @@ export default function ProfileHero({ girl, backgroundUrl, avatarUrl, onAvatarCl
                         🎓
                       </span>
                       <span className="sr-only">Escuela</span>
-                      <span className="font-medium text-[1.14rem] text-gray-800">
+                      <span className="select-none font-medium text-[1.14rem] text-gray-800">
                         {girl.school}
                       </span>
                     </div>
@@ -133,7 +133,7 @@ export default function ProfileHero({ girl, backgroundUrl, avatarUrl, onAvatarCl
                       className="group flex items-center gap-2"
                     >
                       <span className="text-gray-500">TikTok</span>
-                      <span className="font-medium text-blue-600 group-hover:text-blue-700 group-hover:underline">
+                      <span className="select-none font-medium text-blue-600 group-hover:text-blue-700 group-hover:underline">
                         {tiktokDisplay || "tiktok.com"}
                       </span>
                     </a>
