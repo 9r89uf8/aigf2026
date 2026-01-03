@@ -68,10 +68,14 @@ export default function ProfileHero({ girl, backgroundUrl, avatarUrl, onAvatarCl
               </div>
             )}
             {statusActive && (
-              <div className="absolute -bottom-2 right-[-106px] z-10 max-w-[160px] rounded-2xl border border-black/80 bg-black/90 px-3 py-2 text-xs text-white shadow-md">
-                <span className="block line-clamp-2 leading-snug">{girl.statusText}</span>
+              <div className="absolute -bottom-2 right-[-106px] z-10 max-w-[160px] rounded-2xl border border-black/80 bg-white px-3 py-2 text-black shadow-md">
+                <span className="block line-clamp-2 text-[1.05rem] leading-snug">
+                  {girl.statusText}
+                </span>
                 {statusTime && (
-                  <span className="mt-0.5 block text-[10px] text-white/70">{statusTime}</span>
+                  <span className="mt-0.5 block text-[0.75rem] text-gray-600">
+                    {statusTime}
+                  </span>
                 )}
               </div>
             )}
@@ -108,7 +112,9 @@ export default function ProfileHero({ girl, backgroundUrl, avatarUrl, onAvatarCl
                         📍
                       </span>
                       <span className="sr-only">Vive en</span>
-                      <span className="font-medium text-gray-800">{girl.currentLocation}</span>
+                      <span className="font-medium text-[1.14rem] text-gray-800">
+                        {girl.currentLocation}
+                      </span>
                     </div>
                   )}
                   {girl.school && (
@@ -117,7 +123,9 @@ export default function ProfileHero({ girl, backgroundUrl, avatarUrl, onAvatarCl
                         🎓
                       </span>
                       <span className="sr-only">Escuela</span>
-                      <span className="font-medium text-gray-800">{girl.school}</span>
+                      <span className="font-medium text-[1.14rem] text-gray-800">
+                        {girl.school}
+                      </span>
                     </div>
                   )}
                   {girl.socialMedia && (

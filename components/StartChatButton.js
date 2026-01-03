@@ -70,7 +70,7 @@ export default function StartChatButton({
 
     return (
         <button
-            className={`flex-1 px-4 py-2 bg-white text-indigo-700 font-semibold text-center rounded-lg hover:bg-gray-100 transition-all shadow-md hover:shadow-lg ${className}`}
+            className={`flex-1 px-4 py-2 bg-blue-600 text-white font-semibold text-center rounded-lg hover:bg-blue-700 transition-all shadow-md hover:shadow-lg ${className}`}
             onClick={handleClick}
         >
             {label}
