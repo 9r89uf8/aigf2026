@@ -68,7 +68,7 @@ export default function ProfileHero({ girl, backgroundUrl, avatarUrl, onAvatarCl
               </div>
             )}
             {statusActive && (
-              <div className="absolute -bottom-2 right-[-106px] z-10 max-w-[160px] rounded-2xl border border-black/80 bg-white px-3 py-2 text-black shadow-md">
+              <div className="absolute -bottom-2 right-[-146px] z-10 max-w-[160px] rounded-2xl border border-black/80 bg-white px-3 py-2 text-black shadow-md">
                 <span className="block line-clamp-2 text-[1.05rem] leading-snug">
                   {girl.statusText}
                 </span>
