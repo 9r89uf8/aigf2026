@@ -28,8 +28,12 @@ export default function EditGirlPage() {
     name: "",
     username: "",
     age: "",
+    currentLocation: "",
+    school: "",
+    socialMedia: "",
     displayBio: "",
     bio: "",
+    statusText: "",
     voiceId: "",
     personaPrompt: "",
     premiumOnly: false,
@@ -44,8 +48,12 @@ export default function EditGirlPage() {
       name: girl.name ?? "",
       username: girl.username ?? "",
       age: girl.age ?? "",
+      currentLocation: girl.currentLocation ?? "",
+      school: girl.school ?? "",
+      socialMedia: girl.socialMedia ?? "",
       displayBio: girl.displayBio ?? "",
       bio: girl.bio ?? "",
+      statusText: girl.statusText ?? "",
       voiceId: girl.voiceId ?? "",
       personaPrompt: girl.personaPrompt ?? "",
       premiumOnly: girl.premiumOnly ?? false,
@@ -135,8 +143,12 @@ export default function EditGirlPage() {
         name: form.name.trim(),
         username: form.username.trim() || undefined,
         age: form.age !== "" ? Number(form.age) : undefined,
+        currentLocation: form.currentLocation.trim(),
+        school: form.school.trim(),
+        socialMedia: form.socialMedia.trim(),
         displayBio: form.displayBio.trim(),
         bio: form.bio.trim(),
+        statusText: form.statusText.trim(),
         voiceId: form.voiceId.trim() || undefined,
         personaPrompt: form.personaPrompt.trim() || undefined,
         premiumOnly: !!form.premiumOnly,
@@ -222,6 +234,43 @@ export default function EditGirlPage() {
             </div>
           </div>
 
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Current Location</label>
+              <input
+                  className="w-full px-3 py-2 border rounded-md"
+                  value={form.currentLocation}
+                  onChange={(e) => setForm((f) => ({ ...f, currentLocation: e.target.value }))}
+                  maxLength={120}
+                  placeholder="e.g., Barcelona, ES"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">School</label>
+              <input
+                  className="w-full px-3 py-2 border rounded-md"
+                  value={form.school}
+                  onChange={(e) => setForm((f) => ({ ...f, school: e.target.value }))}
+                  maxLength={120}
+                  placeholder="e.g., City College"
+              />
+            </div>
+          </div>
+
+          <div className="mt-4">
+            <label className="block text-sm font-medium text-gray-700 mb-1">TikTok URL</label>
+            <input
+                type="url"
+                className="w-full px-3 py-2 border rounded-md"
+                value={form.socialMedia}
+                onChange={(e) => setForm((f) => ({ ...f, socialMedia: e.target.value }))}
+                maxLength={200}
+                placeholder="https://www.tiktok.com/@handle"
+            />
+            <p className="text-xs text-gray-500 mt-1">Only tiktok.com URLs.</p>
+          </div>
+
           <div className="mt-4">
             <label className="block text-sm font-medium text-gray-700 mb-1">Display Bio (public)</label>
             <textarea
@@ -231,6 +280,19 @@ export default function EditGirlPage() {
                 rows={4}
                 maxLength={500}
             />
+          </div>
+
+          <div className="mt-4">
+            <label className="block text-sm font-medium text-gray-700 mb-1">Status (24h)</label>
+            <input
+                type="text"
+                className="w-full px-3 py-2 border rounded-md"
+                value={form.statusText}
+                onChange={(e) => setForm((f) => ({ ...f, statusText: e.target.value }))}
+                maxLength={60}
+                placeholder="Short status for chat and profile"
+            />
+            <p className="text-xs text-gray-500 mt-1">{form.statusText.length}/60</p>
           </div>
 
           <div className="mt-4">

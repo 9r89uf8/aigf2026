@@ -1,12 +1,21 @@
 "use client";
 
 import StartChatButton from "@/components/StartChatButton";
+import { formatTimeAgoEs, isStatusActive } from "@/app/lib/time";
 
 export default function ProfileHero({ girl, backgroundUrl, avatarUrl, onAvatarClick }) {
   function handleAvatarClick() {
     if (!avatarUrl || !onAvatarClick) return;
     onAvatarClick(avatarUrl);
   }
+
+  const statusActive = isStatusActive(girl);
+  const statusTime =
+    statusActive && girl?.statusCreatedAt ? formatTimeAgoEs(girl.statusCreatedAt) : "";
+  const hasDetails = girl?.currentLocation || girl?.school || girl?.socialMedia;
+  const tiktokDisplay = girl?.socialMedia
+    ? girl.socialMedia.replace(/^https?:\/\//i, "").replace(/^www\./i, "")
+    : "";
 
   return (
     <div className="relative w-full pt-4 px-4">
@@ -58,6 +67,14 @@ export default function ProfileHero({ girl, backgroundUrl, avatarUrl, onAvatarCl
                 </span>
               </div>
             )}
+            {statusActive && (
+              <div className="absolute -bottom-2 right-[-56px] z-10 max-w-[160px] rounded-2xl border border-black/80 bg-black/90 px-3 py-2 text-xs text-white shadow-md">
+                <span className="block line-clamp-2 leading-snug">{girl.statusText}</span>
+                {statusTime && (
+                  <span className="mt-0.5 block text-[10px] text-white/70">{statusTime}</span>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Name, Bio, and CTA */}
@@ -82,6 +99,35 @@ export default function ProfileHero({ girl, backgroundUrl, avatarUrl, onAvatarCl
                 <p className="mt-2 text-gray-600 text-base md:text-lg max-w-2xl">
                   {girl.bio}
                 </p>
+              )}
+              {hasDetails && (
+                <div className="mt-4 flex flex-wrap gap-x-6 gap-y-2 text-sm text-gray-600">
+                  {girl.currentLocation && (
+                    <div className="flex items-center gap-2">
+                      <span className="text-gray-500">Vive en</span>
+                      <span className="font-medium text-gray-800">{girl.currentLocation}</span>
+                    </div>
+                  )}
+                  {girl.school && (
+                    <div className="flex items-center gap-2">
+                      <span className="text-gray-500">Escuela</span>
+                      <span className="font-medium text-gray-800">{girl.school}</span>
+                    </div>
+                  )}
+                  {girl.socialMedia && (
+                    <a
+                      href={girl.socialMedia}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="group flex items-center gap-2"
+                    >
+                      <span className="text-gray-500">TikTok</span>
+                      <span className="font-medium text-blue-600 group-hover:text-blue-700 group-hover:underline">
+                        {tiktokDisplay || "tiktok.com"}
+                      </span>
+                    </a>
+                  )}
+                </div>
               )}
             </div>
 

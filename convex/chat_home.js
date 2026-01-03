@@ -91,6 +91,9 @@ export const getHome = query({
         girlId: girl._id,
         girlName: girl.username,
         girlAvatarKey: girl.avatarKey,
+        statusText: girl.statusText ?? null,
+        statusCreatedAt: girl.statusCreatedAt ?? null,
+        statusExpiresAt: girl.statusExpiresAt ?? null,
         storyId: s._id,
         kind: s.kind,
         objectKey: s.objectKey,     // list view only; you can presign on story open

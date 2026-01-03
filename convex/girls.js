@@ -9,6 +9,18 @@ function toLowerSafe(s) { return s?.toLowerCase() ?? ""; }
 function randomLikeCount(min = 25, max = 400) {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }
+const STATUS_TTL_MS = 24 * 60 * 60 * 1000;
+const STATUS_MAX_LEN = 60;
+
+function normalizeStatusText(input) {
+  if (input === undefined) return { hasInput: false };
+  const trimmed = input.trim();
+  if (!trimmed) return { hasInput: true, clear: true };
+  if (trimmed.length > STATUS_MAX_LEN) {
+    throw new Error(`Status must be ${STATUS_MAX_LEN} characters or less`);
+  }
+  return { hasInput: true, text: trimmed };
+}
 function validateSurfaceCombo(payload) {
   const { isGallery, isPost, isReplyAsset } = payload;
 
@@ -118,6 +130,24 @@ function validateUsername(u) {
   }
 }
 
+function normalizeTikTokUrl(input) {
+  if (input === undefined) return undefined;
+  const trimmed = input.trim();
+  if (!trimmed) return undefined;
+  const normalized = /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
+  let url;
+  try {
+    url = new URL(normalized);
+  } catch (error) {
+    throw new Error("Social media must be a valid TikTok URL.");
+  }
+  const host = url.hostname.toLowerCase();
+  if (host !== "tiktok.com" && !host.endsWith(".tiktok.com")) {
+    throw new Error("Social media must be a tiktok.com URL.");
+  }
+  return url.toString();
+}
+
 
 // REPLACE your existing createGirl with this one:
 export const createGirl = mutation({
@@ -130,15 +160,27 @@ export const createGirl = mutation({
     personaPrompt: v.optional(v.string()),
     premiumOnly: v.optional(v.boolean()),
     age: v.optional(v.number()),
+    currentLocation: v.optional(v.string()),
+    school: v.optional(v.string()),
+    socialMedia: v.optional(v.string()),
     priority: v.optional(v.number()),
     username: v.optional(v.string()),
+    statusText: v.optional(v.string()),
   },
   handler: async (ctx, {
     name, displayBio, bio, voiceId, personaPrompt,
-    premiumOnly, age, priority, username,
+    premiumOnly, age, currentLocation, school, socialMedia, priority, username, statusText,
   }) => {
     const { userId } = await assertAdmin(ctx);
     const ts = now();
+    const statusPayload = normalizeStatusText(statusText);
+    const statusFields = {};
+    if (statusPayload.hasInput && statusPayload.text) {
+      statusFields.statusText = statusPayload.text;
+      statusFields.statusCreatedAt = ts;
+      statusFields.statusExpiresAt = ts + STATUS_TTL_MS;
+    }
+    const normalizedSocialMedia = normalizeTikTokUrl(socialMedia);
 
     // Username uniqueness (if provided)
     let usernameLower;
@@ -161,9 +203,14 @@ export const createGirl = mutation({
       bio: bio ?? undefined,
       premiumOnly: premiumOnly ?? false,
       age: age ?? undefined,
+      currentLocation: currentLocation?.trim() || undefined,
+      school: school?.trim() || undefined,
+      socialMedia: normalizedSocialMedia,
       priority: priority ?? 0,
       username: username ?? undefined,
       usernameLower: usernameLower ?? undefined,
+
+      ...statusFields,
 
       voiceId,
       personaPrompt,
@@ -191,9 +238,13 @@ export const updateGirlAdmin = mutation({
     personaPrompt: v.optional(v.string()),
     premiumOnly: v.optional(v.boolean()),
     age: v.optional(v.number()),
+    currentLocation: v.optional(v.string()),
+    school: v.optional(v.string()),
+    socialMedia: v.optional(v.string()),
     priority: v.optional(v.number()),
     username: v.optional(v.string()), // can set or clear
     isActive: v.optional(v.boolean()),
+    statusText: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     await assertAdmin(ctx);
@@ -212,8 +263,36 @@ export const updateGirlAdmin = mutation({
     if (args.personaPrompt !== undefined) updates.personaPrompt = args.personaPrompt;
     if (args.premiumOnly !== undefined) updates.premiumOnly = args.premiumOnly;
     if (args.age !== undefined) updates.age = args.age;
+    if (args.currentLocation !== undefined) {
+      updates.currentLocation = args.currentLocation.trim() || undefined;
+    }
+    if (args.school !== undefined) {
+      updates.school = args.school.trim() || undefined;
+    }
+    if (args.socialMedia !== undefined) {
+      updates.socialMedia = normalizeTikTokUrl(args.socialMedia);
+    }
     if (args.priority !== undefined) updates.priority = args.priority;
     if (args.isActive !== undefined) updates.isActive = args.isActive;
+
+    const statusPayload = normalizeStatusText(args.statusText);
+    if (statusPayload.hasInput) {
+      if (statusPayload.clear) {
+        updates.statusText = undefined;
+        updates.statusCreatedAt = undefined;
+        updates.statusExpiresAt = undefined;
+      } else {
+        const sameText = statusPayload.text === girl.statusText;
+        const expired = girl.statusExpiresAt ? girl.statusExpiresAt <= now() : false;
+        const missingTimestamps = !girl.statusCreatedAt || !girl.statusExpiresAt;
+        if (!sameText || expired || missingTimestamps) {
+          const ts = now();
+          updates.statusText = statusPayload.text;
+          updates.statusCreatedAt = ts;
+          updates.statusExpiresAt = ts + STATUS_TTL_MS;
+        }
+      }
+    }
 
     // Username set/clear with uniqueness check
     if (args.username !== undefined) {
@@ -645,11 +724,17 @@ export const profilePage = query({
         name: girl.name,
         // USE displayBio for public profile:
         bio: girl.displayBio ?? "",
+        statusText: girl.statusText ?? null,
+        statusCreatedAt: girl.statusCreatedAt ?? null,
+        statusExpiresAt: girl.statusExpiresAt ?? null,
         avatarKey: girl.avatarKey,
         backgroundKey: girl.backgroundKey,
         username: girl.username ?? null,
         premiumOnly: girl.premiumOnly,
         age: girl.age ?? null,
+        currentLocation: girl.currentLocation ?? null,
+        school: girl.school ?? null,
+        socialMedia: girl.socialMedia ?? null,
       },
       viewer: {
         premiumActive: viewerPremium,

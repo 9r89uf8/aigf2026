@@ -12,10 +12,14 @@ export default function NewGirlPage() {
   const [name, setName] = useState("");
   const [displayBio, setDisplayBio] = useState("");
   const [bio, setBio] = useState(""); // internal notes
+  const [statusText, setStatusText] = useState("");
   const [voiceId, setVoiceId] = useState("");
   const [personaPrompt, setPersonaPrompt] = useState("");
   const [premiumOnly, setPremiumOnly] = useState(false);
   const [age, setAge] = useState("");
+  const [currentLocation, setCurrentLocation] = useState("");
+  const [school, setSchool] = useState("");
+  const [socialMedia, setSocialMedia] = useState("");
   const [priority, setPriority] = useState(0);
   const [username, setUsername] = useState("");
 
@@ -31,10 +35,14 @@ export default function NewGirlPage() {
         name: name.trim(),
         displayBio: displayBio.trim() || undefined,
         bio: bio.trim() || undefined, // internal only
+        statusText: statusText.trim() || undefined,
         voiceId: voiceId.trim() || undefined,
         personaPrompt: personaPrompt.trim() || undefined,
         premiumOnly,
         age: age ? Number(age) : undefined,
+        currentLocation: currentLocation.trim() || undefined,
+        school: school.trim() || undefined,
+        socialMedia: socialMedia.trim() || undefined,
         priority: Number(priority) || 0,
         username: username.trim() || undefined,
       });
@@ -96,6 +104,45 @@ export default function NewGirlPage() {
             </div>
           </div>
 
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Current Location</label>
+              <input
+                  type="text"
+                  className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="e.g., Barcelona, ES"
+                  value={currentLocation}
+                  onChange={(e) => setCurrentLocation(e.target.value)}
+                  maxLength={120}
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">School</label>
+              <input
+                  type="text"
+                  className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="e.g., City College"
+                  value={school}
+                  onChange={(e) => setSchool(e.target.value)}
+                  maxLength={120}
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">TikTok URL</label>
+            <input
+                type="url"
+                className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="https://www.tiktok.com/@handle"
+                value={socialMedia}
+                onChange={(e) => setSocialMedia(e.target.value)}
+                maxLength={200}
+            />
+            <p className="text-xs text-gray-500 mt-1">Only tiktok.com URLs.</p>
+          </div>
+
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Display Bio (public)</label>
             <textarea
@@ -107,6 +154,19 @@ export default function NewGirlPage() {
                 maxLength={500}
             />
             <p className="text-xs text-gray-500 mt-1">{displayBio.length}/500</p>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Status (24h)</label>
+            <input
+                type="text"
+                className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="Short status for chat and profile"
+                value={statusText}
+                onChange={(e) => setStatusText(e.target.value)}
+                maxLength={60}
+            />
+            <p className="text-xs text-gray-500 mt-1">{statusText.length}/60</p>
           </div>
 
           <div>

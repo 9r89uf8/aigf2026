@@ -5,6 +5,7 @@ import { api } from "@/convex/_generated/api";
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import AvatarWithStoryRing from "@/components/AvatarWithStoryRing";
+import { formatTimeAgoEs, isStatusActive } from "@/app/lib/time";
 
 function formatTime(ts) {
   try {
@@ -160,9 +161,20 @@ export default function ChatHomePage() {
                         s.kind === "image" && s.objectKey ? signedUrls[s.objectKey] : undefined;
                     const avatarSrc = s.girlAvatarKey ? signedUrls[s.girlAvatarKey] : undefined;
                     const imgSrc = storyImgSrc || avatarSrc;
+                    const statusActive = isStatusActive(s);
+                    const statusTime =
+                        statusActive && s.statusCreatedAt ? formatTimeAgoEs(s.statusCreatedAt) : "";
 
                     return (
                         <div key={`story-${s.girlId}`} className="flex flex-col items-center gap-1 shrink-0">
+                          {statusActive && (
+                            <div className="mb-1 max-w-[110px] rounded-2xl border border-gray-200 bg-white px-2 py-1 text-center text-[11px] text-gray-700 shadow-sm">
+                              <div className="line-clamp-2 leading-tight">{s.statusText}</div>
+                              {statusTime && (
+                                <div className="mt-0.5 text-[10px] text-gray-400">{statusTime}</div>
+                              )}
+                            </div>
+                          )}
                           <AvatarWithStoryRing
                               href={`/stories/${s.girlId}?returnTo=/chat`}
                               src={imgSrc}

@@ -32,9 +32,16 @@ const schema = defineSchema({
     bio: v.optional(v.string()),          // internal-only notes (admin)
     premiumOnly: v.boolean(),             // if true => only premium users can chat
     age: v.optional(v.number()),
+    currentLocation: v.optional(v.string()),
+    school: v.optional(v.string()),
+    socialMedia: v.optional(v.string()),  // full URL (tiktok.com only)
     priority: v.number(),                 // sorting in public list (higher first)
     username: v.optional(v.string()),     // handle/slug
     usernameLower: v.optional(v.string()),
+
+    statusText: v.optional(v.string()),     // short status (expires after 24h)
+    statusCreatedAt: v.optional(v.number()),
+    statusExpiresAt: v.optional(v.number()),
 
     avatarKey: v.optional(v.string()),
     backgroundKey: v.optional(v.string()),
