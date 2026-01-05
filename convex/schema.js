@@ -88,9 +88,20 @@ const schema = defineSchema({
     .index("by_girl_posts", ["girlId", "isPost"])
     .index("by_girl_assets", ["girlId", "isReplyAsset"]),
 
+  girl_story_highlights: defineTable({
+    girlId: v.id("girls"),
+    title: v.string(),
+    titleLower: v.string(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_girl", ["girlId"])
+    .index("by_girl_titleLower", ["girlId", "titleLower"]),
+
   girl_stories: defineTable({
     girlId: v.id("girls"),
     kind: v.union(v.literal("image"), v.literal("video"), v.literal("text")),
+    highlightId: v.optional(v.id("girl_story_highlights")),
     objectKey: v.optional(v.string()),  // S3 key for image/video, undefined for text
     text: v.optional(v.string()),       // Text content or caption
     published: v.boolean(),
@@ -98,7 +109,9 @@ const schema = defineSchema({
   })
     .index("by_girl", ["girlId"])
     .index("by_girl_published", ["girlId", "published", "createdAt"])
-    .index("by_published_createdAt", ["published", "createdAt"]),
+    .index("by_published_createdAt", ["published", "createdAt"])
+    .index("by_highlight", ["highlightId", "createdAt"])
+    .index("by_highlight_published", ["highlightId", "published", "createdAt"]),
 
   likes: defineTable({
     userId: v.id("users"),

@@ -3,12 +3,14 @@ import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
 import { getAuthUserId } from "@convex-dev/auth/server";
 import { FREE_TEXT_PER_GIRL, FREE_MEDIA_PER_GIRL, FREE_AUDIO_PER_GIRL } from "./chat.config.js";
+import { STORY_TTL_MS } from "./stories.config.js";
 
 /** Get home page data (threads + stories) in a single reactive query */
 export const getHome = query({
   args: {},
   handler: async (ctx) => {
     const userId = await getAuthUserId(ctx);
+    const liveCutoff = Date.now() - STORY_TTL_MS;
 
     // --- THREADS (one query if logged in) -------------------------------
     let threads = [];
@@ -61,7 +63,9 @@ export const getHome = query({
     // 2) Fetch the most recent published stories across everyone (cap to 400)
     const recentStories = await ctx.db
       .query("girl_stories")
-      .withIndex("by_published_createdAt", q => q.eq("published", true))
+      .withIndex("by_published_createdAt", q =>
+        q.eq("published", true).gte("createdAt", liveCutoff)
+      )
       .order("desc")
       .take(400);
 

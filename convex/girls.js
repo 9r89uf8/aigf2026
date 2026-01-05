@@ -2,6 +2,7 @@
 import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
 import { assertAdmin } from "./_utils/auth";
+import { STORY_TTL_MS } from "./stories.config.js";
 
 // ── Utils ─────────────────────────────────────────────────────────────────────
 function now() { return Date.now(); }
@@ -60,6 +61,7 @@ export const listGirls = query({
 export const listGirlsPublic = query({
   args: {},
   handler: async (ctx) => {
+    const liveCutoff = now() - STORY_TTL_MS;
     const girls = await ctx.db
         .query("girls")
         .withIndex("by_active", (q) => q.eq("isActive", true))
@@ -71,7 +73,9 @@ export const listGirlsPublic = query({
     // Recent published stories across all girls (desc)
     const recentStories = await ctx.db
         .query("girl_stories")
-        .withIndex("by_published_createdAt", (q) => q.eq("published", true))
+        .withIndex("by_published_createdAt", (q) =>
+          q.eq("published", true).gte("createdAt", liveCutoff)
+        )
         .order("desc")
         .take(400);
 
@@ -626,6 +630,8 @@ export const profilePage = query({
     const girl = await ctx.db.get(girlId);
     if (!girl || !girl.isActive) return null;
 
+    const liveCutoff = now() - STORY_TTL_MS;
+
     // 2. Check viewer's premium status (if authenticated)
     const userId = await getAuthUserId(ctx);
     let viewerPremium = false;
@@ -646,10 +652,12 @@ export const profilePage = query({
       likedMediaIds = userLikes.map((like) => like.mediaId);
     }
 
-    // 4. Fetch stories (last 10 published, newest first)
+    // 4. Fetch live stories (last 10 published in 24h, newest first)
     const storiesRaw = await ctx.db
       .query("girl_stories")
-      .withIndex("by_girl_published", (q) => q.eq("girlId", girlId).eq("published", true))
+      .withIndex("by_girl_published", (q) =>
+        q.eq("girlId", girlId).eq("published", true).gte("createdAt", liveCutoff)
+      )
       .order("desc")
       .take(10);
 
@@ -661,7 +669,44 @@ export const profilePage = query({
       createdAt: s.createdAt,
     }));
 
-    // 5. Fetch gallery items (published only, respect premiumOnly)
+    // 5. Fetch highlights (ordered by newest story in each highlight)
+    const highlightDocs = await ctx.db
+      .query("girl_story_highlights")
+      .withIndex("by_girl", (q) => q.eq("girlId", girlId))
+      .collect();
+
+    const highlightItems = await Promise.all(
+      highlightDocs.map(async (highlight) => {
+        const coverStory = await ctx.db
+          .query("girl_stories")
+          .withIndex("by_highlight_published", (q) =>
+            q.eq("highlightId", highlight._id).eq("published", true)
+          )
+          .order("desc")
+          .first();
+
+        if (!coverStory) return null;
+
+        return {
+          id: highlight._id,
+          title: highlight.title,
+          lastStoryAt: coverStory.createdAt,
+          cover: {
+            id: coverStory._id,
+            kind: coverStory.kind,
+            text: coverStory.text,
+            objectKey: coverStory.objectKey,
+            createdAt: coverStory.createdAt,
+          },
+        };
+      })
+    );
+
+    const highlights = highlightItems
+      .filter(Boolean)
+      .sort((a, b) => b.lastStoryAt - a.lastStoryAt);
+
+    // 6. Fetch gallery items (published only, respect premiumOnly)
     const galleryRaw = await ctx.db
       .query("girl_media")
       .withIndex("by_girl_gallery", (q) => q.eq("girlId", girlId).eq("isGallery", true))
@@ -683,7 +728,7 @@ export const profilePage = query({
       };
     });
 
-    // 6. Fetch posts (published, always public)
+    // 7. Fetch posts (published, always public)
     const postsRaw = await ctx.db
       .query("girl_media")
       .withIndex("by_girl_posts", (q) => q.eq("girlId", girlId).eq("isPost", true))
@@ -702,13 +747,16 @@ export const profilePage = query({
       objectKey: m.objectKey, // Always included (posts are never premium-gated)
     }));
 
-    // 7. Collect all keys that need signing
+    // 8. Collect all keys that need signing
     const keysToSign = [];
     if (girl.avatarKey) keysToSign.push(girl.avatarKey);
     if (girl.backgroundKey) keysToSign.push(girl.backgroundKey);
 
     stories.forEach((s) => {
       if (s.objectKey) keysToSign.push(s.objectKey);
+    });
+    highlights.forEach((h) => {
+      if (h.cover?.objectKey) keysToSign.push(h.cover.objectKey);
     });
     gallery.forEach((g) => {
       if (g.objectKey) keysToSign.push(g.objectKey);
@@ -717,7 +765,7 @@ export const profilePage = query({
       if (p.objectKey) keysToSign.push(p.objectKey);
     });
 
-    // 8. Return view model
+    // 9. Return view model
     return {
       girl: {
         id: girl._id,
@@ -741,6 +789,7 @@ export const profilePage = query({
         likedIds: likedMediaIds,
       },
       stories,
+      highlights,
       gallery,
       posts,
       keysToSign,
@@ -798,15 +847,150 @@ export const toggleLike = mutation({
   },
 });
 
+// ── Story Highlights ─────────────────────────────────────────────────────
+export const listGirlHighlights = query({
+  args: { girlId: v.id("girls") },
+  handler: async (ctx, { girlId }) => {
+    const highlights = await ctx.db
+      .query("girl_story_highlights")
+      .withIndex("by_girl", (q) => q.eq("girlId", girlId))
+      .collect();
+
+    highlights.sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
+
+    return highlights.map((h) => ({
+      id: h._id,
+      title: h.title,
+      createdAt: h.createdAt,
+      updatedAt: h.updatedAt,
+    }));
+  },
+});
+
+export const createHighlight = mutation({
+  args: {
+    girlId: v.id("girls"),
+    title: v.string(),
+  },
+  handler: async (ctx, { girlId, title }) => {
+    await assertAdmin(ctx);
+    const trimmed = title.trim();
+    if (!trimmed) throw new Error("Title is required");
+    if (trimmed.length > 32) throw new Error("Title must be 32 characters or less");
+
+    const titleLower = trimmed.toLowerCase();
+    const existing = await ctx.db
+      .query("girl_story_highlights")
+      .withIndex("by_girl_titleLower", (q) =>
+        q.eq("girlId", girlId).eq("titleLower", titleLower)
+      )
+      .first();
+    if (existing) throw new Error("Highlight title already exists");
+
+    const ts = now();
+    return await ctx.db.insert("girl_story_highlights", {
+      girlId,
+      title: trimmed,
+      titleLower,
+      createdAt: ts,
+      updatedAt: ts,
+    });
+  },
+});
+
+export const updateHighlight = mutation({
+  args: {
+    highlightId: v.id("girl_story_highlights"),
+    title: v.optional(v.string()),
+  },
+  handler: async (ctx, { highlightId, title }) => {
+    await assertAdmin(ctx);
+    const highlight = await ctx.db.get(highlightId);
+    if (!highlight) throw new Error("Highlight not found");
+
+    const updates = {};
+    if (title !== undefined) {
+      const trimmed = title.trim();
+      if (!trimmed) throw new Error("Title is required");
+      if (trimmed.length > 32) throw new Error("Title must be 32 characters or less");
+      const titleLower = trimmed.toLowerCase();
+      const existing = await ctx.db
+        .query("girl_story_highlights")
+        .withIndex("by_girl_titleLower", (q) =>
+          q.eq("girlId", highlight.girlId).eq("titleLower", titleLower)
+        )
+        .first();
+      if (existing && existing._id !== highlightId) {
+        throw new Error("Highlight title already exists");
+      }
+      updates.title = trimmed;
+      updates.titleLower = titleLower;
+    }
+
+    updates.updatedAt = now();
+    await ctx.db.patch(highlightId, updates);
+    return true;
+  },
+});
+
+export const deleteHighlight = mutation({
+  args: { highlightId: v.id("girl_story_highlights") },
+  handler: async (ctx, { highlightId }) => {
+    await assertAdmin(ctx);
+    const highlight = await ctx.db.get(highlightId);
+    if (!highlight) return true;
+
+    const stories = await ctx.db
+      .query("girl_stories")
+      .withIndex("by_highlight", (q) => q.eq("highlightId", highlightId))
+      .collect();
+
+    for (const story of stories) {
+      await ctx.db.patch(story._id, { highlightId: undefined });
+    }
+
+    await ctx.db.delete(highlightId);
+    return true;
+  },
+});
+
+export const listHighlightStories = query({
+  args: { highlightId: v.id("girl_story_highlights") },
+  handler: async (ctx, { highlightId }) => {
+    const highlight = await ctx.db.get(highlightId);
+    if (!highlight) return null;
+
+    const girl = await ctx.db.get(highlight.girlId);
+    if (!girl || !girl.isActive) return null;
+
+    const storiesRaw = await ctx.db
+      .query("girl_stories")
+      .withIndex("by_highlight_published", (q) =>
+        q.eq("highlightId", highlightId).eq("published", true)
+      )
+      .order("desc")
+      .collect();
+
+    return storiesRaw.map((s) => ({
+      id: s._id,
+      kind: s.kind,
+      text: s.text,
+      objectKey: s.objectKey,
+      createdAt: s.createdAt,
+    }));
+  },
+});
+
 // ── Stories CRUD (Admin) ──────────────────────────────────────────────────
 export const createStory = mutation({
   args: {
     girlId: v.id("girls"),
     kind: v.union(v.literal("image"), v.literal("video"), v.literal("text")),
+    highlightId: v.optional(v.id("girl_story_highlights")),
     objectKey: v.optional(v.string()),
     text: v.optional(v.string()),
   },
-  handler: async (ctx, { girlId, kind, objectKey, text }) => {
+  handler: async (ctx, { girlId, kind, highlightId, objectKey, text }) => {
     await assertAdmin(ctx);
 
     // Validate: image/video must have objectKey, text stories must have text
@@ -817,9 +1001,17 @@ export const createStory = mutation({
       throw new Error("Text stories require text content");
     }
 
+    if (highlightId) {
+      const highlight = await ctx.db.get(highlightId);
+      if (!highlight || highlight.girlId !== girlId) {
+        throw new Error("Invalid highlight");
+      }
+    }
+
     const storyId = await ctx.db.insert("girl_stories", {
       girlId,
       kind,
+      highlightId: highlightId ?? undefined,
       objectKey: objectKey ?? undefined,
       text: text ?? undefined,
       published: true,
@@ -835,8 +1027,10 @@ export const updateStory = mutation({
     storyId: v.id("girl_stories"),
     text: v.optional(v.string()),
     published: v.optional(v.boolean()),
+    highlightId: v.optional(v.id("girl_story_highlights")),
+    clearHighlight: v.optional(v.boolean()),
   },
-  handler: async (ctx, { storyId, text, published }) => {
+  handler: async (ctx, { storyId, text, published, highlightId, clearHighlight }) => {
     await assertAdmin(ctx);
 
     const story = await ctx.db.get(storyId);
@@ -845,6 +1039,15 @@ export const updateStory = mutation({
     const updates = {};
     if (text !== undefined) updates.text = text;
     if (published !== undefined) updates.published = published;
+
+    if (clearHighlight) updates.highlightId = undefined;
+    if (highlightId) {
+      const highlight = await ctx.db.get(highlightId);
+      if (!highlight || highlight.girlId !== story.girlId) {
+        throw new Error("Invalid highlight");
+      }
+      updates.highlightId = highlightId;
+    }
 
     await ctx.db.patch(storyId, updates);
     return true;

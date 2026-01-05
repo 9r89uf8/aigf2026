@@ -10,10 +10,14 @@ export default function StoriesManagerPage() {
   const { id } = useParams();
   const girl = useQuery(api.girls.getGirl, { girlId: id });
   const stories = useQuery(api.girls.listGirlStories, { girlId: id });
+  const highlights = useQuery(api.girls.listGirlHighlights, { girlId: id });
   const signGirlMedia = useAction(api.s3.signGirlMediaUpload);
   const createStory = useMutation(api.girls.createStory);
   const updateStory = useMutation(api.girls.updateStory);
   const deleteStory = useMutation(api.girls.deleteStory);
+  const createHighlight = useMutation(api.girls.createHighlight);
+  const updateHighlight = useMutation(api.girls.updateHighlight);
+  const deleteHighlight = useMutation(api.girls.deleteHighlight);
   const cfSignView = useAction(api.cdn.cfSignView);
 
   const [signedUrls, setSignedUrls] = useState({});
@@ -22,6 +26,8 @@ export default function StoriesManagerPage() {
   const [creatingText, setCreatingText] = useState(false);
   const [textContent, setTextContent] = useState("");
   const [editingStory, setEditingStory] = useState(null);
+  const [newHighlightTitle, setNewHighlightTitle] = useState("");
+  const [selectedHighlightId, setSelectedHighlightId] = useState("");
 
   // Fetch signed URLs for stories
   useEffect(() => {
@@ -54,6 +60,8 @@ export default function StoriesManagerPage() {
 
   async function handleMediaUpload(files) {
     if (!files.length) return;
+
+    const highlightId = selectedHighlightId || undefined;
 
     setUploading(true);
     setUploadProgress({ current: 0, total: files.length });
@@ -93,6 +101,7 @@ export default function StoriesManagerPage() {
             kind: file.type.startsWith("video/") ? "video" : "image",
             objectKey,
             text: undefined,
+            highlightId,
           });
         } catch (error) {
           console.error(`Failed to upload ${file.name}:`, error);
@@ -116,6 +125,7 @@ export default function StoriesManagerPage() {
         girlId: id,
         kind: "text",
         text: textContent.trim(),
+        highlightId: selectedHighlightId || undefined,
       });
       setTextContent("");
       setCreatingText(false);
@@ -143,6 +153,40 @@ export default function StoriesManagerPage() {
     }
   }
 
+  async function handleCreateHighlight() {
+    const title = newHighlightTitle.trim();
+    if (!title) return;
+
+    try {
+      await createHighlight({ girlId: id, title });
+      setNewHighlightTitle("");
+    } catch (error) {
+      alert(`Failed to create highlight: ${error.message}`);
+    }
+  }
+
+  async function handleDeleteHighlight(highlightId) {
+    if (!confirm("Delete this highlight? Stories will remain, but won't be grouped.")) return;
+    try {
+      await deleteHighlight({ highlightId });
+      if (selectedHighlightId === highlightId) {
+        setSelectedHighlightId("");
+      }
+    } catch (error) {
+      alert(`Failed to delete highlight: ${error.message}`);
+    }
+  }
+
+  async function handleRenameHighlight(highlight) {
+    const nextTitle = prompt("Rename highlight", highlight.title || "");
+    if (!nextTitle) return;
+    try {
+      await updateHighlight({ highlightId: highlight.id, title: nextTitle });
+    } catch (error) {
+      alert(`Failed to rename highlight: ${error.message}`);
+    }
+  }
+
   if (!girl) {
     return <div className="p-6">Loading...</div>;
   }
@@ -165,9 +209,88 @@ export default function StoriesManagerPage() {
         </Link>
       </div>
 
+      {/* Highlights */}
+      <div className="bg-white p-6 border rounded-lg space-y-4">
+        <div>
+          <h2 className="text-lg font-semibold">Highlights</h2>
+          <p className="text-sm text-gray-600">
+            Create labeled groups like Friends, Pets, or Selfies. Stories can belong to one highlight.
+          </p>
+        </div>
+
+        <div className="flex flex-wrap gap-3">
+          <input
+            type="text"
+            value={newHighlightTitle}
+            onChange={(e) => setNewHighlightTitle(e.target.value)}
+            placeholder="New highlight title"
+            className="flex-1 min-w-[220px] rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-purple-500 focus:ring-2 focus:ring-purple-200"
+          />
+          <button
+            type="button"
+            onClick={handleCreateHighlight}
+            disabled={!newHighlightTitle.trim()}
+            className="px-4 py-2 text-sm font-medium rounded-md bg-purple-600 text-white hover:bg-purple-700 disabled:bg-gray-300"
+          >
+            Add Highlight
+          </button>
+        </div>
+
+        <div className="flex flex-wrap gap-2">
+          {highlights === undefined ? (
+            <span className="text-sm text-gray-500">Loading highlights...</span>
+          ) : highlights.length === 0 ? (
+            <span className="text-sm text-gray-500">No highlights yet.</span>
+          ) : (
+            highlights.map((highlight) => (
+              <span
+                key={highlight.id}
+                className="inline-flex items-center gap-2 rounded-full border border-gray-200 bg-gray-50 px-3 py-1 text-sm text-gray-700"
+              >
+                {highlight.title}
+                <button
+                  type="button"
+                  onClick={() => handleRenameHighlight(highlight)}
+                  className="text-gray-400 hover:text-gray-700"
+                  aria-label={`Rename ${highlight.title}`}
+                >
+                  Edit
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleDeleteHighlight(highlight.id)}
+                  className="text-gray-400 hover:text-red-500"
+                  aria-label={`Delete ${highlight.title}`}
+                >
+                  ✕
+                </button>
+              </span>
+            ))
+          )}
+        </div>
+      </div>
+
       {/* Create Stories */}
       <div className="bg-white p-6 border rounded-lg space-y-4">
         <h2 className="text-lg font-semibold">Create New Story</h2>
+
+        {/* Highlight selector */}
+        <div className="space-y-1">
+          <label className="text-sm font-medium text-gray-700">Assign to Highlight (optional)</label>
+          <select
+            value={selectedHighlightId}
+            onChange={(e) => setSelectedHighlightId(e.target.value)}
+            className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-purple-500 focus:ring-2 focus:ring-purple-200"
+            disabled={!highlights}
+          >
+            <option value="">No highlight</option>
+            {(highlights || []).map((highlight) => (
+              <option key={highlight.id} value={highlight.id}>
+                {highlight.title}
+              </option>
+            ))}
+          </select>
+        </div>
 
         {/* Media Upload */}
         <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 bg-gray-50">
@@ -314,6 +437,32 @@ export default function StoriesManagerPage() {
 
                   {/* Controls */}
                   <div className="mt-2 space-y-2">
+                    {/* Highlight selector */}
+                    {highlights && (
+                      <label className="block text-xs text-gray-600">
+                        Highlight
+                        <select
+                          value={story.highlightId || ""}
+                          onChange={(e) => {
+                            const value = e.target.value;
+                            if (!value) {
+                              handleUpdateStory(story._id, { clearHighlight: true });
+                            } else {
+                              handleUpdateStory(story._id, { highlightId: value });
+                            }
+                          }}
+                          className="mt-1 w-full rounded border border-gray-300 px-2 py-1 text-xs focus:border-purple-500 focus:ring-1 focus:ring-purple-200"
+                        >
+                          <option value="">None</option>
+                          {highlights.map((highlight) => (
+                            <option key={highlight.id} value={highlight.id}>
+                              {highlight.title}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                    )}
+
                     {/* Published Toggle */}
                     <label className="flex items-center gap-2 text-sm">
                       <input

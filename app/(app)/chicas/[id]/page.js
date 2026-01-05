@@ -9,16 +9,23 @@ import MediaCard from "@/components/profile/MediaCard";
 import LockedMediaCard from "@/components/profile/LockedMediaCard";
 import StoryChip from "@/components/profile/StoryChip";
 import StoryViewer from "@/components/profile/StoryViewer";
+import HighlightChip from "@/components/profile/HighlightChip";
 
 export default function GirlProfilePage() {
   const { id } = useParams();
   const profileData = useQuery(api.girls.profilePage, { girlId: id });
+  const [activeHighlightId, setActiveHighlightId] = useState(null);
+  const highlightStories = useQuery(
+    api.girls.listHighlightStories,
+    activeHighlightId ? { highlightId: activeHighlightId } : "skip"
+  );
   const signViewBatch = useAction(api.cdn.signViewBatch);
   const toggleLike = useMutation(api.girls.toggleLike);
 
   const [signedUrls, setSignedUrls] = useState({});
   const [activeTab, setActiveTab] = useState("gallery"); // "gallery" | "posts"
   const [viewingStory, setViewingStory] = useState(null); // holds the selected story object
+  const [viewingHighlightStory, setViewingHighlightStory] = useState(null);
   const [selectedMedia, setSelectedMedia] = useState(null);
 
   // Sign all URLs in batch when profile data loads
@@ -34,6 +41,36 @@ export default function GirlProfilePage() {
     }
     fetchSignedUrls();
   }, [profileData?.keysToSign, signViewBatch]);
+
+  useEffect(() => {
+    async function fetchHighlightUrls() {
+      if (!highlightStories?.length) return;
+      const keys = highlightStories.map((s) => s.objectKey).filter(Boolean);
+      const missing = keys.filter((k) => !signedUrls[k]);
+      if (!missing.length) return;
+      try {
+        const { urls } = await signViewBatch({ keys: missing });
+        setSignedUrls((prev) => ({ ...prev, ...(urls || {}) }));
+      } catch (error) {
+        console.error("Failed to sign highlight URLs:", error);
+      }
+    }
+    fetchHighlightUrls();
+  }, [highlightStories, signedUrls, signViewBatch]);
+
+  useEffect(() => {
+    if (!activeHighlightId) return;
+    if (highlightStories === null) {
+      setViewingHighlightStory(null);
+      setActiveHighlightId(null);
+      return;
+    }
+    if (!highlightStories?.length) return;
+    setViewingHighlightStory((prev) => {
+      if (prev && highlightStories.find((s) => s.id === prev.id)) return prev;
+      return highlightStories[0];
+    });
+  }, [activeHighlightId, highlightStories]);
 
   useEffect(() => {
     if (!selectedMedia) return;
@@ -71,7 +108,7 @@ export default function GirlProfilePage() {
     );
   }
 
-  const { girl, viewer, stories, gallery, posts } = profileData;
+  const { girl, viewer, stories, gallery, posts, highlights = [] } = profileData;
 
   async function handleLikeToggle(mediaId) {
     try {
@@ -83,7 +120,21 @@ export default function GirlProfilePage() {
   }
 
   function handleStoryClick(story) {
+    setActiveHighlightId(null);
+    setViewingHighlightStory(null);
     setViewingStory(story);
+  }
+
+  function handleHighlightClick(highlight) {
+    if (!highlight?.id) return;
+    setViewingStory(null);
+    setViewingHighlightStory(null);
+    setActiveHighlightId(highlight.id);
+  }
+
+  function handleHighlightClose() {
+    setViewingHighlightStory(null);
+    setActiveHighlightId(null);
   }
 
   function handleMediaImageClick(payload) {
@@ -160,6 +211,58 @@ export default function GirlProfilePage() {
   const canPrev = currentStoryIndex > 0;
   const canNext = currentStoryIndex >= 0 && currentStoryIndex < stories.length - 1;
 
+  const highlightList = highlightStories || [];
+  const currentHighlightIndex = viewingHighlightStory
+      ? highlightList.findIndex((s) => s.id === viewingHighlightStory.id)
+      : -1;
+
+  const signedUrlForHighlight =
+      viewingHighlightStory?.objectKey ? signedUrls[viewingHighlightStory.objectKey] : null;
+
+  function handleHighlightNext() {
+    if (currentHighlightIndex === -1) return;
+    if (currentHighlightIndex < highlightList.length - 1) {
+      setViewingHighlightStory(highlightList[currentHighlightIndex + 1]);
+    } else {
+      handleHighlightClose();
+    }
+  }
+
+  function handleHighlightPrev() {
+    if (currentHighlightIndex > 0) {
+      setViewingHighlightStory(highlightList[currentHighlightIndex - 1]);
+    }
+  }
+
+  const highlightPrevUrl =
+      currentHighlightIndex > 0 &&
+      highlightList[currentHighlightIndex - 1]?.kind === "image" &&
+      highlightList[currentHighlightIndex - 1]?.objectKey
+          ? signedUrls[highlightList[currentHighlightIndex - 1].objectKey]
+          : null;
+
+  const highlightNextUrl =
+      currentHighlightIndex >= 0 &&
+      currentHighlightIndex < highlightList.length - 1 &&
+      highlightList[currentHighlightIndex + 1]?.kind === "image" &&
+      highlightList[currentHighlightIndex + 1]?.objectKey
+          ? signedUrls[highlightList[currentHighlightIndex + 1].objectKey]
+          : null;
+
+  const viewerHighlightStory = viewingHighlightStory
+      ? {
+        ...viewingHighlightStory,
+        user: {
+          name: girl?.name,
+          avatarUrl: girl?.avatarKey ? signedUrls[girl.avatarKey] : undefined,
+        },
+      }
+      : null;
+
+  const canHighlightPrev = currentHighlightIndex > 0;
+  const canHighlightNext =
+      currentHighlightIndex >= 0 && currentHighlightIndex < highlightList.length - 1;
+
   return (
       <div className="pb-[60px] min-h-screen">
         {/* Hero Section */}
@@ -173,16 +276,37 @@ export default function GirlProfilePage() {
         {/* Main Content */}
         <div className="max-w-5xl mx-auto px-4 md:px-6 py-6">
           {/* Stories Strip */}
-          {stories.length > 0 && (
+          {/*{stories.length > 0 && (*/}
+          {/*    <div className="mb-8">*/}
+          {/*      <h2 className="text-[1.46rem] font-semibold text-gray-900 mb-3">Historias</h2>*/}
+          {/*      <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">*/}
+          {/*        {stories.map((story) => (*/}
+          {/*            <StoryChip*/}
+          {/*                key={story.id}*/}
+          {/*                story={story}*/}
+          {/*                signedUrl={story.objectKey ? signedUrls[story.objectKey] : null}*/}
+          {/*                onClick={handleStoryClick}*/}
+          {/*            />*/}
+          {/*        ))}*/}
+          {/*      </div>*/}
+          {/*    </div>*/}
+          {/*)}*/}
+
+          {/* Highlights Strip */}
+          {highlights.length > 0 && (
               <div className="mb-8">
-                <h2 className="text-[1.46rem] font-semibold text-gray-900 mb-3">Historias</h2>
-                <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
-                  {stories.map((story) => (
-                      <StoryChip
-                          key={story.id}
-                          story={story}
-                          signedUrl={story.objectKey ? signedUrls[story.objectKey] : null}
-                          onClick={handleStoryClick}
+                <h2 className="text-[1.46rem] font-semibold text-gray-900 mb-3">Destacadas</h2>
+                <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide">
+                  {highlights.map((highlight) => (
+                      <HighlightChip
+                          key={highlight.id}
+                          highlight={highlight}
+                          signedUrl={
+                            highlight.cover?.objectKey
+                              ? signedUrls[highlight.cover.objectKey]
+                              : null
+                          }
+                          onClick={handleHighlightClick}
                       />
                   ))}
                 </div>
@@ -289,6 +413,26 @@ export default function GirlProfilePage() {
                 prevUrl={prevUrl}
                 canPrev={canPrev}
                 canNext={canNext}
+                autoAdvance
+                imageDurationMs={5000}
+                textDurationMs={5000}
+            />
+        )}
+
+        {/* Highlight Viewer Modal */}
+        {viewingHighlightStory && currentHighlightIndex !== -1 && (
+            <StoryViewer
+                story={viewerHighlightStory}
+                signedUrl={signedUrlForHighlight}
+                onClose={handleHighlightClose}
+                onNext={handleHighlightNext}
+                onPrev={handleHighlightPrev}
+                currentIndex={currentHighlightIndex}
+                totalCount={highlightList.length}
+                nextUrl={highlightNextUrl}
+                prevUrl={highlightPrevUrl}
+                canPrev={canHighlightPrev}
+                canNext={canHighlightNext}
                 autoAdvance
                 imageDurationMs={5000}
                 textDurationMs={5000}

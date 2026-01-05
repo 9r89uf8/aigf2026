@@ -79,7 +79,6 @@ export default function AccountForm() {
     setSaving(true);
     try {
       await upsert(payload);
-      alert("Perfil guardado");
     } catch (err) {
       alert(err?.message ?? "Error al guardar");
     } finally {
