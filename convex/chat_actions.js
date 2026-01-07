@@ -375,6 +375,29 @@ function detectFastIntentFromText(text) {
   return null;
 }
 
+function detectMaturePreference(text = "") {
+  const t = normalizeMx(text);
+  if (!t) return null;
+
+  if (/\b(normal|inocente|soft|sin sexo|sin desnudos)\b/.test(t)) return "normal";
+
+  if (/(18\+)|\b(sexy|caliente|hot|spicy|xxx|desnuda|sin ropa|nudes|pack|onlyfans|porno|culo|tetas)\b/.test(t)) {
+    return "mature";
+  }
+
+  return null;
+}
+
+function filterAssetsByMaturePreference(assets, preference) {
+  if (!preference) return assets;
+
+  const normal = assets.filter((a) => !a.mature);
+  const mature = assets.filter((a) => a.mature);
+
+  if (preference === "mature") return mature.length ? mature : normal;
+  return normal;
+}
+
 /** Context builder with media placeholders */
 export const _getContextV2 = internalQuery({
   args: { conversationId: v.id("conversations"), limit: v.number() },
@@ -983,10 +1006,21 @@ export const aiReply = action({
           return await done({ ok: true, kind: "text" });
         }
 
+        const preference = detectMaturePreference(lastUserMessage?.text || "");
+        const pool = filterAssetsByMaturePreference(assets, preference);
+        if (!pool.length) {
+          await ctx.runMutation(api.chat_actions._insertAIText, {
+            conversationId, ownerUserId: userId,
+            text: "no tengo algo listo pa enviarte justo ahora 😿",
+            shouldLikeUserMsg: shouldLike, lastUserMsgId: userMessageId,
+          });
+          return await done({ ok: true, kind: "text" });
+        }
+
         // Pick with deduplication (prefer unseen, avoid recent repeats)
         const seenList = mediaSeen?.[fastIntent.type] ?? [];
         const chosen = pickAssetWithDedup({
-          assets,
+          assets: pool,
           kind: fastIntent.type,
           tags: fastIntent.tags ?? [],
           seenList,
@@ -1203,10 +1237,24 @@ export const aiReply = action({
       return await done({ ok: true, kind: "text" });
     }
 
+    const preference = detectMaturePreference(lastUserMessage?.text || "");
+    const pool = filterAssetsByMaturePreference(assets, preference);
+    if (!pool.length) {
+      const fallbackText = decision.text || "no tengo algo listo pa enviarte justo ahora 🥰";
+      await ctx.runMutation(api.chat_actions._insertAIText, {
+        conversationId,
+        ownerUserId: userId,
+        text: fallbackText,
+        shouldLikeUserMsg: shouldLike,
+        lastUserMsgId: userMessageId,
+      });
+      return await done({ ok: true, kind: "text" });
+    }
+
     // Pick with deduplication (prefer unseen, avoid recent repeats)
     const seenList = mediaSeen?.[decision.type] ?? [];
     const chosen = pickAssetWithDedup({
-      assets,
+      assets: pool,
       kind: decision.type,
       tags: decision.tags ?? [],
       seenList,
