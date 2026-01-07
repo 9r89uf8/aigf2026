@@ -13,9 +13,9 @@ export default function GalleryManagerPage() {
   const media = useQuery(api.girls.listGirlGallery, { girlId: id });
   const updateMedia = useMutation(api.girls.updateGirlMedia);
   const deleteMedia = useMutation(api.girls.deleteGirlMedia);
-  const cfSignView = useAction(api.cdn.cfSignView);
+  const signViewBatch = useAction(api.cdn.signViewBatch);
 
-  const [mediaUrls, setMediaUrls] = useState({});
+  const [signedUrls, setSignedUrls] = useState({});
   const [editingItem, setEditingItem] = useState(null);
   const [refreshKey, setRefreshKey] = useState(0);
 
@@ -24,27 +24,27 @@ export default function GalleryManagerPage() {
     const fetchUrls = async () => {
       if (!media?.length) return;
 
-      const urlPromises = media.map(async (item) => {
-        try {
-          const { url } = await cfSignView({ key: item.objectKey });
-          return { id: item._id, url };
-        } catch (error) {
-          console.error(`Failed to get URL for ${item._id}:`, error);
-          return { id: item._id, url: null };
+      const keys = new Set();
+      media.forEach((item) => {
+        if (item.objectKeys?.length) {
+          item.objectKeys.forEach((key) => keys.add(key));
+        } else if (item.objectKey) {
+          keys.add(item.objectKey);
         }
       });
 
-      const results = await Promise.all(urlPromises);
-      const urlMap = results.reduce((acc, { id, url }) => {
-        acc[id] = url;
-        return acc;
-      }, {});
+      if (!keys.size) return;
 
-      setMediaUrls(urlMap);
+      try {
+        const { urls } = await signViewBatch({ keys: Array.from(keys) });
+        setSignedUrls(urls || {});
+      } catch (error) {
+        console.error("Failed to get media URLs:", error);
+      }
     };
 
     fetchUrls();
-  }, [media, cfSignView]);
+  }, [media, signViewBatch]);
 
   function handleRefresh() {
     setRefreshKey(prev => prev + 1);
@@ -130,24 +130,41 @@ export default function GalleryManagerPage() {
                 <div key={item._id} className="border rounded-lg overflow-hidden">
                   {/* Media Preview */}
                   <div className="bg-gray-100 flex items-center justify-center overflow-hidden">
-                    {mediaUrls[item._id] ? (
+                    {(() => {
+                      const keys = item.objectKeys?.length
+                        ? item.objectKeys
+                        : item.objectKey
+                          ? [item.objectKey]
+                          : [];
+                      const previewUrl = keys.length ? signedUrls[keys[0]] : null;
+                      const showCount = item.kind === "image" && keys.length > 1;
+
+                      return previewUrl ? (
                       item.kind === "video" ? (
                         <video
-                          src={mediaUrls[item._id]}
+                          src={previewUrl}
                           className="w-full h-auto max-h-80 object-contain"
                           controls
                           muted
                         />
                       ) : (
-                        <img
-                          src={mediaUrls[item._id]}
-                          alt="Gallery item"
-                          className="w-full h-auto max-h-80 object-contain"
-                        />
+                        <div className="relative w-full">
+                          <img
+                            src={previewUrl}
+                            alt="Gallery item"
+                            className="w-full h-auto max-h-80 object-contain"
+                          />
+                          {showCount && (
+                            <span className="absolute top-2 right-2 rounded-full bg-black/70 px-2 py-0.5 text-[11px] text-white">
+                              {keys.length}
+                            </span>
+                          )}
+                        </div>
                       )
-                    ) : (
-                      <div className="text-gray-400 text-sm">Loading...</div>
-                    )}
+                      ) : (
+                        <div className="text-gray-400 text-sm">Loading...</div>
+                      );
+                    })()}
                   </div>
 
                   {/* Controls */}
@@ -157,7 +174,7 @@ export default function GalleryManagerPage() {
                       <label className="block text-xs font-medium text-gray-700 mb-1">
                         Caption
                       </label>
-                      {editingItem === item._id ? (
+                      {editingItem === `${item._id}-text` ? (
                         <div className="flex gap-2">
                           <input
                             type="text"
@@ -182,9 +199,47 @@ export default function GalleryManagerPage() {
                       ) : (
                         <div
                           className="text-sm text-gray-600 cursor-pointer hover:bg-gray-50 p-1 rounded"
-                          onClick={() => setEditingItem(item._id)}
+                          onClick={() => setEditingItem(`${item._id}-text`)}
                         >
                           {item.text || "Click to add caption..."}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Location */}
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">
+                        Location
+                      </label>
+                      {editingItem === `${item._id}-location` ? (
+                        <div className="flex gap-2">
+                          <input
+                            type="text"
+                            defaultValue={item.location || ""}
+                            className="flex-1 px-2 py-1 text-sm border border-gray-300 rounded"
+                            placeholder="Add location..."
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") {
+                                handleUpdateItem(item._id, { location: e.target.value });
+                              } else if (e.key === "Escape") {
+                                setEditingItem(null);
+                              }
+                            }}
+                            autoFocus
+                          />
+                          <button
+                            onClick={() => setEditingItem(null)}
+                            className="text-xs px-2 py-1 text-gray-500 hover:text-gray-700"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      ) : (
+                        <div
+                          className="text-sm text-gray-600 cursor-pointer hover:bg-gray-50 p-1 rounded"
+                          onClick={() => setEditingItem(`${item._id}-location`)}
+                        >
+                          {item.location || "Click to add location..."}
                         </div>
                       )}
                     </div>

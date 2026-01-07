@@ -10,65 +10,157 @@ export default function MediaUploader({ girlId, surface, onUploaded }) {
   const finalize = useMutation(api.girls.finalizeGirlMedia);
   const [busy, setBusy] = useState(false);
   const [progress, setProgress] = useState(null);
+  const supportsGrouping = surface === "gallery" || surface === "posts";
+  const [groupImages, setGroupImages] = useState(false);
 
   async function onFiles(files) {
     if (!files.length) return;
 
     setBusy(true);
     setProgress({ current: 0, total: files.length });
+    let uploadedCount = 0;
 
     try {
-      for (let i = 0; i < files.length; i++) {
-        const file = files[i];
-        setProgress({ current: i + 1, total: files.length, fileName: file.name });
+      const updateProgress = (fileName) => {
+        uploadedCount += 1;
+        setProgress({ current: uploadedCount, total: files.length, fileName });
+      };
+
+      const uploadSingleFile = async (file) => {
+        updateProgress(file.name);
 
         // Validate file type
         if (!file.type.startsWith("image/") && !file.type.startsWith("video/") && !file.type.startsWith("audio/")) {
           console.error(`Skipping ${file.name}: unsupported file type`);
-          continue;
+          return;
         }
 
-        try {
-          // Get presigned upload URL
-          const { uploadUrl, objectKey } = await signMedia({
-            girlId,
-            contentType: file.type,
-            size: file.size,
-          });
+        // Get presigned upload URL
+        const { uploadUrl, objectKey } = await signMedia({
+          girlId,
+          contentType: file.type,
+          size: file.size,
+        });
 
-          // Upload directly to S3
-          const uploadResponse = await fetch(uploadUrl, {
-            method: "PUT",
-            headers: { "Content-Type": file.type },
-            body: file,
-          });
+        // Upload directly to S3
+        const uploadResponse = await fetch(uploadUrl, {
+          method: "PUT",
+          headers: { "Content-Type": file.type },
+          body: file,
+        });
 
-          if (!uploadResponse.ok) {
-            throw new Error(`Upload failed for ${file.name}`);
+        if (!uploadResponse.ok) {
+          throw new Error(`Upload failed for ${file.name}`);
+        }
+
+        // Finalize in database with surface-specific defaults
+        const base = {
+          girlId,
+          objectKey,
+          kind: file.type.startsWith("video/") ? "video" : file.type.startsWith("audio/") ? "audio" : "image",
+          isGallery: surface === "gallery",
+          isPost: surface === "posts",
+          isReplyAsset: surface === "assets",
+        };
+
+        const surfaceDefaults = getSurfaceDefaults(surface);
+
+        // Auto-mark audio assets as mature (typically used for moaning sounds)
+        if (surface === "assets" && file.type.startsWith("audio/")) {
+          surfaceDefaults.mature = true;
+        }
+
+        await finalize({ ...base, ...surfaceDefaults });
+      };
+
+      const uploadGroupedImages = async (imageFiles) => {
+        const objectKeys = [];
+        const failures = [];
+
+        for (const file of imageFiles) {
+          try {
+            updateProgress(file.name);
+            const { uploadUrl, objectKey } = await signMedia({
+              girlId,
+              contentType: file.type,
+              size: file.size,
+            });
+
+            const uploadResponse = await fetch(uploadUrl, {
+              method: "PUT",
+              headers: { "Content-Type": file.type },
+              body: file,
+            });
+
+            if (!uploadResponse.ok) {
+              throw new Error(`Upload failed for ${file.name}`);
+            }
+
+            objectKeys.push(objectKey);
+          } catch (error) {
+            failures.push(file.name);
+            console.error(`Failed to upload ${file.name}:`, error);
           }
+        }
 
-          // Finalize in database with surface-specific defaults
-          const base = {
-            girlId,
-            objectKey,
-            kind: file.type.startsWith("video/") ? "video" : file.type.startsWith("audio/") ? "audio" : "image",
-            isGallery: surface === "gallery",
-            isPost: surface === "posts",
-            isReplyAsset: surface === "assets",
-          };
-
-          const surfaceDefaults = getSurfaceDefaults(surface);
-
-          // Auto-mark audio assets as mature (typically used for moaning sounds)
-          if (surface === "assets" && file.type.startsWith("audio/")) {
-            surfaceDefaults.mature = true;
+        if (!objectKeys.length) {
+          if (failures.length) {
+            alert(`Failed to upload ${failures.join(", ")}`);
           }
+          return;
+        }
 
-          await finalize({ ...base, ...surfaceDefaults });
+        const base = {
+          girlId,
+          objectKey: objectKeys[0],
+          objectKeys,
+          kind: "image",
+          isGallery: surface === "gallery",
+          isPost: surface === "posts",
+          isReplyAsset: surface === "assets",
+        };
 
-        } catch (error) {
-          console.error(`Failed to upload ${file.name}:`, error);
-          alert(`Failed to upload ${file.name}: ${error.message}`);
+        const surfaceDefaults = getSurfaceDefaults(surface);
+        await finalize({ ...base, ...surfaceDefaults });
+
+        if (failures.length) {
+          alert(`Some images failed: ${failures.join(", ")}`);
+        }
+      };
+
+      if (supportsGrouping && groupImages) {
+        const imageFiles = files.filter((file) => file.type.startsWith("image/"));
+        const otherFiles = files.filter((file) => !file.type.startsWith("image/"));
+
+        if (imageFiles.length > 1) {
+          await uploadGroupedImages(imageFiles);
+        } else {
+          for (const file of imageFiles) {
+            try {
+              await uploadSingleFile(file);
+            } catch (error) {
+              console.error(`Failed to upload ${file.name}:`, error);
+              alert(`Failed to upload ${file.name}: ${error.message}`);
+            }
+          }
+        }
+
+        for (const file of otherFiles) {
+          try {
+            await uploadSingleFile(file);
+          } catch (error) {
+            console.error(`Failed to upload ${file.name}:`, error);
+            alert(`Failed to upload ${file.name}: ${error.message}`);
+          }
+        }
+      } else {
+        for (const file of files) {
+          try {
+            await uploadSingleFile(file);
+          } catch (error) {
+            console.error(`Failed to upload ${file.name}:`, error);
+            alert(`Failed to upload ${file.name}: ${error.message}`);
+          }
         }
       }
 
@@ -184,6 +276,22 @@ export default function MediaUploader({ girlId, surface, onUploaded }) {
             >
               Choose Files
             </label>
+            {supportsGrouping && (
+              <div className="mt-3 flex flex-col items-center gap-1 text-xs text-gray-600">
+                <label className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={groupImages}
+                    onChange={(e) => setGroupImages(e.target.checked)}
+                    className="rounded"
+                  />
+                  Subir varias imagenes como un solo {surface === "gallery" ? "item" : "post"}
+                </label>
+                <span className="text-[11px] text-gray-500">
+                  Solo imagenes; videos y audio se suben por separado.
+                </span>
+              </div>
+            )}
             <p className="text-xs text-gray-500 mt-2">
               {maxSizeText} • Images, videos, and audio supported
             </p>

@@ -71,6 +71,7 @@ const schema = defineSchema({
 
     // Common fields
     objectKey: v.string(),             // S3 key
+    objectKeys: v.optional(v.array(v.string())), // S3 keys for multi-image items
     text: v.optional(v.string()),      // caption / post text / asset description
     likeCount: v.number(),
     canBeLiked: v.boolean(),           // only used by gallery/posts

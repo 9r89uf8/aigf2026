@@ -425,6 +425,7 @@ export const finalizeGirlMedia = mutation({
   args: {
     girlId: v.id("girls"),
     objectKey: v.string(),
+    objectKeys: v.optional(v.array(v.string())),
     kind: v.union(v.literal("image"), v.literal("video"), v.literal("audio")),
 
     // Surfaces (exactly one must be true)
@@ -453,6 +454,22 @@ export const finalizeGirlMedia = mutation({
 
     validateSurfaceCombo(payload);
 
+    const objectKeys = Array.isArray(payload.objectKeys)
+      ? Array.from(new Set(payload.objectKeys.filter(Boolean)))
+      : [];
+
+    if (objectKeys.length > 0) {
+      if (payload.kind !== "image") {
+        throw new Error("Multiple media keys require image kind");
+      }
+      if (payload.isReplyAsset) {
+        throw new Error("Assets cannot have multiple images");
+      }
+    }
+
+    const primaryObjectKey = objectKeys.length ? objectKeys[0] : payload.objectKey;
+    if (!primaryObjectKey) throw new Error("objectKey is required");
+
     const ts = now();
     const doc = {
       girlId: payload.girlId,
@@ -460,7 +477,8 @@ export const finalizeGirlMedia = mutation({
       isGallery: payload.isGallery,
       isPost: payload.isPost,
       isReplyAsset: payload.isReplyAsset,
-      objectKey: payload.objectKey,
+      objectKey: primaryObjectKey,
+      objectKeys: objectKeys.length ? objectKeys : undefined,
       text: payload.text,
       location: payload.location,
       premiumOnly: payload.premiumOnly,
@@ -716,6 +734,9 @@ export const profilePage = query({
 
     const gallery = galleryRaw.map((m) => {
       const isLocked = m.premiumOnly && !viewerPremium;
+      const keys = m.objectKeys?.length ? m.objectKeys : (m.objectKey ? [m.objectKey] : []);
+      const visibleKeys = isLocked ? [] : keys;
+
       return {
         id: m._id,
         kind: m.kind,
@@ -723,8 +744,10 @@ export const profilePage = query({
         likeCount: m.likeCount,
         canBeLiked: m.canBeLiked,
         premiumOnly: m.premiumOnly,
+        location: m.location,
         createdAt: m.createdAt,
-        objectKey: isLocked ? undefined : m.objectKey, // Exclude key if locked
+        objectKey: visibleKeys[0],
+        objectKeys: visibleKeys.length ? visibleKeys : undefined,
       };
     });
 
@@ -736,16 +759,21 @@ export const profilePage = query({
       .order("desc")
       .take(postsLimit);
 
-    const posts = postsRaw.map((m) => ({
-      id: m._id,
-      kind: m.kind,
-      text: m.text,
-      likeCount: m.likeCount,
-      canBeLiked: m.canBeLiked,
-      location: m.location,
-      createdAt: m.createdAt,
-      objectKey: m.objectKey, // Always included (posts are never premium-gated)
-    }));
+    const posts = postsRaw.map((m) => {
+      const keys = m.objectKeys?.length ? m.objectKeys : (m.objectKey ? [m.objectKey] : []);
+
+      return {
+        id: m._id,
+        kind: m.kind,
+        text: m.text,
+        likeCount: m.likeCount,
+        canBeLiked: m.canBeLiked,
+        location: m.location,
+        createdAt: m.createdAt,
+        objectKey: keys[0],
+        objectKeys: keys.length ? keys : undefined,
+      };
+    });
 
     // 8. Collect all keys that need signing
     const keysToSign = [];
@@ -759,10 +787,18 @@ export const profilePage = query({
       if (h.cover?.objectKey) keysToSign.push(h.cover.objectKey);
     });
     gallery.forEach((g) => {
-      if (g.objectKey) keysToSign.push(g.objectKey);
+      if (g.objectKeys?.length) {
+        g.objectKeys.forEach((key) => keysToSign.push(key));
+      } else if (g.objectKey) {
+        keysToSign.push(g.objectKey);
+      }
     });
     posts.forEach((p) => {
-      if (p.objectKey) keysToSign.push(p.objectKey);
+      if (p.objectKeys?.length) {
+        p.objectKeys.forEach((key) => keysToSign.push(key));
+      } else if (p.objectKey) {
+        keysToSign.push(p.objectKey);
+      }
     });
 
     // 9. Return view model

@@ -26,7 +26,7 @@ export default function GirlProfilePage() {
   const [activeTab, setActiveTab] = useState("gallery"); // "gallery" | "posts"
   const [viewingStory, setViewingStory] = useState(null); // holds the selected story object
   const [viewingHighlightStory, setViewingHighlightStory] = useState(null);
-  const [selectedMedia, setSelectedMedia] = useState(null);
+  const [selectedMedia, setSelectedMedia] = useState(null); // { media, urls, index }
 
   // Sign all URLs in batch when profile data loads
   useEffect(() => {
@@ -138,14 +138,39 @@ export default function GirlProfilePage() {
   }
 
   function handleMediaImageClick(payload) {
+    const urls = payload.signedUrls?.length
+      ? payload.signedUrls
+      : payload.signedUrl
+        ? [payload.signedUrl]
+        : [];
+
     setSelectedMedia({
       media: payload.media,
-      url: payload.signedUrl,
+      urls,
+      index: payload.index || 0,
     });
   }
 
   function handleMediaClose() {
     setSelectedMedia(null);
+  }
+
+  function handleModalPrev() {
+    setSelectedMedia((prev) => {
+      if (!prev?.urls?.length) return prev;
+      const total = prev.urls.length;
+      const index = (prev.index - 1 + total) % total;
+      return { ...prev, index };
+    });
+  }
+
+  function handleModalNext() {
+    setSelectedMedia((prev) => {
+      if (!prev?.urls?.length) return prev;
+      const total = prev.urls.length;
+      const index = (prev.index + 1) % total;
+      return { ...prev, index };
+    });
   }
 
   function handleAvatarClick(url) {
@@ -154,7 +179,8 @@ export default function GirlProfilePage() {
       media: {
         text: girl?.name ? `Avatar de ${girl.name}` : "Avatar",
       },
-      url,
+      urls: [url],
+      index: 0,
     });
   }
 
@@ -352,8 +378,14 @@ export default function GirlProfilePage() {
                     </div>
                 ) : (
                     gallery.map((item) => {
-                      const isLocked = item.premiumOnly && !item.objectKey;
+                      const mediaKeys = item.objectKeys?.length
+                        ? item.objectKeys
+                        : item.objectKey
+                          ? [item.objectKey]
+                          : [];
+                      const isLocked = item.premiumOnly && mediaKeys.length === 0;
                       const isLiked = viewer.likedIds.includes(item.id);
+                      const mediaUrls = mediaKeys.map((key) => signedUrls[key] || null);
 
                       return isLocked ? (
                           <LockedMediaCard key={item.id} media={item} />
@@ -361,7 +393,7 @@ export default function GirlProfilePage() {
                           <MediaCard
                               key={item.id}
                               media={item}
-                              signedUrl={item.objectKey ? signedUrls[item.objectKey] : null}
+                              signedUrls={mediaUrls}
                               isLiked={isLiked}
                               onLikeToggle={handleLikeToggle}
                               onImageClick={handleMediaImageClick}
@@ -381,13 +413,19 @@ export default function GirlProfilePage() {
                     </div>
                 ) : (
                     posts.map((item) => {
+                      const mediaKeys = item.objectKeys?.length
+                        ? item.objectKeys
+                        : item.objectKey
+                          ? [item.objectKey]
+                          : [];
+                      const mediaUrls = mediaKeys.map((key) => signedUrls[key] || null);
                       const isLiked = viewer.likedIds.includes(item.id);
 
                       return (
                           <MediaCard
                               key={item.id}
                               media={item}
-                              signedUrl={item.objectKey ? signedUrls[item.objectKey] : null}
+                              signedUrls={mediaUrls}
                               isLiked={isLiked}
                               onLikeToggle={handleLikeToggle}
                               onImageClick={handleMediaImageClick}
@@ -439,7 +477,7 @@ export default function GirlProfilePage() {
             />
         )}
 
-        {selectedMedia && selectedMedia.url && (
+        {selectedMedia && selectedMedia.urls?.length > 0 && (
             <div
                 className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 px-4"
                 onClick={handleMediaClose}
@@ -456,8 +494,35 @@ export default function GirlProfilePage() {
                 >
                   Cerrar
                 </button>
+                {selectedMedia.urls.length > 1 && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={handleModalPrev}
+                      className="absolute left-3 top-1/2 -translate-y-1/2 rounded-full bg-black/70 p-2 text-white hover:bg-black/80"
+                      aria-label="Previous image"
+                    >
+                      <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                      </svg>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleModalNext}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full bg-black/70 p-2 text-white hover:bg-black/80"
+                      aria-label="Next image"
+                    >
+                      <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                      </svg>
+                    </button>
+                    <div className="absolute top-3 left-3 rounded-full bg-black/70 px-2 py-1 text-xs text-white">
+                      {selectedMedia.index + 1}/{selectedMedia.urls.length}
+                    </div>
+                  </>
+                )}
                 <img
-                    src={selectedMedia.url}
+                    src={selectedMedia.urls[selectedMedia.index]}
                     alt={selectedMedia.media?.text || "Preview"}
                     className="max-h-[90vh] w-full object-contain rounded-lg shadow-2xl"
                 />
