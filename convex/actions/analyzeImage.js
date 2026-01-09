@@ -3,7 +3,7 @@
 // convex/actions/analyzeImage.js
 // Image content analysis using AWS Rekognition (DetectLabels + DetectModerationLabels)
 import { action } from "../_generated/server";
-import { internal } from "../_generated/api";
+import { api, internal } from "../_generated/api";
 import { v } from "convex/values";
 import { DetectLabelsCommand, DetectModerationLabelsCommand } from "@aws-sdk/client-rekognition";
 import { rekognition, BUCKET } from "../rekognitionClient";
@@ -19,8 +19,9 @@ export const analyzeImageContent = action({
   args: {
     messageId: v.id("messages"),
     objectKey: v.string(),  // S3 key (must be JPEG/PNG)
+    conversationId: v.optional(v.id("conversations")),
   },
-  handler: async (ctx, { messageId, objectKey }) => {
+  handler: async (ctx, { messageId, objectKey, conversationId }) => {
     try {
       const s3Object = { Bucket: BUCKET, Name: objectKey };
 
@@ -112,6 +113,14 @@ export const analyzeImageContent = action({
       });
 
       return { success: false, error: error.message };
+    } finally {
+      if (conversationId) {
+        const d = Math.floor(2500 + Math.random() * 3500); // 2.5-6s
+        await ctx.scheduler.runAfter(d, api.chat_actions.aiReply, {
+          conversationId,
+          userMessageId: messageId,
+        });
+      }
     }
   },
 });

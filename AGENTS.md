@@ -8,3 +8,4 @@ Content docs (what they cover):
 - [STORIES.md](STORIES.md) - stories data, upload flow, and viewer behavior.
 - [GIRLS-MEDIA-GALLERY-POSTS.md](GIRLS-MEDIA-GALLERY-POSTS.md) - gallery/post media data model, admin upload, and public rendering.
 - [AI-REPLY-ASSETS.md](AI-REPLY-ASSETS.md) - AI reply assets (isReplyAsset), mature filtering, and chat media selection flow.
+- [CHAT-MEDIA-FLOW.md](CHAT-MEDIA-FLOW.md) - user media send pipeline, analysis, and AI response behavior.

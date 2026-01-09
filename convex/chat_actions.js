@@ -388,6 +388,11 @@ function detectMaturePreference(text = "") {
   return null;
 }
 
+function isExplicitSummary(summary = "") {
+  const s = (summary || "").toLowerCase();
+  return s.includes("mod:");
+}
+
 function filterAssetsByMaturePreference(assets, preference) {
   if (!preference) return assets;
 
@@ -597,15 +602,22 @@ responde con UNA sola línea (1–8 palabras), español minúsculas, con emojis 
 
 
 // Micro-LLM helper: React to user's media
-async function microReactToUserMedia(kind, transcriptOrLabels = "") {
+async function microReactToUserMedia(kind, transcriptOrLabels = "", opts = {}) {
   const sys = `${TEXTING_STYLE_MX_TEEN}
 reacciona con UNA sola línea (1–8 palabras), español mexicano, minúsculas, con emojis si aplica.`;
   const detail = (transcriptOrLabels || "").slice(0, 240);
+  const explicit = !!opts.explicit;
+  const toneImage = explicit
+    ? "tono: muy caliente y explicito, menciona algo de su pito."
+    : "tono: coqueta y light, sin detalles explicitos.";
+  const toneVideo = explicit
+    ? "tono: muy caliente y explicito."
+    : "tono: coqueta y light, sin detalles explicitos.";
   const user = kind === "audio"
     ? `reacciona al audio del usuario. puntos clave: ${detail}`
     : kind === "image"
-      ? `reacciona a la imagen del usuario. menciona algo de su pito. etiquetas/caption: ${detail}`
-      : `reacciona al video del usuario. etiquetas/caption: ${detail}`;
+      ? `reacciona a la imagen del usuario. ${toneImage} etiquetas/caption: ${detail}`
+      : `reacciona al video del usuario. ${toneVideo} etiquetas/caption: ${detail}`;
   return callLLMShort({
     baseUrl: process.env.LLM_BASE_URL_PRIMARY,
     apiKey: process.env.LLM_API_KEY_PRIMARY,
@@ -831,7 +843,8 @@ export const aiReply = action({
         } else {
           // image or video
           const detail = [mAnchor.text, mAnchor.mediaSummary].filter(Boolean).join(" | ");
-          line = await microReactToUserMedia(mAnchor.kind, detail);
+          const explicit = isExplicitSummary(mAnchor.mediaSummary || "");
+          line = await microReactToUserMedia(mAnchor.kind, detail, { explicit });
         }
         await ctx.runMutation(api.chat_actions._insertAIText, {
           conversationId, ownerUserId: mAnchor.ownerUserId, text: line || "si 👍",
@@ -884,7 +897,8 @@ export const aiReply = action({
         detail = parts.join(" | ");
       }
       try {
-        const line = await microReactToUserMedia(lastUserMessage.kind, detail);
+        const explicit = isExplicitSummary(lastUserMediaSummary);
+        const line = await microReactToUserMedia(lastUserMessage.kind, detail, { explicit });
         await ctx.runMutation(api.chat_actions._insertAIText, {
           conversationId, ownerUserId: userId, text: line || "si 👍",
           shouldLikeUserMsg: shouldLike, lastUserMsgId: userMessageId,

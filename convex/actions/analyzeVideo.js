@@ -3,7 +3,7 @@
 // convex/actions/analyzeVideo.js
 // Video content analysis via frame sampling + AWS Rekognition
 import { action } from "../_generated/server";
-import { internal } from "../_generated/api";
+import { api, internal } from "../_generated/api";
 import { v } from "convex/values";
 import { DetectModerationLabelsCommand } from "@aws-sdk/client-rekognition";
 import { GetObjectCommand } from "@aws-sdk/client-s3";
@@ -90,8 +90,9 @@ export const analyzeVideoContent = action({
     messageId: v.id("messages"),
     objectKey: v.string(),
     timestampsMs: v.optional(v.array(v.number())), // Default: [1500] (middle frame)
+    conversationId: v.optional(v.id("conversations")),
   },
-  handler: async (ctx, { messageId, objectKey, timestampsMs = [1500] }) => {
+  handler: async (ctx, { messageId, objectKey, timestampsMs = [1500], conversationId }) => {
     let localPath = null;
 
     try {
@@ -188,6 +189,13 @@ export const analyzeVideoContent = action({
       // Cleanup: remove temporary video file
       if (localPath) {
         await fs.unlink(localPath).catch(() => {});
+      }
+      if (conversationId) {
+        const d = Math.floor(3500 + Math.random() * 3500); // 3.5-7s
+        await ctx.scheduler.runAfter(d, api.chat_actions.aiReply, {
+          conversationId,
+          userMessageId: messageId,
+        });
       }
     }
   },

@@ -440,26 +440,18 @@ export const sendMediaMessage = mutation({
 
     // Schedule media analysis (Rekognition)
     if (kind === "image") {
-      // Images: analyze immediately, AI reply with jitter
+      // Images: analyze immediately, reply scheduled after analysis
       await ctx.scheduler.runAfter(0, api.actions.analyzeImage.analyzeImageContent, {
         messageId,
         objectKey,
-      });
-      const d = Math.floor(2500 + Math.random() * 3500); // 2.5-6s
-      await ctx.scheduler.runAfter(d, api.chat_actions.aiReply, {
         conversationId,
-        userMessageId: messageId
       });
     } else if (kind === "video") {
-      // Videos: frame sampling takes longer, AI reply with jitter
+      // Videos: frame sampling takes longer, reply scheduled after analysis
       await ctx.scheduler.runAfter(0, api.actions.analyzeVideo.analyzeVideoContent, {
         messageId,
         objectKey,
-      });
-      const d = Math.floor(3500 + Math.random() * 3500); // 3.5-7s
-      await ctx.scheduler.runAfter(d, api.chat_actions.aiReply, {
         conversationId,
-        userMessageId: messageId
       });
     }
 
