@@ -40,6 +40,7 @@ Notes:
 - objectKey is always set to the first key for compatibility.
 - objectKeys is only used for multi image gallery/posts.
 - For video/audio items, objectKeys is not used.
+- Reply assets can include bodyParts tags (senos, culo, vagina) for AI selection.
 
 ## Validation rules
 File: convex/girls.js -> validateSurfaceCombo

@@ -18,6 +18,11 @@ export default function AssetsManagerPage() {
   const [mediaUrls, setMediaUrls] = useState({});
   const [editingItem, setEditingItem] = useState(null);
   const [refreshKey, setRefreshKey] = useState(0);
+  const bodyPartOptions = [
+    { value: "senos", label: "Senos / pechos" },
+    { value: "culo", label: "Culo / nalgas" },
+    { value: "vagina", label: "Vagina" },
+  ];
 
   // Fetch CloudFront signed URLs for media thumbnails
   useEffect(() => {
@@ -58,6 +63,21 @@ export default function AssetsManagerPage() {
     } catch (error) {
       alert(error?.message ?? "Failed to update item");
     }
+  }
+
+  function handleBodyPartToggle(item, value) {
+    const current = new Set(item.bodyParts || []);
+    if (current.has(value)) {
+      current.delete(value);
+    } else {
+      current.add(value);
+    }
+    const next = Array.from(current);
+    const updates = { bodyParts: next };
+    if (next.length && !item.mature) {
+      updates.mature = true;
+    }
+    handleUpdateItem(item._id, updates);
   }
 
   async function handleDeleteItem(itemId) {
@@ -102,6 +122,7 @@ export default function AssetsManagerPage() {
             <li>• Assets are used by the AI to respond with relevant media</li>
             <li>• Each asset MUST have a descriptive text that explains when to use it</li>
             <li>• Mark assets as "mature" if they contain adult content</li>
+            <li>• Use body part tags to target specific mature requests</li>
             <li>• Assets cannot be liked by users (they're for AI use only)</li>
           </ul>
         </div>
@@ -238,6 +259,31 @@ export default function AssetsManagerPage() {
                         </span>
                       )}
                     </div>
+
+                    {/* Body Part Tags */}
+                    {item.kind !== "audio" && (
+                      <div className="space-y-2">
+                        <div className="text-xs font-medium text-gray-700">
+                          Body parts (mature targeting)
+                        </div>
+                        <div className="grid grid-cols-2 gap-2">
+                          {bodyPartOptions.map((option) => (
+                            <label key={option.value} className="flex items-center gap-2 text-xs text-gray-700">
+                              <input
+                                type="checkbox"
+                                checked={(item.bodyParts || []).includes(option.value)}
+                                onChange={() => handleBodyPartToggle(item, option.value)}
+                                className="rounded"
+                              />
+                              <span>{option.label}</span>
+                            </label>
+                          ))}
+                        </div>
+                        <p className="text-[11px] text-gray-500">
+                          Selecting a body part marks the asset as mature.
+                        </p>
+                      </div>
+                    )}
 
                     {/* Asset Info */}
                     <div className="pt-2 border-t">

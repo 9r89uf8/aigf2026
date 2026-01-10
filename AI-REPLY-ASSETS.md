@@ -24,11 +24,12 @@ It focuses on isReplyAsset media and the chat reply pipeline.
 
 ## Data Model (girl_media)
 - Table: girl_media
-- Key fields: girlId, kind, objectKey, text, mature
+- Key fields: girlId, kind, objectKey, text, mature, bodyParts
 - Surface flags: isGallery, isPost, isReplyAsset (exactly one true)
 - isReplyAsset marks media that can be sent by the AI
 - text is required for reply assets and drives tag matching
 - mature is required for reply assets and used for filtering
+- bodyParts is optional for reply assets (senos, culo, vagina)
 - published controls AI availability
 - objectKeys is not allowed for reply assets
 
@@ -36,6 +37,7 @@ It focuses on isReplyAsset media and the chat reply pipeline.
 - Implemented in convex/girls.js validateSurfaceCombo
 - Exactly one surface must be true
 - Reply assets require a descriptive text and a mature flag
+- Body parts are only allowed on reply assets and require mature true
 - Reply assets cannot be liked, do not use premiumOnly, and have no location
 - Multi image items are only allowed for gallery/posts
 
@@ -46,6 +48,7 @@ It focuses on isReplyAsset media and the chat reply pipeline.
 - The file is uploaded directly to S3
 - convex/girls.js finalizeGirlMedia stores metadata
 - text and mature are set by admin in the UI
+- bodyParts are set by admin via asset checkboxes
 - published controls if AI can use the asset
 
 ## How the AI Picks Media: High Level
@@ -76,6 +79,7 @@ It focuses on isReplyAsset media and the chat reply pipeline.
 - Normal keywords include: normal, inocente, soft, sin sexo, sin desnudos
 - Spicy keywords include: 18+, sexy, caliente, hot, spicy, xxx, desnuda, sin ropa, nudes, pack, onlyfans, porno, culo, tetas
 - If no preference is detected, preference defaults to "normal" (non-mature only)
+- Body-part intent forces preference to "mature" even without spicy keywords
 
 ## Mature Filtering Behavior
 - filterAssetsByMaturePreference applies the preference
@@ -84,6 +88,14 @@ It focuses on isReplyAsset media and the chat reply pipeline.
 - if "mature" yields none, it falls back to normal assets
 - if "normal" yields none, it falls back to text
 - this behavior is used in both fast intent and LLM paths
+
+## Body-part Targeting (Reply Assets)
+- detectBodyPartFromText returns the first body-part match in the user text
+- Supported tags: senos, culo, vagina
+- Alias groups: senos (senos, pechos, chichis, tetas, bubis, lolas, melones, globos, gomas); culo (nalgas, pompis, culo, orto, cola, pandero, cachetes, trasero); vagina (vagina, panocha, coño, concha, chocho, papaya, almeja, cuca)
+- Body-part matches filter assets by bodyParts before dedup and tag matching
+- If no assets match the body part, it falls back to any mature asset
+- Body-part intent without a supported tag (e.g., piernas) still forces mature filtering
 
 ## Asset Selection and Dedup
 - listGirlAssetsForReply loads assets for girlId + kind + published
@@ -199,4 +211,5 @@ End of document.
 - Record date, file, and reason
 - Example: 2026-01-01 chat_actions.js add spicy filter
 - 2026-01-09 chat_actions.js default preference to normal to avoid mature assets without explicit ask
+- 2026-01-09 chat_actions.js add body-part targeting with mature-only intent and asset tags
 - End

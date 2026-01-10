@@ -12,6 +12,7 @@ function randomLikeCount(min = 25, max = 400) {
 }
 const STATUS_TTL_MS = 24 * 60 * 60 * 1000;
 const STATUS_MAX_LEN = 60;
+const BODY_PARTS = ["senos", "culo", "vagina"];
 
 function normalizeStatusText(input) {
   if (input === undefined) return { hasInput: false };
@@ -22,8 +23,15 @@ function normalizeStatusText(input) {
   }
   return { hasInput: true, text: trimmed };
 }
+
+function normalizeBodyParts(input) {
+  if (!Array.isArray(input)) return [];
+  const unique = Array.from(new Set(input.filter(Boolean)));
+  return unique.filter((part) => BODY_PARTS.includes(part));
+}
 function validateSurfaceCombo(payload) {
   const { isGallery, isPost, isReplyAsset } = payload;
+  const bodyParts = normalizeBodyParts(payload.bodyParts);
 
   // Require exactly one surface for simplicity (keeps admin UX clear)
   const count = [isGallery, isPost, isReplyAsset].filter(Boolean).length;
@@ -34,9 +42,12 @@ function validateSurfaceCombo(payload) {
     if (!payload.text || payload.text.trim().length < 3)
       throw new Error("Assets require a descriptive text");
     if (payload.mature === undefined) throw new Error("Assets require 'mature' flag");
+    if (bodyParts.length && payload.mature !== true) throw new Error("Body parts require mature assets");
     if (payload.canBeLiked) throw new Error("Assets cannot be likeable");
     if (payload.premiumOnly) throw new Error("Assets ignore 'premiumOnly'");
     if (payload.location) throw new Error("Assets do not have a location");
+  } else if (bodyParts.length) {
+    throw new Error("Body parts only apply to assets");
   }
   if (isGallery) {
     // Optional text ok
@@ -435,6 +446,11 @@ export const finalizeGirlMedia = mutation({
 
     // Common/optional fields
     text: v.optional(v.string()),
+    bodyParts: v.optional(v.array(v.union(
+      v.literal("senos"),
+      v.literal("culo"),
+      v.literal("vagina"),
+    ))),
     location: v.optional(v.string()),   // posts
     premiumOnly: v.optional(v.boolean()), // gallery only
     canBeLiked: v.optional(v.boolean()),  // gallery/post
@@ -451,6 +467,8 @@ export const finalizeGirlMedia = mutation({
     payload.premiumOnly ??= false;
     payload.canBeLiked ??= false;
     payload.mature ??= false;
+    const bodyParts = normalizeBodyParts(payload.bodyParts);
+    payload.bodyParts = bodyParts;
 
     validateSurfaceCombo(payload);
 
@@ -490,6 +508,7 @@ export const finalizeGirlMedia = mutation({
       createdAt: ts,
       updatedAt: ts,
     };
+    if (bodyParts.length) doc.bodyParts = bodyParts;
 
     const id = await ctx.db.insert("girl_media", doc);
 
@@ -512,6 +531,11 @@ export const updateGirlMedia = mutation({
     premiumOnly: v.optional(v.boolean()),
     canBeLiked: v.optional(v.boolean()),
     mature: v.optional(v.boolean()),
+    bodyParts: v.optional(v.array(v.union(
+      v.literal("senos"),
+      v.literal("culo"),
+      v.literal("vagina"),
+    ))),
     likeCount: v.optional(v.number()),
     published: v.optional(v.boolean()),
   },
@@ -524,9 +548,28 @@ export const updateGirlMedia = mutation({
     if (media.isReplyAsset) {
       if (args.canBeLiked === true) throw new Error("Assets cannot be likeable");
       if (args.premiumOnly === true) throw new Error("Assets ignore 'premiumOnly'");
+    } else if (args.bodyParts && args.bodyParts.length) {
+      throw new Error("Body parts only apply to assets");
     }
-    const { mediaId, ...updates } = args;
-    await ctx.db.patch(mediaId, { ...updates, updatedAt: now() });
+
+    const updates = { ...args };
+    delete updates.mediaId;
+
+    const currentBodyParts = normalizeBodyParts(media.bodyParts);
+    const nextBodyParts = args.bodyParts !== undefined
+      ? normalizeBodyParts(args.bodyParts)
+      : currentBodyParts;
+    const nextMature = args.mature ?? media.mature;
+
+    if (media.isReplyAsset && nextBodyParts.length && !nextMature) {
+      throw new Error("Body parts require mature assets");
+    }
+
+    if (args.bodyParts !== undefined) {
+      updates.bodyParts = nextBodyParts;
+    }
+
+    await ctx.db.patch(media._id, { ...updates, updatedAt: now() });
     return true;
   },
 });

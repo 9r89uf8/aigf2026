@@ -73,6 +73,11 @@ const schema = defineSchema({
     objectKey: v.string(),             // S3 key
     objectKeys: v.optional(v.array(v.string())), // S3 keys for multi-image items
     text: v.optional(v.string()),      // caption / post text / asset description
+    bodyParts: v.optional(v.array(v.union(
+      v.literal("senos"),
+      v.literal("culo"),
+      v.literal("vagina"),
+    ))), // reply assets only
     likeCount: v.number(),
     canBeLiked: v.boolean(),           // only used by gallery/posts
     mature: v.boolean(),               // required for assets; optional elsewhere

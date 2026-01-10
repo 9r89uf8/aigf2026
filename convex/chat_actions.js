@@ -120,6 +120,10 @@ function normalizeMx(s = "") {
     .trim();
 }
 
+function escapeRegExp(value) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
 // --- BURST CONFIG (timing only; used by smart split delays) ---
 const BURST_CFG = {
   zeroDelayFirstChance: 0.35,   // chance first part has no delay
@@ -353,6 +357,24 @@ function extractTags(t) {
   return tags.slice(0, 3);
 }
 
+const BODY_PART_ALIASES = {
+  senos: ["senos", "pechos", "chichis", "tetas", "bubis", "lolas", "melones", "globos", "gomas"],
+  culo: ["nalgas", "pompis", "culo", "orto", "cola", "pandero", "cachetes", "trasero"],
+  vagina: ["vagina", "panocha", "coño", "concha", "chocho", "papaya", "almeja", "cuca"],
+};
+const BODY_PART_MATCHERS = Object.entries(BODY_PART_ALIASES).map(([part, aliases]) => {
+  const normalized = Array.from(new Set([part, ...aliases].map((alias) => normalizeMx(alias)).filter(Boolean)));
+  return {
+    part,
+    regexes: normalized.map((alias) => new RegExp(`\\b${escapeRegExp(alias)}\\b`)),
+  };
+});
+const BODY_PART_MATURE_ONLY = ["pierna", "piernas"];
+const BODY_PART_MATURE_ONLY_REGEXES = BODY_PART_MATURE_ONLY.map((alias) => {
+  const normalized = normalizeMx(alias);
+  return new RegExp(`\\b${escapeRegExp(normalized)}\\b`);
+});
+
 // Regex-based intent detection
 const RE_AUDIO = /\b(audio|nota de voz|vn|voz|voice|grab(a|ame)|hazme.*audio|mand(a|ame).*(audio|nota))\b/;
 const RE_IMAGE = /\b(foto|fotito|pic|selfie|imagen|pack)\b|mand(a|ame).*(foto|selfie|pic|imagen)|rola(me)?.*(foto|selfie)/;
@@ -373,6 +395,30 @@ function detectFastIntentFromText(text) {
   if (RE_VIDEO.test(t)) return { type: "video", tags: extractTags(t) };
 
   return null;
+}
+
+function detectBodyPartFromText(text = "") {
+  const t = normalizeMx(text);
+  if (!t) return null;
+
+  let best = null;
+  for (const { part, regexes } of BODY_PART_MATCHERS) {
+    for (const re of regexes) {
+      const idx = t.search(re);
+      if (idx !== -1 && (!best || idx < best.index)) {
+        best = { part, index: idx };
+      }
+    }
+  }
+
+  return best ? best.part : null;
+}
+
+function detectBodyPartIntent(text = "", bodyPart = null) {
+  if (bodyPart) return true;
+  const t = normalizeMx(text);
+  if (!t) return false;
+  return BODY_PART_MATURE_ONLY_REGEXES.some((re) => re.test(t));
 }
 
 function detectMaturePreference(text = "") {
@@ -401,6 +447,11 @@ function filterAssetsByMaturePreference(assets, preference) {
 
   if (preference === "mature") return mature.length ? mature : normal;
   return normal;
+}
+
+function filterAssetsByBodyPart(assets, bodyPart) {
+  if (!bodyPart) return assets;
+  return assets.filter((asset) => Array.isArray(asset.bodyParts) && asset.bodyParts.includes(bodyPart));
 }
 
 /** Context builder with media placeholders */
@@ -1020,7 +1071,9 @@ export const aiReply = action({
           return await done({ ok: true, kind: "text" });
         }
 
-        const preference = detectMaturePreference(lastUserMessage?.text || "");
+        const bodyPart = detectBodyPartFromText(lastUserMessage?.text || "");
+        const bodyPartIntent = detectBodyPartIntent(lastUserMessage?.text || "", bodyPart);
+        const preference = bodyPartIntent ? "mature" : detectMaturePreference(lastUserMessage?.text || "");
         const pool = filterAssetsByMaturePreference(assets, preference);
         if (!pool.length) {
           await ctx.runMutation(api.chat_actions._insertAIText, {
@@ -1030,11 +1083,13 @@ export const aiReply = action({
           });
           return await done({ ok: true, kind: "text" });
         }
+        const bodyPartPool = bodyPart ? filterAssetsByBodyPart(pool, bodyPart) : pool;
+        const finalPool = bodyPart && bodyPartPool.length ? bodyPartPool : pool;
 
         // Pick with deduplication (prefer unseen, avoid recent repeats)
         const seenList = mediaSeen?.[fastIntent.type] ?? [];
         const chosen = pickAssetWithDedup({
-          assets: pool,
+          assets: finalPool,
           kind: fastIntent.type,
           tags: fastIntent.tags ?? [],
           seenList,
@@ -1251,7 +1306,9 @@ export const aiReply = action({
       return await done({ ok: true, kind: "text" });
     }
 
-    const preference = detectMaturePreference(lastUserMessage?.text || "");
+    const bodyPart = detectBodyPartFromText(lastUserMessage?.text || "");
+    const bodyPartIntent = detectBodyPartIntent(lastUserMessage?.text || "", bodyPart);
+    const preference = bodyPartIntent ? "mature" : detectMaturePreference(lastUserMessage?.text || "");
     const pool = filterAssetsByMaturePreference(assets, preference);
     if (!pool.length) {
       const fallbackText = decision.text || "no tengo algo listo pa enviarte justo ahora 🥰";
@@ -1264,11 +1321,13 @@ export const aiReply = action({
       });
       return await done({ ok: true, kind: "text" });
     }
+    const bodyPartPool = bodyPart ? filterAssetsByBodyPart(pool, bodyPart) : pool;
+    const finalPool = bodyPart && bodyPartPool.length ? bodyPartPool : pool;
 
     // Pick with deduplication (prefer unseen, avoid recent repeats)
     const seenList = mediaSeen?.[decision.type] ?? [];
     const chosen = pickAssetWithDedup({
-      assets: pool,
+      assets: finalPool,
       kind: decision.type,
       tags: decision.tags ?? [],
       seenList,
