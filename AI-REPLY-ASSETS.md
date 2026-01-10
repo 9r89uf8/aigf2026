@@ -73,8 +73,9 @@ It focuses on isReplyAsset media and the chat reply pipeline.
 - detectMaturePreference inspects the last user text
 - If the user asks for normal/soft, preference is "normal"
 - If the user uses spicy terms, preference is "mature"
-- Keywords include: pack, culo, tetas, sexy, caliente, etc
-- If no preference is detected, no filtering is applied
+- Normal keywords include: normal, inocente, soft, sin sexo, sin desnudos
+- Spicy keywords include: 18+, sexy, caliente, hot, spicy, xxx, desnuda, sin ropa, nudes, pack, onlyfans, porno, culo, tetas
+- If no preference is detected, preference defaults to "normal" (non-mature only)
 
 ## Mature Filtering Behavior
 - filterAssetsByMaturePreference applies the preference
@@ -197,4 +198,5 @@ End of document.
 - Keep a short note when you change intent, filtering, or selection
 - Record date, file, and reason
 - Example: 2026-01-01 chat_actions.js add spicy filter
+- 2026-01-09 chat_actions.js default preference to normal to avoid mature assets without explicit ask
 - End

@@ -377,7 +377,7 @@ function detectFastIntentFromText(text) {
 
 function detectMaturePreference(text = "") {
   const t = normalizeMx(text);
-  if (!t) return null;
+  if (!t) return "normal";
 
   if (/\b(normal|inocente|soft|sin sexo|sin desnudos)\b/.test(t)) return "normal";
 
@@ -385,7 +385,7 @@ function detectMaturePreference(text = "") {
     return "mature";
   }
 
-  return null;
+  return "normal";
 }
 
 function isExplicitSummary(summary = "") {
